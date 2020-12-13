@@ -1,6 +1,7 @@
 from __future__ import division
-import numpy as np
+
 import tensorflow as tf
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import horovod.tensorflow as hvd
 import os
@@ -9,6 +10,7 @@ from os.path import join, dirname
 import sys
 import argparse
 from shutil import copyfile, rmtree
+
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
@@ -16,7 +18,7 @@ from models import rcnn as model
 from train.model_config import roi_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_bn_decay, get_learning_rate, get_train_op, get_config, get_weight_decay, \
-    save_best_sess, save_sess
+    save_best_sess
 
 hvd.init()
 is_hvd_root = hvd.rank() == 0
@@ -50,7 +52,6 @@ DatasetValid = Dataset(task="validation",
 training_batch = DatasetTrain.batch_sum
 validation_batch = DatasetValid.batch_sum
 decay_batch = training_batch * config.decay_epochs
-
 
 input_coors_p, input_features_p, input_num_list_p, input_bbox_p = \
     model.inputs_placeholder(input_channels=1,
@@ -181,6 +182,7 @@ def valid_one_epoch(sess, data_generator, vars, writer):
         print("Validation: Total IoU={:0.2f}".format(iou))
     return iou
 
+
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
         train_generator = DatasetTrain.train_generator()
@@ -191,12 +193,13 @@ def main():
             if is_hvd_root:
                 print("Epoch: {}".format(epoch))
             step = train_one_epoch(mon_sess, step, train_generator, vars, training_writer)
-            if epoch % config.valid_interval == 0:# and EPOCH != 0:
+            if epoch % config.valid_interval == 0:  # and EPOCH != 0:
                 result = valid_one_epoch(mon_sess, valid_generator, vars, validation_writer)
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
-                                                 log_dir, saver, replace=False, log=is_hvd_root, inverse=False, save_anyway=False)
+                                                 log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
+                                                 save_anyway=False)
+
 
 if __name__ == '__main__':
     main()
-

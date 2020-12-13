@@ -1,16 +1,16 @@
-import numpy as np
 import os
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 from tqdm import tqdm
-# tf.enable_eager_execution()
-from models.tf_ops.custom_ops import grid_sampling, dynamic_voxelization
-from models.utils.ops_wrapper import kernel_conv_wrapper
-from models.tf_ops.test.test_utils import fetch_instance, plot_points
+
 from data.kitti_generator import Dataset
+# tf.enable_eager_execution()
+from models.tf_ops.custom_ops import grid_sampling
+from models.tf_ops.test.test_utils import fetch_instance, plot_points
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-
 
 batch_size = 16
 epoch = 50
@@ -26,13 +26,13 @@ if __name__ == '__main__':
         features_d = np.zeros_like(coors_d)
         accu = 0
         for j in range(len(num_list_d)):
-            features_d[int(accu):int(accu+num_list_d[j]), :] += np.random.randint(low=0, high=255, size=3).astype(np.float32)
+            features_d[int(accu):int(accu + num_list_d[j]), :] += np.random.randint(low=0, high=255, size=3).astype(
+                np.float32)
             accu += num_list_d[j]
         input_coors.append(coors_d)
         input_num_list.append(num_list_d)
         input_features.append(features_d)
     Dataset.stop()
-
 
     coors_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
@@ -62,19 +62,19 @@ if __name__ == '__main__':
         run_metadata = tf.RunMetadata()
         for i in tqdm(range(epoch)):
             output_coors, output_features, output_num_list, output_idx = sess.run([coors, features, num_list, idx],
-                                                                  feed_dict={coors_p: input_coors[i],
-                                                                             features_p: input_features[i],
-                                                                             num_list_p: input_num_list[i]},
-                                                                  options=run_options,
-                                                                  run_metadata=run_metadata)
+                                                                                  feed_dict={coors_p: input_coors[i],
+                                                                                             features_p: input_features[
+                                                                                                 i],
+                                                                                             num_list_p: input_num_list[
+                                                                                                 i]},
+                                                                                  options=run_options,
+                                                                                  run_metadata=run_metadata)
             tl = timeline.Timeline(run_metadata.step_stats)
             ctf = tl.generate_chrome_trace_format()
             with open('timeline_grid_sampling_{}.json'.format(i), 'w') as f:
                 f.write(ctf)
 
             print("finished.")
-
-
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
 
@@ -95,4 +95,3 @@ if __name__ == '__main__':
     #                         center_coors=output_centers,
     #                         resolution=0.1,
     #                         name='voxel_sample_rgb')
-

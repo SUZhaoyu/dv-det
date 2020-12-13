@@ -1,10 +1,11 @@
 from __future__ import division
 
+from copy import deepcopy
+
+import cv2
 import numpy as np
 from numpy.linalg import multi_dot
-import cv2
 from shapely.geometry import Polygon
-from copy import deepcopy
 
 '''
 This augmentation is performed instance-wised, not applicable to batch-processing.
@@ -25,6 +26,7 @@ def gauss_dist(mean, shift):
         return return_value
     else:
         return mean
+
 
 def uni_dist(mean, shift):
     if shift != 0:
@@ -65,7 +67,6 @@ def flip(flip=False, T=None):
                                 [0, flip_y, 0],
                                 [0, 0, 1]]))
         return T, flip_y
-
 
 
 def rotate(rotate_range, mode, angle=None, T=None):
@@ -186,7 +187,7 @@ def img_feature_value_perturbation(map, noise_scale=0, offset_scale=0, depth_sca
             depth_wise = uni_dist(mean=0, shift=span * depth_scale) * map[mask, 0] / depth_span
         else:
             raise NameError("Unsupported random mode: {}".format(mode))
-        map[mask, c] =  map[mask, c] + noise[mask] + offset + depth_wise
+        map[mask, c] = map[mask, c] + noise[mask] + offset + depth_wise
 
     return map
 
@@ -242,8 +243,7 @@ def get_interior_scene_points(points, bbox, limit, offset=[0.5, 0.5, 2.]):
     if np.sum(interior_idx) > limit:
         return True, points
     else:
-        return False, points[interior_idx==0]
-
+        return False, points[interior_idx == 0]
 
 
 def ground_align(points, bbox, ground, trans_list):
@@ -263,11 +263,11 @@ def ground_align(points, bbox, ground, trans_list):
     return np.array(points), np.array(bbox)
 
 
-def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, object_collections, bbox_collections, instance_num, maximum_interior_points):
+def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, object_collections, bbox_collections,
+                           instance_num, maximum_interior_points):
     bbox_polygons = []
     output_points = []
     output_bboxes = []
-
 
     for i in range(len(scene_bboxes)):
         bbox_polygons.append(get_polygon_from_bbox(deepcopy(scene_bboxes[i])))
@@ -329,26 +329,3 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
         output_bboxes = np.stack(output_bboxes, axis=0)
 
     return output_points, output_bboxes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

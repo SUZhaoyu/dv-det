@@ -1,14 +1,14 @@
-import numpy as np
 import os
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 from tqdm import tqdm
-import time
+
 # tf.enable_eager_execution()
 from models.tf_ops.custom_ops import grid_sampling, voxel_sampling
 from models.utils.ops_wrapper import kernel_conv_wrapper
-from models.tf_ops.test.test_utils import fetch_instance, plot_points_from_voxels_with_color, TimeLiner
-from data.kitti_generator import Dataset
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
@@ -32,16 +32,16 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 def point_sampling(input_coors, input_features, input_num_list, c_out, resolution, scope):
     coors, num_list = grid_sampling(input_coors=input_coors,
-                                      input_num_list=input_num_list,
-                                      resolution=resolution*2)
+                                    input_num_list=input_num_list,
+                                    resolution=resolution * 2)
 
     voxels = voxel_sampling(input_coors=input_coors,
-                                  input_features=input_features,
-                                  input_num_list=input_num_list,
-                                  center_coors=coors,
-                                  center_num_list=num_list,
-                                  resolution=resolution,
-                                  padding=-1)
+                            input_features=input_features,
+                            input_num_list=input_num_list,
+                            center_coors=coors,
+                            center_num_list=num_list,
+                            resolution=resolution,
+                            padding=-1)
 
     features = kernel_conv_wrapper(inputs=voxels,
                                    num_output_channels=c_out,
@@ -76,7 +76,6 @@ if __name__ == '__main__':
     input_features = np.load("input_features.npy", allow_pickle=True)
     input_num_list = np.load("input_num_list.npy", allow_pickle=True)
 
-
     coors_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 1])
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
@@ -86,7 +85,7 @@ if __name__ == '__main__':
     coors, num_list, features, _ = point_sampling(coors, features, num_list, 16, 0.1, 'layer_0')
     coors, num_list, features, _ = point_sampling(coors, features, num_list, 32, 0.2, 'layer_2')
     coors, num_list, features, _ = point_sampling(coors, features, num_list, 64, 0.4, 'layer_4')
-    coors, num_list, features, voxels = point_sampling(coors, features, num_list,128, 0.6, 'layer_6')
+    coors, num_list, features, voxels = point_sampling(coors, features, num_list, 128, 0.6, 'layer_6')
     # coors, features, num_list, _ = point_sampling(coors, features, num_list, 64,0.4, 'layer_4')
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list,128,0.8, 'layer_6')
     # center_coors, center_num_list = grid_sampling(input_coors=coors,
@@ -126,12 +125,12 @@ if __name__ == '__main__':
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
             output_centers, output_num_list, output_features = sess.run([coors, num_list, voxels],
-            # output_voxels = sess.run(voxels,
-                                          feed_dict={coors_p: input_coors[i],
-                                                     features_p: input_features[i],
-                                                     num_list_p: input_num_list[i]},
-                                          options=run_options,
-                                          run_metadata=run_metadata)
+                                                                        # output_voxels = sess.run(voxels,
+                                                                        feed_dict={coors_p: input_coors[i],
+                                                                                   features_p: input_features[i],
+                                                                                   num_list_p: input_num_list[i]},
+                                                                        options=run_options,
+                                                                        run_metadata=run_metadata)
 
             # print(output_centers.shape)
             ## time.sleep(0.1)
@@ -140,10 +139,6 @@ if __name__ == '__main__':
             ctf = tl.generate_chrome_trace_format(show_memory=True)
             with open('timeline_{}.json'.format(i), 'w') as f:
                 f.write(ctf)
-
-
-
-
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
 

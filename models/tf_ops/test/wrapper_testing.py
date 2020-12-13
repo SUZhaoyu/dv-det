@@ -1,18 +1,14 @@
-import numpy as np
 import os
+
 import tensorflow as tf
-from tensorflow.python.client import timeline
 from tqdm import tqdm
 
+import train.model_config.roi_config as training_config
+from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
 from models.utils.model_layers import point_conv
-from models.tf_ops.test.test_utils import fetch_instance, plot_points_from_voxels_with_color
-from data.kitti_generator import Dataset
-import train.model_config.roi_config as training_config
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-
-
 
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
@@ -55,11 +51,11 @@ if __name__ == '__main__':
         for i in tqdm(range(1000)):
             input_coors, input_features, input_num_list, input_bboxes = next(Dataset.train_generator())
             output_coors, output_features, output_num_list = sess.run([coors, features, num_list],
-                                          feed_dict={input_coors_p: input_coors,
-                                                     input_features_p: input_features[..., :1],
-                                                     input_num_list_p: input_num_list,
-                                                     is_training_p: True})
-
+                                                                      feed_dict={input_coors_p: input_coors,
+                                                                                 input_features_p: input_features[...,
+                                                                                                   :1],
+                                                                                 input_num_list_p: input_num_list,
+                                                                                 is_training_p: True})
 
             # tl = timeline.Timeline(run_metadata.step_stats)
             # ctf = tl.generate_chrome_trace_format()
@@ -67,4 +63,3 @@ if __name__ == '__main__':
             #     f.write(ctf)
 
         print("finished.")
-

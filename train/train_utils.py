@@ -1,9 +1,12 @@
 from __future__ import division
+
 import os
 from os.path import join
 from shutil import copyfile
-import tensorflow as tf
+
 import numpy as np
+import tensorflow as tf
+
 
 def log_dir_setup(home, config_file):
     task_name = None
@@ -70,7 +73,8 @@ def get_weight_decay(init_decay, current_step, decay_step, decay_rate, limit=2e-
         return None
 
 
-def get_learning_rate(init_lr, current_step, decay_step, decay_rate, name=None, hvd_size=1, lr_scale=False, warm_up=False):
+def get_learning_rate(init_lr, current_step, decay_step, decay_rate, name=None, hvd_size=1, lr_scale=False,
+                      warm_up=False):
     if not lr_scale:
         hvd_size = 1
     decay_learning_rate = tf.train.exponential_decay(
@@ -80,14 +84,15 @@ def get_learning_rate(init_lr, current_step, decay_step, decay_rate, name=None, 
         decay_rate,  # Decay rate.
         staircase=True)
     if warm_up:
-        warm_up_learning_rate = 0.9 * init_lr / (0.5 * decay_step) * tf.cast(tf.identity(current_step), dtype=tf.float32) + 0.1 * init_lr
+        warm_up_learning_rate = 0.9 * init_lr / (0.5 * decay_step) * tf.cast(tf.identity(current_step),
+                                                                             dtype=tf.float32) + 0.1 * init_lr
         # warm_up_learning_rate = tf.cast(warm_up_learning_rate, dtype=tf.float32)
         learning_rate = tf.cond(tf.less_equal(current_step, int(0.5 * decay_step)),
                                 lambda: warm_up_learning_rate,
                                 lambda: decay_learning_rate)
     else:
         learning_rate = decay_learning_rate
-    learning_rate = tf.maximum(learning_rate, 1e-7) * hvd_size # CLIP THE LEARNING RATE!
+    learning_rate = tf.maximum(learning_rate, 1e-7) * hvd_size  # CLIP THE LEARNING RATE!
     if name is None:
         tf.summary.scalar('learning_rate', learning_rate)
     else:
@@ -97,7 +102,6 @@ def get_learning_rate(init_lr, current_step, decay_step, decay_rate, name=None, 
 
 def get_iou_loss_weight(current_step, total_l1_step):
     return tf.cast(tf.greater_equal(current_step, total_l1_step), dtype=tf.float32)
-
 
 
 def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step=None, use_hvd=False):
@@ -139,7 +143,7 @@ def get_config(gpu=None):
 
 def reset_metrics(scope='metrics'):
     op = tf.variables_initializer([var for var in tf.local_variables()
-                                  if var.name.split('/')[0] == scope])
+                                   if var.name.split('/')[0] == scope])
     return op
 
 
@@ -155,7 +159,6 @@ def save_sess(sess, label_idx, log_dir, saver, log=False):
     path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'best_model_{}'.format(label_idx)))
     if log:
         print("INFO: Model was saved to {}".format(path))
-
 
 
 def save_best_sess(sess, best_acc, acc, log_dir, saver, replace=False, inverse=False, log=False, save_anyway=False):

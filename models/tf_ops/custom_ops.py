@@ -1,23 +1,27 @@
 import os
 from os.path import join
+
 import tensorflow as tf
 from tensorflow.python.framework import ops
 
 CWD = os.path.dirname(os.path.abspath(__file__))
 
-
 grid_sampling_exe = tf.load_op_library(join(CWD, 'build', 'grid_sampling.so'))
+
+
 def grid_sampling(input_coors,
                   input_num_list,
                   resolution,
                   dimension=[70.4, 80.0, 4.0],
                   offset=[0., 40.0, 3.0]):
-    output_idx, output_num_list = grid_sampling_exe.grid_sampling_op(input_coors=input_coors+offset,
+    output_idx, output_num_list = grid_sampling_exe.grid_sampling_op(input_coors=input_coors + offset,
                                                                      input_num_list=input_num_list,
                                                                      dimension=dimension,
                                                                      resolution=resolution)
     output_coors = tf.gather(input_coors, output_idx, axis=0)
     return output_coors, output_num_list
+
+
 ops.NoGradient("GridSamplingOp")
 
 # =============================================Grid Sub Sample===============================================
@@ -83,6 +87,8 @@ ops.NoGradient("GridSamplingOp")
 
 # =============================================Voxel Sampling===============================================
 voxel_sampling_exe = tf.load_op_library(join(CWD, 'build', 'voxel_sampling.so'))
+
+
 def voxel_sampling(input_coors,
                    input_features,
                    input_num_list,
@@ -100,15 +106,16 @@ def voxel_sampling(input_coors,
                                                             dimension=dimension,
                                                             resolution=resolution,
                                                             padding_value=padding)
-    return  output_voxels
+    return output_voxels
+
 
 @ops.RegisterGradient("VoxelSamplingOp")
 def voxel_sampling_grad(op, grad, _):
     input_features = op.inputs[1]
     output_idx = op.outputs[1]
     input_features_grad = voxel_sampling_exe.voxel_sampling_grad_op(output_idx=output_idx,
-                                                                input_features=input_features,
-                                                                output_features_grad=grad)
+                                                                    input_features=input_features,
+                                                                    output_features_grad=grad)
     return [None, input_features_grad, None, None, None]
 
 
@@ -194,6 +201,8 @@ def voxel_sampling_grad(op, grad, _):
 # =============================================Get RoI Ground Truth===============================================
 
 get_roi_bbox_exe = tf.load_op_library(join(CWD, 'build', 'get_roi_bbox.so'))
+
+
 def get_roi_bbox(input_coors, bboxes, input_num_list, anchor_size, expand_ratio=0.15, diff_thres=3):
     '''
     Get point-wise RoI ground truth.
@@ -208,12 +217,14 @@ def get_roi_bbox(input_coors, bboxes, input_num_list, anchor_size, expand_ratio=
                            [confidence, w, l, h, offset_x, offset_y, offset_z, angle, *face_direction(binary), *class]
     '''
     roi_logits, roi_conf, roi_diff = get_roi_bbox_exe.get_roi_bbox_op(input_coors=input_coors,
-                                                                        gt_bbox=bboxes,
-                                                                        input_num_list=input_num_list,
-                                                                        anchor_size=anchor_size,
-                                                                        expand_ratio = expand_ratio,
-                                                                        diff_thres=diff_thres)
+                                                                      gt_bbox=bboxes,
+                                                                      input_num_list=input_num_list,
+                                                                      anchor_size=anchor_size,
+                                                                      expand_ratio=expand_ratio,
+                                                                      diff_thres=diff_thres)
     return roi_logits, roi_conf, roi_diff
+
+
 ops.NoGradient("GetRoiBboxOp")
 
 # =============================================Get Bbox Ground Truth===============================================

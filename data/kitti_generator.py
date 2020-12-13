@@ -1,19 +1,19 @@
-import numpy as np
-from os.path import join, dirname
-from point_viz.converter import PointvizConverter
+import logging
+import multiprocessing
+import time
 # from point_viz.utils import get_color_from_intensity
 from copy import deepcopy
-import os
-import logging
-import time
-import multiprocessing
-import mkl
-from tqdm import tqdm
-from numpy.linalg import multi_dot, inv
+from os.path import join
 
-from data.utils.augmentation import gauss_dist, rotate, scale, flip, drop_out, shuffle, transform, \
+import mkl
+import numpy as np
+from numpy.linalg import multi_dot
+from tqdm import tqdm
+
+from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
     get_pasted_point_cloud
-from data.utils.normalization import feature_normalize, bboxes_normalization, convert_threejs_coors, convert_threejs_bbox
+from data.utils.normalization import feature_normalize, bboxes_normalization
+
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
 
@@ -30,6 +30,7 @@ default_config = {'nbbox': 64,
                   'maximum_interior_points': 40,
                   'normalization': None}
 
+
 class Dataset(object):
     def __init__(self,
                  task,
@@ -41,7 +42,7 @@ class Dataset(object):
                  hvd_id=0,
                  hvd_size=1,
                  num_worker=1,
-                 home = '/home/tan/tony/dv_detection/dataset'):
+                 home='/home/tan/tony/dv_detection/dataset'):
         self.home = home
         self.config = default_config if config is None else config
         self.batch_size = batch_size
@@ -61,8 +62,10 @@ class Dataset(object):
         if not self.evaluation:
             self.bboxes = np.load(join(self.home, 'bbox_labels_{}.npy'.format(self.task)), allow_pickle=True)
         if self.config['paste_augmentation'] and not self.validation:
-            self.object_collections = np.load(join(self.home, 'object_collections_{}.npy'.format(self.task)), allow_pickle=True)
-            self.bbox_collections = np.load(join(self.home, 'bbox_collections_{}.npy'.format(self.task)), allow_pickle=True)
+            self.object_collections = np.load(join(self.home, 'object_collections_{}.npy'.format(self.task)),
+                                              allow_pickle=True)
+            self.bbox_collections = np.load(join(self.home, 'bbox_collections_{}.npy'.format(self.task)),
+                                            allow_pickle=True)
             self.ground_plane = np.load(join(self.home, 'ground_plane_{}.npy'.format(self.task)), allow_pickle=True)
             self.trans_matrix = np.load(join(self.home, 'trans_matrix_{}.npy'.format(self.task)), allow_pickle=True)
         self.paste_augmentation = self.config['paste_augmentation']
@@ -82,7 +85,8 @@ class Dataset(object):
         if self.hvd_id == 0:
             logging.info("===========Generator Configurations===========")
             logging.info("{} instances were loaded for task {}".format(self.total_data_length, self.task))
-            logging.info("{} instances were allocated on {} horovod threads.".format(self.hvd_data_length, self.hvd_size))
+            logging.info(
+                "{} instances were allocated on {} horovod threads.".format(self.hvd_data_length, self.hvd_size))
         if not self.validation:
             self.start()
 
@@ -100,7 +104,7 @@ class Dataset(object):
             self.q.close()
 
     def aug_process(self):
-        np.random.seed(int(time.time()*1e3-int(time.time())*1e3))
+        np.random.seed(int(time.time() * 1e3 - int(time.time()) * 1e3))
         while True:
             try:
                 if self.q.qsize() < self.queue_size:
@@ -150,12 +154,11 @@ class Dataset(object):
                             w, l, h = transform(np.array([w, l, h]), T_scale)
                             r += angle
                             if flip_y == -1:
-                                r = (-1) ** int(r<=0) * np.pi - r
+                                r = (-1) ** int(r <= 0) * np.pi - r
                             if np.abs(r) > 2 * np.pi:
                                 r = np.abs(r) % (2 * np.pi) * (-1) ** int(r <= 0)
                             if np.abs(r) > np.pi:
-                                r = -(2*np.pi - np.abs(r))
-
+                                r = -(2 * np.pi - np.abs(r))
 
                             category = box[-2]
                             difficulty = box[-1]
@@ -201,7 +204,7 @@ class Dataset(object):
                 features = points[:, -1:]
 
                 if len(coors) == 0:
-                    coors = np.array([[0, 0, 0]]) # to keep the npoint always > 0 in a frame
+                    coors = np.array([[0, 0, 0]])  # to keep the npoint always > 0 in a frame
                     features = np.array([[0.]])
 
                 batch_coors.append(coors)
@@ -222,6 +225,7 @@ class Dataset(object):
                 yield batch_coors, batch_features, batch_num_list
             else:
                 yield batch_coors, batch_features, batch_num_list, batch_bbox
+
 
 if __name__ == '__main__':
     config = {'task': 'training',
@@ -245,7 +249,7 @@ if __name__ == '__main__':
                       hvd_size=3,
                       hvd_id=1)
     for i in tqdm(range(1000)):
-    # dataset.aug_process()
+        # dataset.aug_process()
         coors, features, num_list, bboxes = next(dataset.train_generator())
         # time.sleep(1)
 
@@ -264,4 +268,3 @@ if __name__ == '__main__':
     #                   intensity=features,
     #                   default_rgb=None,
     #                   bbox_params=convert_threejs_bbox(bboxes))
-

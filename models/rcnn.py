@@ -1,12 +1,14 @@
-import tensorflow as tf
-import numpy as np
-from models.tf_ops.custom_ops import get_roi_bbox
-from models.utils.model_layers import point_conv, fully_connected
-from models.utils.iou_utils import cal_3d_iou, get_roi_attrs_from_logits, get_bbox_attrs_from_logits
 import horovod.tensorflow as hvd
+import numpy as np
+import tensorflow as tf
+
+from models.tf_ops.custom_ops import get_roi_bbox
+from models.utils.iou_utils import cal_3d_iou, get_roi_attrs_from_logits
+from models.utils.model_layers import point_conv, fully_connected
 
 anchor_size = tf.constant([1.6, 3.9, 1.5])
 eps = tf.constant(1e-6)
+
 
 def inputs_placeholder(input_channels=1,
                        bbox_padding=64):
@@ -69,8 +71,8 @@ def model(input_coors,
 
 
 def focal_loss(label, pred, alpha=0.25, gamma=2):
-    part_a = -alpha * (1-pred) ** gamma * tf.log(pred) * label
-    part_b = -(1-alpha) * pred ** gamma * tf.log(1-pred) * (1-label)
+    part_a = -alpha * (1 - pred) ** gamma * tf.log(pred) * label
+    part_b = -(1 - alpha) * pred ** gamma * tf.log(1 - pred) * (1 - label)
     return part_a + part_b
 
 
@@ -90,16 +92,15 @@ def get_masked_average(input, mask):
 
 
 def get_loss(base_coors, pred_roi_attrs, pred_roi_conf_logits, num_list, bbox_labels, wd=0.):
-
     pred_roi_conf = tf.nn.sigmoid(pred_roi_conf_logits)
-    pred_roi_conf = tf.clip_by_value(pred_roi_conf, eps, 1-eps)
+    pred_roi_conf = tf.clip_by_value(pred_roi_conf, eps, 1 - eps)
 
     gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=base_coors,
-                                                        bboxes=bbox_labels,
-                                                        input_num_list=num_list,
-                                                        anchor_size=anchor_size,
-                                                        expand_ratio=0.1,
-                                                        diff_thres=2)
+                                                          bboxes=bbox_labels,
+                                                          input_num_list=num_list,
+                                                          anchor_size=anchor_size,
+                                                          expand_ratio=0.1,
+                                                          diff_thres=2)
 
     roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
 
@@ -107,22 +108,21 @@ def get_loss(base_coors, pred_roi_attrs, pred_roi_conf_logits, num_list, bbox_la
     diff_masks_moderate = tf.cast(tf.equal(gt_roi_diff, 1), dtype=tf.float32)
     diff_masks_hard = tf.cast(tf.equal(gt_roi_diff, 2), dtype=tf.float32)
 
-    roi_conf_masks = tf.cast(tf.greater(gt_roi_conf, -1), dtype=tf.float32) # [-1, 0, 1] -> [0, 1, 1]
-    roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
+    roi_conf_masks = tf.cast(tf.greater(gt_roi_conf, -1), dtype=tf.float32)  # [-1, 0, 1] -> [0, 1, 1]
+    roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32)  # [-1, 0, 1] -> [0, 0, 1]
     roi_iou_eval_masks = tf.cast(tf.greater(pred_roi_conf, 0.5), dtype=tf.float32)
-    roi_conf_target = tf.cast(gt_roi_conf, dtype=tf.float32) * roi_conf_masks # [-1, 0, 1] * [0, 1, 1] -> [0, 0, 1]
+    roi_conf_target = tf.cast(gt_roi_conf, dtype=tf.float32) * roi_conf_masks  # [-1, 0, 1] * [0, 1, 1] -> [0, 0, 1]
 
     tf.summary.histogram('roi_conf_target', roi_conf_target)
 
-    roi_conf_loss = get_masked_average(focal_loss(label=roi_conf_target, pred=pred_roi_conf, alpha=0.25), roi_conf_masks)
+    roi_conf_loss = get_masked_average(focal_loss(label=roi_conf_target, pred=pred_roi_conf, alpha=0.25),
+                                       roi_conf_masks)
     roi_conf_acc = tf.cast(tf.equal(roi_conf_target, roi_iou_eval_masks), dtype=tf.float32)
     tf.summary.scalar('roi_conf_loss', roi_conf_loss)
-
 
     tf.summary.scalar('roi_conf_acc_easy', get_masked_average(roi_conf_acc, diff_masks_easy))
     tf.summary.scalar('roi_conf_acc_moderate', get_masked_average(roi_conf_acc, diff_masks_moderate))
     tf.summary.scalar('roi_conf_acc_hard', get_masked_average(roi_conf_acc, diff_masks_hard))
-
 
     roi_iou_loss = get_masked_average(1 - roi_ious, roi_iou_masks)
 
@@ -137,8 +137,10 @@ def get_loss(base_coors, pred_roi_attrs, pred_roi_conf_logits, num_list, bbox_la
     tf.summary.scalar('roi_iou_loss', roi_iou_loss)
     tf.summary.scalar('roi_iou', average_roi_iou)
 
-    roi_angle_loss = get_masked_average(smooth_l1_loss(pred_roi_attrs[:, 6], gt_roi_attrs[:, 6], use_sin=True), roi_iou_masks)
-    average_roi_angle = get_masked_average(tf.abs(tf.floormod(pred_roi_attrs[:, 6] - gt_roi_attrs[:, 6], np.pi)), roi_iou_eval_masks)
+    roi_angle_loss = get_masked_average(smooth_l1_loss(pred_roi_attrs[:, 6], gt_roi_attrs[:, 6], use_sin=True),
+                                        roi_iou_masks)
+    average_roi_angle = get_masked_average(tf.abs(tf.floormod(pred_roi_attrs[:, 6] - gt_roi_attrs[:, 6], np.pi)),
+                                           roi_iou_eval_masks)
     tf.summary.scalar('average_roi_angle_delta', average_roi_angle)
     tf.summary.scalar('roi_angle_loss', roi_angle_loss)
 
@@ -154,4 +156,3 @@ def get_loss(base_coors, pred_roi_attrs, pred_roi_conf_logits, num_list, bbox_la
     tf.summary.scalar('roi_iou_average', roi_iou_collection)
 
     return roi_loss, roi_iou_collection
-

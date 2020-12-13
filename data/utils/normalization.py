@@ -1,8 +1,9 @@
 from __future__ import division
-import numpy as np
-from copy import deepcopy
+
 import math
-import random
+from copy import deepcopy
+
+import numpy as np
 
 
 def length_normalize(points, length, warning=False):
@@ -96,7 +97,7 @@ def convert_threejs_bbox(bboxes):
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
             # threejs_bbox[-1] = category_dict[int(box[-2])] + ', ' + difficulty_dict[int(box[-1])]
-            threejs_bbox[-1] = "%.2f"%box[6]
+            threejs_bbox[-1] = "%.2f" % box[6]
             threejs_bbox[-2] = "Magenta"
             threejs_bboxes.append(threejs_bbox)
 
@@ -136,6 +137,7 @@ def convert_threejs_bbox_with_id(bboxes, color="white"):
             threejs_bboxes.append(threejs_bbox)
     return threejs_bboxes
 
+
 def convert_threejs_bbox_with_prob(bboxes, color=None):
     bboxes = deepcopy(bboxes)
     assert len(bboxes) > 0
@@ -149,12 +151,12 @@ def convert_threejs_bbox_with_prob(bboxes, color=None):
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
             # threejs_bbox[-1] = "%0.2f"%box[-1]
-            threejs_bbox[-1] = "%0.2f"%box[6]
+            threejs_bbox[-1] = "%0.2f" % box[6]
             if color is not None:
                 if math.isnan(box[-1]):
                     threejs_bbox[-2] = 'fuchsia'
                 else:
-                    threejs_bbox[-2] = 'rgb({},0,0)'.format(int(255*box[-1]))
+                    threejs_bbox[-2] = 'rgb({},0,0)'.format(int(255 * box[-1]))
             else:
                 threejs_bbox[-2] = 'yellow'
             threejs_bboxes.append(threejs_bbox)

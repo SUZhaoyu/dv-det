@@ -1,6 +1,6 @@
 import os
+
 import numpy as np
-import math
 
 aug_config = {'batch_size': 16,
               'nbbox': 64,
@@ -20,8 +20,8 @@ offset = [0., 40.0, 3.0]
 
 local = False
 
-gpu_list = {0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7,
-            8:0, 9:1,10:2,11:3,12:4,13:5,14:6,15:7}
+gpu_list = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7,
+            8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 7}
 
 model_file_name = os.path.basename(__file__).split('.')[0] + '.py'
 model_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -51,10 +51,9 @@ use_l2 = True
 output_attr = 8
 training_epochs = 800
 
-base_params = {'base_0': {'subsample_res': 0.1, 'c_out':  16, 'kernel_res': 0.1, 'padding': -1.},
-               'base_1': {'subsample_res': 0.2, 'c_out':  32, 'kernel_res': 0.2, 'padding':  0.},
-               'base_2': {'subsample_res': 0.4, 'c_out':  64, 'kernel_res': 0.4, 'padding':  0.},
-               'base_3': {'subsample_res': 0.8, 'c_out': 128, 'kernel_res': 0.8, 'padding':  0.}}
+base_params = {'base_0': {'subsample_res': 0.1, 'c_out': 16, 'kernel_res': 0.1, 'padding': -1.},
+               'base_1': {'subsample_res': 0.2, 'c_out': 32, 'kernel_res': 0.2, 'padding': 0.},
+               'base_2': {'subsample_res': 0.4, 'c_out': 64, 'kernel_res': 0.4, 'padding': 0.},
+               'base_3': {'subsample_res': 0.8, 'c_out': 128, 'kernel_res': 0.8, 'padding': 0.}}
 
 rpn_params = {'subsample_res': 1.0, 'c_out': 128, 'kernel_res': 1.0, 'padding': 0.}
-

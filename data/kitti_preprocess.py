@@ -1,16 +1,13 @@
-import os
-from os.path import join, dirname
-import numpy as np
 import logging
-from PIL import Image
-from shutil import rmtree
-from os import mkdir
-from tqdm import tqdm
+import os
 from copy import deepcopy
-from point_viz.converter import PointvizConverter
+from os import mkdir
+from os.path import join, dirname
 
-from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox
-from data.utils.normalization import length_normalize
+import numpy as np
+from PIL import Image
+from point_viz.converter import PointvizConverter
+from tqdm import tqdm
 
 Converter = PointvizConverter(home='/home/tan/tony/threejs')
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +20,7 @@ range_z = [-3., 1.]
 min_object_points = 10
 expand_ratio = 0.15
 home = dirname(os.getcwd())
+
 
 def get_union_sets(conditions):
     output = conditions[0]
@@ -45,17 +43,18 @@ def load_calib(calib_dir):
 
     return P2, R0_rect, Tr_velo_to_cam
 
+
 def trim(img_dir, lidar_dir, calib_dir, range_x, range_y, range_z):
     img = np.array(Image.open(img_dir))
     rows, cols = img.shape[:2]
     img_size = [rows, cols]
-    lidar_points = np.fromfile(lidar_dir, dtype=np.float32).reshape(-1, 4) # [n, 4]
+    lidar_points = np.fromfile(lidar_dir, dtype=np.float32).reshape(-1, 4)  # [n, 4]
     lidar_intensity = deepcopy(lidar_points[:, -1])
     lidar_points[:, -1] = np.ones(lidar_points.shape[0])
     P2, R0_rect, Tr_velo_to_cam = load_calib(calib_dir)
     trans_matrix_list = [P2, R0_rect, Tr_velo_to_cam]
     trans_matrix = P2.dot(R0_rect.dot(Tr_velo_to_cam))
-    trans_lidar_points = np.transpose(trans_matrix.dot(deepcopy(lidar_points).transpose())) # [n, 4]
+    trans_lidar_points = np.transpose(trans_matrix.dot(deepcopy(lidar_points).transpose()))  # [n, 4]
     proj_lidar_points = trans_lidar_points / trans_lidar_points[:, 2:3]
     keep_idx = get_union_sets([lidar_points[:, 0] > range_x[0],
                                lidar_points[:, 0] < range_x[1],
@@ -99,8 +98,7 @@ def bbox_clean(label_dir, calib_dir, category_dict):
                 x, y, z, _ = inv_trans_matrix.dot(np.array([float(line[11]),
                                                             float(line[12]),
                                                             float(line[13]),
-                                                            1.])).transpose().tolist() # from camera coors to LiDAR coors
-
+                                                            1.])).transpose().tolist()  # from camera coors to LiDAR coors
 
                 h = float(line[8])
                 w = float(line[9])
@@ -149,11 +147,13 @@ def get_objects(points, bboxes):
 if __name__ == '__main__':
     dataset_home = '/home/tan/tony/kitti_raw'
     output_home = join(home, 'dataset')
-    try: mkdir(output_home)
-    except: logging.warning('Directory: {} already exists.'.format(output_home))
+    try:
+        mkdir(output_home)
+    except:
+        logging.warning('Directory: {} already exists.'.format(output_home))
     logging.info("Using KITTI dataset under: {}".format(dataset_home))
     for task in ['validation', 'training']:
-    # for task in ['validation']:
+        # for task in ['validation']:
 
         output_lidar_points = []
         output_bbox = []
@@ -180,7 +180,8 @@ if __name__ == '__main__':
                 label_dir = join(label_home, '{}.txt'.format(frame_id))
                 plane_dir = join(plane_home, '{}.txt'.format(frame_id))
 
-                lidar_points, trans_matrix, img_size, img = trim(img_dir, lidar_dir, calib_dir, range_x=range_x, range_y=range_y, range_z=range_z)
+                lidar_points, trans_matrix, img_size, img = trim(img_dir, lidar_dir, calib_dir, range_x=range_x,
+                                                                 range_y=range_y, range_z=range_z)
                 plane = plane_trans(plane_dir)
                 # lidar_points = length_normalize(lidar_points, length=20000)
                 bbox = bbox_clean(label_dir, calib_dir, category_dict)
@@ -210,10 +211,8 @@ if __name__ == '__main__':
         np.save(join(output_home, 'ground_plane_{}.npy'.format(task)), np.array(output_plane, dtype=object))
         np.save(join(output_home, 'img_size_{}.npy'.format(task)), np.array(output_image_size, dtype=object))
         np.save(join(output_home, 'img_{}.npy'.format(task)), np.array(output_image, dtype=object))
-        np.save(join(output_home, "object_collections_{}.npy".format(task)), np.array(output_object_points, dtype=object))
+        np.save(join(output_home, "object_collections_{}.npy".format(task)),
+                np.array(output_object_points, dtype=object))
         np.save(join(output_home, "bbox_collections_{}.npy".format(task)), np.array(output_object_bboxes, dtype=object))
 
-
     logging.info("Preprocess completed.")
-
-

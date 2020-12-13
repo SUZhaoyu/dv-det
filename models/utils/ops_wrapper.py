@@ -1,6 +1,8 @@
-import numpy as np
 import tensorflow as tf
+
 from models.utils.var_utils import _variable_with_l2_loss
+
+
 # from models.tf_ops.custom_ops import kernel_conv
 
 def batch_norm_template(inputs, is_training, bn_decay, name):
@@ -20,24 +22,24 @@ def batch_norm_template(inputs, is_training, bn_decay, name):
                                          training=is_training,
                                          name=name)
 
-def kernel_conv_wrapper(inputs,
-                  num_output_channels,
-                  kernel_size=3,
-                  scope='default',
-                  use_xavier=True,
-                  stddev=1e-3,
-                  activation='relu',
-                  bn_decay=None,
-                  is_training=True,
-                  histogram=False,
-                  summary=False):
 
+def kernel_conv_wrapper(inputs,
+                        num_output_channels,
+                        kernel_size=3,
+                        scope='default',
+                        use_xavier=True,
+                        stddev=1e-3,
+                        activation='relu',
+                        bn_decay=None,
+                        is_training=True,
+                        histogram=False,
+                        summary=False):
     if scope == 'default':
         print("WARNING: scope name was not given and has been assigned as 'default' ")
     l2_loss_collection = "l2"
     with tf.variable_scope(scope):
         num_input_channels = inputs.get_shape()[-1].value
-        kernel_shape = [kernel_size**3 * num_input_channels, num_output_channels]
+        kernel_shape = [kernel_size ** 3 * num_input_channels, num_output_channels]
         kernel = _variable_with_l2_loss(name='kernel',
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
@@ -53,7 +55,7 @@ def kernel_conv_wrapper(inputs,
         if summary:
             tf.summary.scalar('kernel_l2', tf.nn.l2_loss(kernel))
 
-        inputs = tf.reshape(inputs, shape=[-1, kernel_size**3 * num_input_channels])
+        inputs = tf.reshape(inputs, shape=[-1, kernel_size ** 3 * num_input_channels])
         outputs = tf.matmul(inputs, kernel)
         # outputs = kernel_conv(input_voxels=inputs,
         #                       filter=kernel)
@@ -75,15 +77,15 @@ def kernel_conv_wrapper(inputs,
 
 
 def fully_connected_wrapper(inputs,
-                    num_output_channels,
-                    scope='default',
-                    use_xavier=True,
-                    stddev=1e-3,
-                    activation='relu',
-                    bn_decay=None,
-                    is_training=True,
-                    histogram=False,
-                    summary=False):
+                            num_output_channels,
+                            scope='default',
+                            use_xavier=True,
+                            stddev=1e-3,
+                            activation='relu',
+                            bn_decay=None,
+                            is_training=True,
+                            histogram=False,
+                            summary=False):
     if scope == 'default':
         print("WARNING: scope name was not given and has been assigned as 'default' ")
     l2_loss_collection = "l2"
