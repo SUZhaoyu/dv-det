@@ -42,7 +42,7 @@ class Dataset(object):
                  hvd_id=0,
                  hvd_size=1,
                  num_worker=1,
-                 home='/home/tan/tony/dv_detection/dataset'):
+                 home='/home/tan/tony/dv-det/dataset'):
         self.home = home
         self.config = default_config if config is None else config
         self.batch_size = batch_size
