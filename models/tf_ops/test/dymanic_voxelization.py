@@ -46,7 +46,7 @@ def point_sampling(input_coors, input_features, input_num_list, c_out, resolutio
     features = kernel_conv_wrapper(inputs=voxels,
                                    num_output_channels=c_out,
                                    scope=scope,
-                                   bn_decay=None)
+                                   bn_decay=1.)
 
     # features = tf.reduce_mean(voxels, axis=1)
 
@@ -54,7 +54,7 @@ def point_sampling(input_coors, input_features, input_num_list, c_out, resolutio
 
 
 batch_size = 1
-epoch = 10
+epoch = 1000
 if __name__ == '__main__':
     # Dataset = Dataset(task='training',
     #                   batch_size=batch_size,
@@ -85,7 +85,8 @@ if __name__ == '__main__':
     coors, num_list, features, _ = point_sampling(coors, features, num_list, 16, 0.1, 'layer_0')
     coors, num_list, features, _ = point_sampling(coors, features, num_list, 32, 0.2, 'layer_2')
     coors, num_list, features, _ = point_sampling(coors, features, num_list, 64, 0.4, 'layer_4')
-    coors, num_list, features, voxels = point_sampling(coors, features, num_list, 128, 0.6, 'layer_6')
+    coors, num_list, features, _ = point_sampling(coors, features, num_list, 128, 0.8, 'layer_6')
+    coors, num_list, features, voxels = point_sampling(coors, features, num_list, 128, 1.0, 'layer_8')
     # coors, features, num_list, _ = point_sampling(coors, features, num_list, 64,0.4, 'layer_4')
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list,128,0.8, 'layer_6')
     # center_coors, center_num_list = grid_sampling(input_coors=coors,
@@ -119,8 +120,8 @@ if __name__ == '__main__':
     config.gpu_options.visible_device_list = '0'
     with tf.Session(config=config) as sess:
         sess.run(init_op)
-        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata()
+        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        # run_metadata = tf.RunMetadata()
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
@@ -128,17 +129,17 @@ if __name__ == '__main__':
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: input_features[i],
-                                                                                   num_list_p: input_num_list[i]},
-                                                                        options=run_options,
-                                                                        run_metadata=run_metadata)
+                                                                                   num_list_p: input_num_list[i]})
+                                                                        # options=run_options,
+                                                                        # run_metadata=run_metadata)
 
             # print(output_centers.shape)
             ## time.sleep(0.1)
             #
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format(show_memory=True)
-            with open('timeline_{}.json'.format(i), 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format(show_memory=True)
+            # with open('timeline_{}.json'.format(i), 'w') as f:
+            #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
 

@@ -15,7 +15,7 @@ HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
 from models import rcnn as model
-from train.model_config import roi_config as config
+from train.configs import roi_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_bn_decay, get_learning_rate, get_train_op, get_config, get_weight_decay, \
     save_best_sess

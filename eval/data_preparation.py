@@ -12,6 +12,7 @@ output_home = '/home/tan/tony/dv-det/eval/data'
 
 
 DatasetEval = Dataset(task=task,
+                      batch_size=1,
                       validation=validation,
                       evaluation=evaluation)
 
@@ -22,20 +23,20 @@ except:
 
 if __name__ == '__main__':
 
-    output_coors, output_features, output_num_list, output_bboxes = [], [], [], []
+    input_coors, input_features, input_num_list, input_bboxes = [], [], [], []
     for _ in tqdm(range(DatasetEval.total_data_length)):
         if not evaluation:
             coors, features, num_list, bboxes = next(DatasetEval.valid_generator())
         else:
             coors, features, num_list = next(DatasetEval.valid_generator())
-        output_coors.append(coors)
-        output_features.append(features)
-        output_num_list.append(num_list)
+        input_coors.append(coors)
+        input_features.append(features)
+        input_num_list.append(num_list)
         if not evaluation:
-            output_bboxes.append(bboxes)
+            input_bboxes.append(bboxes)
 
-    np.save(join(output_home, 'output_coors.npy'), np.array(output_coors, dtype=object))
-    np.save(join(output_home, 'output_features.npy'), np.array(output_features, dtype=object))
-    np.save(join(output_home, 'output_num_list.npy'), np.array(output_num_list, dtype=object))
+    np.save(join(output_home, 'input_coors.npy'), np.array(input_coors, dtype=object))
+    np.save(join(output_home, 'input_features.npy'), np.array(input_features, dtype=object))
+    np.save(join(output_home, 'input_num_list.npy'), np.array(input_num_list, dtype=object))
     if evaluation:
-        np.save(join(output_home, 'output_bboxes.npy'), np.array(output_bboxes, dtype=object))
+        np.save(join(output_home, 'input_bboxes.npy'), np.array(input_bboxes, dtype=object))

@@ -83,6 +83,7 @@ def bbox_clean(label_dir, calib_dir, category_dict):
                 bbox_height_2d = float(line[7]) - float(line[5])
                 truncation = float(line[1])
                 occluded = int(line[2])
+                # TODO: the difficulty split strategy can be enhanced.
                 if occluded == 0 and truncation <= 0.15 and bbox_height_2d >= 40:
                     difficulty = 0
                 elif occluded <= 1 and truncation <= 0.30 and bbox_height_2d >= 25:
@@ -211,8 +212,7 @@ if __name__ == '__main__':
         np.save(join(output_home, 'ground_plane_{}.npy'.format(task)), np.array(output_plane, dtype=object))
         np.save(join(output_home, 'img_size_{}.npy'.format(task)), np.array(output_image_size, dtype=object))
         np.save(join(output_home, 'img_{}.npy'.format(task)), np.array(output_image, dtype=object))
-        np.save(join(output_home, "object_collections_{}.npy".format(task)),
-                np.array(output_object_points, dtype=object))
+        np.save(join(output_home, "object_collections_{}.npy".format(task)), np.array(output_object_points, dtype=object))
         np.save(join(output_home, "bbox_collections_{}.npy".format(task)), np.array(output_object_bboxes, dtype=object))
 
     logging.info("Preprocess completed.")
