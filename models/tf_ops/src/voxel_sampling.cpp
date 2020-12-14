@@ -189,6 +189,11 @@ public:
                                     grid_buffer_ptr,
                                     output_features_ptr,
                                     output_idx_ptr);
+
+        free(input_num_list_ptr_host);
+        free(center_num_list_ptr_host);
+        cudaFree(input_accu_list_ptr);
+        cudaFree(center_accu_list_ptr);
         cudaFree(grid_buffer_ptr);
     }
 private:

@@ -245,12 +245,13 @@ if __name__ == '__main__':
     dataset = Dataset(task='training',
                       config=config,
                       validation=False,
-                      num_worker=3,
+                      num_worker=40,
                       hvd_size=3,
                       hvd_id=1)
-    for i in tqdm(range(1000)):
+    generator = dataset.train_generator()
+    for i in tqdm(range(100000)):
         # dataset.aug_process()
-        coors, features, num_list, bboxes = next(dataset.train_generator())
+        coors, features, num_list, bboxes = next(generator)
         # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())

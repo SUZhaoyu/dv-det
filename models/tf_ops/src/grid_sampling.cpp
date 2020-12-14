@@ -128,7 +128,6 @@ public:
                                    output_idx_temp_ptr,
                                    output_num_list_ptr,
                                    grid_buffer_ptr);
-        cudaFree(grid_buffer_ptr);
 
         int* output_idx_temp_ptr_host = (int*)malloc(input_npoint*sizeof(int));
         cudaMemcpy(output_idx_temp_ptr_host, output_idx_temp_ptr, input_npoint*sizeof(int), cudaMemcpyDeviceToHost);
@@ -160,6 +159,11 @@ public:
             source_count += input_num_list_ptr_host[i];
 
         }
+        free(output_idx_temp_ptr_host);
+        free(output_num_list_ptr_host);
+        free(input_accu_list_ptr_host);
+        cudaFree(grid_buffer_ptr);
+        cudaFree(input_accu_list_ptr);
     }
 private:
     float resolution;

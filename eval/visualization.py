@@ -13,7 +13,7 @@ from train.configs import roi_config as config
 from models import rcnn as model
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_prob
 
-model_path = '/home/tan/tony/dv-det/checkpoints/test/test/best_model_0.6408218867690348'
+model_path = '/home/tan/tony/dv-det/checkpoints/test/test/best_model_0.6087874881817906'
 data_home = '/home/tan/tony/dv-det/eval/data'
 
 input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)

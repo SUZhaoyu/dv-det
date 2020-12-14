@@ -46,6 +46,7 @@ DatasetTrain = Dataset(task="training",
                        hvd_id=hvd.rank())
 
 DatasetValid = Dataset(task="validation",
+                       validation=True,
                        hvd_size=hvd.size(),
                        hvd_id=hvd.rank())
 

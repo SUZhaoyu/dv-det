@@ -2,7 +2,7 @@
 exe_file="training.py"
 pkill -f -9 $exe_file
 
-HOME="dv_detection"
+HOME="dv-det"
 
 root_gx4="/home/tan/tony"
 root_gx6="/home/tan/tony"
