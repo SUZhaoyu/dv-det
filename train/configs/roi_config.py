@@ -48,12 +48,12 @@ normalization = None
 num_worker = 3
 weighted = False
 use_l2 = True
-output_attr = 8  
+output_attr = 8
 training_epochs = 800
 
-base_params = {'base_0': {'subsample_res': 0.1, 'c_out': 16, 'kernel_res': 0.1, 'padding': 0.},
+base_params = {'base_0': {'subsample_res': 0.1, 'c_out': 16, 'kernel_res': 0.1, 'padding': -1.},
                'base_1': {'subsample_res': 0.2, 'c_out': 32, 'kernel_res': 0.2, 'padding': 0.},
                'base_2': {'subsample_res': 0.4, 'c_out': 64, 'kernel_res': 0.4, 'padding': 0.},
-               'base_3': {'subsample_res': 0.8, 'c_out': 128, 'kernel_res': 0.8, 'padding': 0.}}
+               'base_3': {'subsample_res': 0.6, 'c_out': 128, 'kernel_res': 0.6, 'padding': 0.}}
 
-rpn_params = {'subsample_res': 1.0, 'c_out': 128, 'kernel_res': 1.0, 'padding': 0.}
+rpn_params = {'subsample_res': 0.8, 'c_out': 128, 'kernel_res': 0.8, 'padding': 0.}
