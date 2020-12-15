@@ -82,7 +82,7 @@ __global__ void roi_pooling_gpu_kernel(int batch_size, int input_npoint, int cha
                                  grid_coor_z;
                 int pool_count = temp_count[voxel_coor];
                 if (pool_count < pooling_size) {
-                    temp_pool[voxel_coor * pooling_size + pool_count] = input_accu_list[batch_id] + j;
+                    temp_pool[voxel_coor * pooling_size + pool_count] = input_accu_list[batch_id] + i;
                     atomicAdd(&temp_count[voxel_coor], 1);
                 }
             }
@@ -241,7 +241,7 @@ void roi_pooling_gpu_launcher(int batch_size, int input_npoint, int channels,
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, output_init_gpu_kernel, 0, kernel_number);
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, roi_pooling_gpu_kernel, 0, kernel_number);
     gridSize = (kernel_number + blockSize - 1) / blockSize;
 
     roi_pooling_gpu_kernel<<<gridSize,blockSize>>>(batch_size, input_npoint, channels,
@@ -272,7 +272,7 @@ void roi_pooling_grad_gpu_launcher(int ncenters, int ngrid, int channels,
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, output_init_gpu_kernel, 0, ncenters);
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, roi_pooling_grad_gpu_kernel, 0, ncenters);
     gridSize = (ncenters + blockSize - 1) / blockSize;
 
     roi_pooling_grad_gpu_kernel<<<gridSize, blockSize>>>(ncenters, ngrid, channels,
