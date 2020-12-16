@@ -54,10 +54,11 @@ if __name__ == '__main__':
     logits = fully_connected(features, 8, '5')
     roi_attrs = get_roi_attrs_from_logits(logits, coors, anchor_size)
 
-    voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, 5)
+    voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, 7)
     voxels = conv_3d(voxels, 256, '6')
-    features = conv_3d(voxels, 256, '7')
-    logits = fully_connected(features, 8, '8')
+    voxels = conv_3d(voxels, 256, '7')
+    features = conv_3d(voxels, 256, '8')
+    logits = fully_connected(features, 8, '9')
     bbox_attrs = get_bbox_attrs_from_logits(logits, roi_attrs)
 
 

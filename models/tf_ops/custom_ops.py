@@ -124,3 +124,14 @@ def roi_pooling_grad(op, grad, _):
                                                               input_features=input_features,
                                                               output_features_grad=grad)
     return [None, input_features_grad, None, None, None]
+
+
+# =============================================RoI Filter===============================================
+
+roi_filter_exe = tf.load_op_library(join(CWD, 'build', 'roi_filter.so'))
+def roi_filter(input_roi_conf, input_num_list, conf_thres):
+    output_num_list, output_idx = roi_filter_exe.roi_filter_op(input_roi_conf=input_roi_conf,
+                                                               input_num_list=input_num_list,
+                                                               conf_thres=conf_thres)
+    return output_num_list, output_idx
+ops.NoGradient("RoiFilterOp")
