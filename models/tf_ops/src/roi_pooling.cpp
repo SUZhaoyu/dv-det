@@ -26,9 +26,9 @@ REGISTER_OP("RoiPoolingOp")
     .Input("roi_attrs: float32")
     .Input("input_num_list: int32")
     .Input("rois_num_list: int32")
-    .Output("output_features: float32") // [center_coors.shape[0], kernel_size ** 3, channels]
-    .Output("output_idx: int32") // [center_coors.shape[0], kernel_size ** 3, channels]
-    .Attr("kernel_size: int")
+    .Output("output_features: float32") // [center_coors.shape[0], voxel_size ** 3, channels]
+    .Output("output_idx: int32") // [center_coors.shape[0], voxel_size ** 3, channels]
+    .Attr("voxel_size: int")
     .Attr("padding_value: float")
     .Attr("pooling_size: int")
     .SetShapeFn([](InferenceContext* c){
@@ -37,14 +37,14 @@ REGISTER_OP("RoiPoolingOp")
         ShapeHandle roi_attrs_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(2), 2, &roi_attrs_shape));
 
-        int kernel_size;
-        TF_RETURN_IF_ERROR(c->GetAttr("kernel_size", &kernel_size));
+        int voxel_size;
+        TF_RETURN_IF_ERROR(c->GetAttr("voxel_size", &voxel_size));
 
         DimensionHandle kernel_number = c->Dim(roi_attrs_shape, 0);
         DimensionHandle channels = c->Dim(input_features_shape, 1);
 
         // The output shape during the shape inference stage is pseudo.
-        ShapeHandle output_shape = c->MakeShape({kernel_number, kernel_size * kernel_size * kernel_size, channels});
+        ShapeHandle output_shape = c->MakeShape({kernel_number, voxel_size * voxel_size * voxel_size, channels});
 
         c->set_output(0, output_shape); // output_features
         c->set_output(1, output_shape); // output_idx
@@ -65,7 +65,7 @@ REGISTER_OP("RoiPoolingGradOp")
 
 
 void roi_pooling_gpu_launcher(int batch_size, int input_npoint, int channels,
-                              int kernel_number, int kernel_size, int pooling_size, float padding_value,
+                              int kernel_number, int voxel_size, int pooling_size, float padding_value,
                               const float* input_coors,
                               const float* input_features,
                               const float* roi_attrs,
@@ -82,9 +82,9 @@ class RoiPoolingOp: public OpKernel {
 public:
     explicit RoiPoolingOp(OpKernelConstruction* context): OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("padding_value", &padding_value));
-        OP_REQUIRES_OK(context, context->GetAttr("kernel_size", &kernel_size));
+        OP_REQUIRES_OK(context, context->GetAttr("voxel_size", &voxel_size));
         OP_REQUIRES_OK(context, context->GetAttr("pooling_size", &pooling_size));
-        OP_REQUIRES(context, kernel_size % 2 == 1,
+        OP_REQUIRES(context, voxel_size % 2 == 1,
                     errors::InvalidArgument("RoIPoolingOp expects kernel size to be an odd number."));
         OP_REQUIRES(context, pooling_size > 0,
                     errors::InvalidArgument("RoIPoolingOp expects pooling size greater than 0."));
@@ -120,7 +120,7 @@ public:
         int kernel_number = roi_attrs.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         int channels = input_features.dim_size(1);
-        int ngrid = kernel_size * kernel_size * kernel_size;
+        int ngrid = voxel_size * voxel_size * voxel_size;
 
 
         int batch_byte_size = batch_size * sizeof(int);
@@ -183,7 +183,7 @@ public:
 //        cudaMemset(output_idx_ptr, -1, kernel_number*ngrid*channels*sizeof(int));
 
         roi_pooling_gpu_launcher(batch_size, input_npoint, channels,
-                                 kernel_number, kernel_size, pooling_size, padding_value,
+                                 kernel_number, voxel_size, pooling_size, padding_value,
                                  input_coors_ptr,
                                  input_features_ptr,
                                  roi_attrs_ptr,
@@ -198,7 +198,7 @@ public:
     }
 private:
     float padding_value;
-    int kernel_size, pooling_size;
+    int voxel_size, pooling_size;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("RoiPoolingOp").Device(DEVICE_GPU), RoiPoolingOp);
 
@@ -223,12 +223,12 @@ public:
         const Tensor& output_idx = context->input(1);
         auto output_idx_ptr = output_idx.template flat<int>().data();
         OP_REQUIRES(context, output_idx.dims()==3 && output_idx.shape().dim_size(2) > 0,
-                    errors::InvalidArgument("RoiPoolingGradOp expects output_idx in shape: [ncenters, kernel_size*3, channels(>0)]."));
+                    errors::InvalidArgument("RoiPoolingGradOp expects output_idx in shape: [ncenters, voxel_size*3, channels(>0)]."));
 
         const Tensor& output_features_grad = context->input(2);
         auto output_features_grad_ptr = output_features_grad.template flat<float>().data();
         OP_REQUIRES(context, output_features_grad.dims()==3 && output_features_grad.shape().dim_size(2) > 0,
-                    errors::InvalidArgument("RoiPoolingGradOp expects output_features_grad in shape: [npoints, kernel_size*3, channels(>0)]."));
+                    errors::InvalidArgument("RoiPoolingGradOp expects output_features_grad in shape: [npoints, voxel_size*3, channels(>0)]."));
         OP_REQUIRES(context, output_idx.shape().dim_size(0)==output_features_grad.shape().dim_size(0) &&
                              output_idx.shape().dim_size(1)==output_features_grad.shape().dim_size(1) &&
                              output_idx.shape().dim_size(2)==output_features_grad.shape().dim_size(2),

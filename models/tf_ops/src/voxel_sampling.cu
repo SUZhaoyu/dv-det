@@ -6,24 +6,24 @@
 #include <iostream>
 #include <float.h>
 
-//__device__ int binary_search(const long long* input_voxel_idx,
-//                             int start_id,
-//                             int stop_id,
-//                             long long target_voxel_id) {
-////    if (threadIdx.x==0)
-//    if (input_voxel_idx[start_id] > target_voxel_id || input_voxel_idx[stop_id] < target_voxel_id)
-//        return -1;
-//    while (start_id <= stop_id) {
-//        int m = start_id + (stop_id - start_id) / 2;
-//        if (input_voxel_idx[m] == target_voxel_id)
-//            return m;
-//        if (input_voxel_idx[m] < target_voxel_id)
-//            start_id = m + 1;
-//        else
-//            stop_id = m - 1;
-//    }
-//    return -1;
-//}
+__device__ int binary_search(const long long* input_voxel_idx,
+                             int start_id,
+                             int stop_id,
+                             long long target_voxel_id) {
+
+    if (input_voxel_idx[start_id] > target_voxel_id || input_voxel_idx[stop_id] < target_voxel_id)
+        return -1;
+    while (start_id <= stop_id) {
+        int m = start_id + (stop_id - start_id) / 2;
+        if (input_voxel_idx[m] == target_voxel_id)
+            return m;
+        if (input_voxel_idx[m] < target_voxel_id)
+            start_id = m + 1;
+        else
+            stop_id = m - 1;
+    }
+    return -1;
+}
 
 __device__ int get_batch_id(int* accu_list, int batch_size, int id) {
     for (int b=0; b<batch_size-1; b++) {
@@ -81,52 +81,14 @@ __global__ void voxel_sampling_gpu_kernel(int batch_size, int channels,
                                           int* grid_buffer,
                                           float* output_features,
                                           int* output_idx) {
-//__global__ void voxel_sampling_gpu_kernel(int batch_size, int input_npoint, int channels,
-//                                             int kernel_number, int kernel_size,
-//                                             int grid_w, int grid_l, int grid_h,
-//                                             float resolution, float padding,
-//                                             const float* input_coors,
-//                                             const float* input_features,
-//                                             const int* input_num_list,
-//                                             const float* center_coors,
-//                                             const int* center_num_list,
-//                                             int* input_accu_list,
-//                                             int* center_accu_list,
-//                                             int* grid_buffer,
-//                                             float* output_features,
-//                                             int* output_idx) {
 
     const int grid_size = grid_w * grid_l * grid_h;
 	const int half_kernel_size = (kernel_size - 1) / 2;
 	const float radius = 1.5 * resolution;
 	const float r2 = radius * radius;
-//	const int ngrid = kernel_size * kernel_size * kernel_size;
 	const int center_offset = kernel_size * kernel_size * half_kernel_size + \
                               kernel_size * half_kernel_size + \
                               half_kernel_size;
-
-//	for (int b=blockIdx.x; b<batch_size; b+=gridDim.x) {
-//
-//	    for (int i=threadIdx.x; i<center_num_list[b]; i+=blockDim.x) {
-//	        for (int j=0; j<ngrid; j++) {
-//                output_idx[center_accu_list[b]*ngrid + i*ngrid + j] = -1;
-//	            for (int u=0; u<channels; u++) {
-//	                output_features[center_accu_list[b]*ngrid*channels + i*ngrid*channels + j*channels + u] = padding;
-//	            }
-//	        }
-//	    }
-//	    __syncthreads();
-//
-//	    for (int i=threadIdx.x; i<input_num_list[b]; i+=blockDim.x) {
-//	        int input_point_id = input_accu_list[b] + i;
-//	        int grid_coor_w = (int)floor(input_coors[input_point_id*3 + 0] / resolution);
-//	        int grid_coor_l = (int)floor(input_coors[input_point_id*3 + 1] / resolution);
-//	        int grid_coor_h = (int)floor(input_coors[input_point_id*3 + 2] / resolution);
-//	        int grid_buffer_idx = b * grid_size + grid_coor_w * grid_l * grid_h + grid_coor_l * grid_h + grid_coor_h;
-//	        atomicExch(&grid_buffer[grid_buffer_idx], input_point_id);
-//	    }
-//	    __syncthreads();
-//	}
 
     int center_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (center_id < kernel_number) {
@@ -188,9 +150,6 @@ __global__ void voxel_sampling_gpu_kernel(int batch_size, int channels,
                                              z_coor;
                             if (output_idx[voxel_coor] < 0) {
                                 output_idx[voxel_coor] = point_id;
-//                                    memcpy(&output_features[voxel_coor * channels],
-//                                           &input_features[point_id * channels],
-//                                           channels * sizeof(float));
                                 for (int c=0; c<channels; c++) {
                                     output_features[voxel_coor * channels + c] = input_features[point_id * channels + c];
                                 }
@@ -267,20 +226,6 @@ void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_gpu_kernel, 0, kernel_number);
     gridSize = (kernel_number + blockSize - 1) / blockSize;
-//    voxel_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_npoint, channels,
-//                                                       kernel_number, kernel_size,
-//                                                       grid_w, grid_l, grid_h,
-//                                                       resolution, padding,
-//                                                       input_coors,
-//                                                       input_features,
-//                                                       input_num_list,
-//                                                       center_coors,
-//                                                       center_num_list,
-//                                                       input_accu_list,
-//                                                       center_accu_list,
-//                                                       grid_buffer,
-//                                                       output_features,
-//                                                       output_idx);
     voxel_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, channels,
                                                        kernel_number, kernel_size, ngrid,
                                                        grid_w, grid_l, grid_h,

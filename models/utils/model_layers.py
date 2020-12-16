@@ -2,8 +2,8 @@ from __future__ import division
 
 import tensorflow as tf
 
-from models.tf_ops.custom_ops import grid_sampling, voxel_sampling
-from models.utils.ops_wrapper import kernel_conv_wrapper, fully_connected_wrapper
+from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, roi_pooling
+from models.utils.ops_wrapper import kernel_conv_wrapper, fully_connected_wrapper, dense_conv_wrapper
 
 
 def point_conv(input_coors,
@@ -49,6 +49,33 @@ def point_conv(input_coors,
                                           histogram=histogram,
                                           summary=summary)
     return kernel_center_coors, output_features, center_num_list
+
+
+def conv_3d(input_voxels,
+            layer_params,
+            scope,
+            is_training,
+            model_params,
+            bn_decay=None,
+            histogram=False,
+            summary=False,
+            last_layer=False):
+    bn_decay = bn_decay if not last_layer else None
+    activation = model_params['activation'] if not last_layer else None
+
+    output_features = dense_conv_wrapper(inputs=input_voxels,
+                                         num_output_channels=layer_params['c_out'],
+                                         kernel_size=layer_params['kernel_res'],
+                                         scope=scope,
+                                         use_xavier=model_params['xavier'],
+                                         stddev=model_params['stddev'],
+                                         activation=activation,
+                                         bn_decay=bn_decay,
+                                         is_training=is_training,
+                                         histogram=histogram,
+                                         summary=summary)
+
+    return output_features
 
 
 def fully_connected(input_points,
