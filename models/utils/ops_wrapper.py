@@ -3,7 +3,7 @@ import numpy as np
 from models.utils.var_utils import _variable_with_l2_loss
 
 
-from models.tf_ops.custom_ops import dense_conv
+from models.tf_ops.custom_ops import voxel2col
 
 def batch_norm_template(inputs, is_training, bn_decay, name):
     '''
@@ -151,7 +151,7 @@ def dense_conv_wrapper(inputs,
     l2_loss_collection = "l2" # TODO: need to change the l2 loss collection for two-stage training.
     with tf.variable_scope(scope):
         num_input_channels = inputs.get_shape()[-1].value
-        kernel_shape = [kernel_size * kernel_size * kernel_size, num_input_channels, num_output_channels]
+        kernel_shape = [kernel_size * kernel_size * kernel_size * num_input_channels, num_output_channels]
         kernel = _variable_with_l2_loss(name='kernel',
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
@@ -167,10 +167,8 @@ def dense_conv_wrapper(inputs,
         if summary:
             tf.summary.scalar('kernel_L2', tf.nn.l2_loss(kernel))
 
-        outputs = tf.nn.conv3d(input=reshaped_inputs,
-                               filter=kernel,
-                               strides=[1, 1, 1, 1, 1],
-                               padding='VALID')
+        voxels_to_conv = voxel2col(input_voxels=inputs, kernel_size=kernel_size)
+        outputs = tf.matmul(voxels_to_conv, kernel)
 
         if bn_decay is None:
             outputs = tf.nn.bias_add(outputs, biases)
@@ -185,11 +183,6 @@ def dense_conv_wrapper(inputs,
                                   'leaky_relu': tf.nn.leaky_relu}
             activation_fn = activation_fn_dict[activation]
             outputs = activation_fn(outputs)
-        output_size = int(outputs.get_shape()[1].value * outputs.get_shape()[2].value * outputs.get_shape()[3].value)
-        if output_size == 1:
-            outputs = tf.squeeze(outputs, axis=[1, 2, 3])
-        else:
-            outputs = tf.reshape(outputs, shape=[-1, output_size, num_output_channels])
 
         return outputs
 

@@ -10,6 +10,7 @@ from models.tf_ops.test.test_layers import point_conv, conv_3d, fully_connected,
 # tf.enable_eager_execution()
 from models.tf_ops.custom_ops import grid_sampling, voxel_sampling
 from models.utils.ops_wrapper import kernel_conv_wrapper
+from data.kitti_generator import Dataset
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -53,11 +54,14 @@ if __name__ == '__main__':
 
     logits = fully_connected(features, 8, '5')
     roi_attrs = get_roi_attrs_from_logits(logits, coors, anchor_size)
+    roi_attrs = roi_attrs[:50*batch_size, :]
+    num_list = tf.ones(batch_size, dtype=tf.int32) * 50
 
-    voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, 7)
-    voxels = conv_3d(voxels, 256, '6')
+    voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, 5)
+    # voxels = conv_3d(voxels, 256, '6')
     voxels = conv_3d(voxels, 256, '7')
-    features = conv_3d(voxels, 256, '8')
+    voxels = conv_3d(voxels, 256, '8')
+    features = tf.squeeze(voxels, axis=[1])
     logits = fully_connected(features, 8, '9')
     bbox_attrs = get_bbox_attrs_from_logits(logits, roi_attrs)
 
@@ -101,7 +105,7 @@ if __name__ == '__main__':
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            outbbox = sess.run(bbox_attrs,
+            output_features = sess.run(bbox_attrs,
                                 # output_voxels = sess.run(voxels,
                                 feed_dict={coors_p: input_coors[i],
                                            features_p: input_features[i],
@@ -109,12 +113,12 @@ if __name__ == '__main__':
                                 options=run_options,
                                 run_metadata=run_metadata)
 
-            # print(output_centers.shape)
-            ## time.sleep(0.1)
-            #
+            # print(output_features.shape)
+            # ## time.sleep(0.1)
+            # #
             tl = timeline.Timeline(run_metadata.step_stats)
             ctf = tl.generate_chrome_trace_format(show_memory=True)
-            with open('timeline_{}.json'.format(i), 'w') as f:
+            with open('timeline.json'.format(i), 'w') as f:
                 f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))

@@ -16,19 +16,22 @@ __global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxe
     const int output_voxel_num = output_voxel_size * output_voxel_size * output_voxel_size;
     const int kernel_num = kernel_size * kernel_size * kernel_size;
     int id = threadIdx.x + blockIdx.x * blockDim.x;
-    if (id < input_num * output_voxel_num) {
-        for (int k=0; k<kernel_num; k++) {
-            output_idx[id * kernel_num + k] = -1;
-        }
+    if (id < input_num * output_voxel_num * kernel_num) {
+        output_idx[id] = -1;
     }
     __syncthreads();
-    if (id < input_num * output_voxel_num) {
-        int input_id = id / output_voxel_num;
-        int voxel_id = id % output_voxel_num;
+    if (id < input_num * output_voxel_num * kernel_num) {
+        int input_id = id / (output_voxel_num * kernel_num);
+        int voxel_id = id % (input_id * kernel_num) / kernel_num;
+        int kernel_id = id % kernel_num;
 
-        int output_voxel_coor_z = voxel_id / (kernel_size * kernel_size);
-        int output_voxel_coor_y = (voxel_id % (kernel_size * kernel_size) )/ kernel_size;
-        int output_voxel_coor_x = voxel_id % kernel_size;
+        int z = kernel_id / (kernel_size * kernel_size);
+        int y = kernel_id % (kernel_size * kernel_size) / kernel_size;
+        int x = kernel_id % kernel_size;
+
+        int output_voxel_coor_z = voxel_id / (output_voxel_size * output_voxel_size);
+        int output_voxel_coor_y = voxel_id % (output_voxel_size * output_voxel_size) / output_voxel_size;
+        int output_voxel_coor_x = voxel_id % output_voxel_size;
 
         /*
         input_voxel_coor = output_voxel_coor + 1;
@@ -37,24 +40,19 @@ __global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxe
         kernel_coor = output_voxel_coor + [x/y/z], for x/y/z in [0, 1, 2];
         */
 
-        for (int z=0; z<kernel_size; z++) {
-            int kernel_coor_z = output_voxel_coor_z + z;
-            for (int y=0; y<kernel_size; y++) {
-                int kernel_coor_y = output_voxel_coor_y + y;
-                for (int x=0; x<kernel_size; x++) {
-                    int kernel_coor_x = output_voxel_coor_x + x;
-                    int input_voxel_id = input_id * input_voxel_num + \
-                                         kernel_coor_z * input_voxel_size * input_voxel_size + \
-                                         kernel_coor_y * input_voxel_size + \
-                                         kernel_coor_x;
-                    int output_kernel_id = id * kernel_num + z * kernel_size * kernel_size + y * kernel_size + x;
-                    output_idx[output_kernel_id] = input_voxel_id;
-                    for (int c=0; c<channels; c++) {
-                        output_voxels[output_kernel_id * channels + c] = input_voxels[input_voxel_id * channels + c];
-                    }
-                }
-            }
+        int kernel_coor_z = output_voxel_coor_z + z;
+        int kernel_coor_y = output_voxel_coor_y + y;
+        int kernel_coor_x = output_voxel_coor_x + x;
+        int input_voxel_id = input_id * input_voxel_num + \
+                             kernel_coor_z * input_voxel_size * input_voxel_size + \
+                             kernel_coor_y * input_voxel_size + \
+                             kernel_coor_x;
+        int output_kernel_id = input_id * output_voxel_num * kernel_num + voxel_id * kernel_num + z * kernel_size * kernel_size + y * kernel_size + x;
+        output_idx[output_kernel_id] = input_voxel_id;
+        for (int c=0; c<channels; c++) {
+            output_voxels[output_kernel_id * channels + c] = input_voxels[input_voxel_id * channels + c];
         }
+
     }
 }
 
@@ -70,13 +68,13 @@ void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size,
         return;
     }
     const int output_voxel_num = output_voxel_size * output_voxel_size * output_voxel_size;
-
+    const int kernel_num = kernel_size * kernel_size * kernel_size;
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel2col_gpu_kernel, 0, input_num * output_voxel_num);
-    gridSize = (input_num * output_voxel_num + blockSize - 1) / blockSize;
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel2col_gpu_kernel, 0, input_num * output_voxel_num * kernel_num);
+    gridSize = (input_num * output_voxel_num * kernel_num + blockSize - 1) / blockSize;
 
     voxel2col_gpu_kernel<<<gridSize,blockSize>>>(input_num, channels, input_voxel_size,
                                                   output_voxel_size, kernel_size,

@@ -24,21 +24,22 @@ REGISTER_OP("VoxelToColOp")
     .Input("input_voxels: float32")
     .Output("output_voxels: float32") // [center_coors.shape[0], voxel_size ** 3, channels]
     .Output("output_idx: int32") // [center_coors.shape[0], voxel_size ** 3, channels]
-    .Attr("kernel_size: float")
+    .Attr("kernel_size: int")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle input_voxels_shape;
-        TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 3, &input_voxels_shape));
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 3, &input_voxels_shape));
 
         int kernel_size;
         TF_RETURN_IF_ERROR(c->GetAttr("kernel_size", &kernel_size));
 
         DimensionHandle input_num = c->Dim(input_voxels_shape, 0);
-        DimensionHandle input_voxel_num = c->Dim(input_voxels_shape, 1);
-        DimensionHandle channels = c->Dim(input_voxels_shape, 2);
+        auto input_voxel_num = c->Value(c->Dim(input_voxels_shape, 1));
+        auto channels = c->Value(c->Dim(input_voxels_shape, 2));
+        auto output_voxel_num = (int)std::pow(cbrt(input_voxel_num) - 2, 3);
 
         // The output shape during the shape inference stage is pseudo.
-        ShapeHandle output_voxels_shape = c->MakeShape({input_num, input_voxel_num, kernel_size * kernel_size * kernel_size, channels});
-        ShapeHandle output_idx_shape = c->MakeShape({input_num, input_voxel_num, kernel_size * kernel_size * kernel_size});
+        ShapeHandle output_voxels_shape = c->MakeShape({input_num, output_voxel_num, kernel_size * kernel_size * kernel_size * channels});
+        ShapeHandle output_idx_shape = c->MakeShape({input_num, output_voxel_num, kernel_size * kernel_size * kernel_size});
 
         c->set_output(0, output_voxels_shape); // output_voxels_shape
         c->set_output(1, output_idx_shape); // output_idx
@@ -81,7 +82,7 @@ public:
 
 
         Tensor* output_voxels = nullptr;
-        auto output_voxels_shape = TensorShape({input_num, output_voxel_num, kernel_num, channels});
+        auto output_voxels_shape = TensorShape({input_num, output_voxel_num, kernel_num * channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_voxels_shape, &output_voxels));
         float* output_voxels_ptr = output_voxels->template flat<float>().data();
         cudaMemset(output_voxels_ptr, 0., input_num*output_voxel_num*kernel_num*channels*sizeof(float));
@@ -90,7 +91,7 @@ public:
         auto output_idx_shape = TensorShape({input_num, output_voxel_num, kernel_num});
         OP_REQUIRES_OK(context, context->allocate_output(1, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
-        cudaMemset(output_idx_ptr, 0., input_num*output_voxel_num*kernel_num*sizeof(float));
+        cudaMemset(output_idx_ptr, 0, input_num*output_voxel_num*kernel_num*sizeof(float));
 
         voxel2col_gpu_launcher(input_num, channels, input_voxel_size, output_voxel_size, kernel_size,
                                 input_voxels_ptr,
