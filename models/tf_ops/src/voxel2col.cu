@@ -6,7 +6,7 @@
 #include <iostream>
 #include <float.h>  // import FLT_EPSILON
 
-__global__ void dense_conv_gpu_kernel(int input_num, int channels, int input_voxel_size,
+__global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxel_size,
                                       int output_voxel_size, int kernel_size,
                                       const float* input_voxels,
                                       float* output_voxels,
@@ -60,7 +60,7 @@ __global__ void dense_conv_gpu_kernel(int input_num, int channels, int input_vox
 
 
 
-void dense_conv_gpu_launcher(int input_num, int channels, int input_voxel_size,
+void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size,
                              int output_voxel_size, int kernel_size,
                              const float* input_voxels,
                              float* output_voxels,
@@ -75,10 +75,10 @@ void dense_conv_gpu_launcher(int input_num, int channels, int input_voxel_size,
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, dense_conv_gpu_kernel, 0, input_num * output_voxel_num);
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel2col_gpu_kernel, 0, input_num * output_voxel_num);
     gridSize = (input_num * output_voxel_num + blockSize - 1) / blockSize;
 
-    dense_conv_gpu_kernel<<<gridSize,blockSize>>>(input_num, channels, input_voxel_size,
+    voxel2col_gpu_kernel<<<gridSize,blockSize>>>(input_num, channels, input_voxel_size,
                                                   output_voxel_size, kernel_size,
                                                   input_voxels,
                                                   output_voxels,

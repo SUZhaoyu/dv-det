@@ -140,9 +140,9 @@ ops.NoGradient("RoiFilterOp")
 
 # =============================================Dense Conv===============================================
 
-dense_conv_exe = tf.load_op_library(join(CWD, 'build', 'dense_conv.so'))
+voxel2col_exe = tf.load_op_library(join(CWD, 'build', 'voxel2col.so'))
 def dense_conv(input_voxels, kernel_size=3):
-    output_voxels, _ = dense_conv_exe.dense_conv_op(input_voxels=input_voxels,
+    output_voxels, _ = voxel2col_exe.voxel2col_op(input_voxels=input_voxels,
                                                     kernel_size=kernel_size)
     return output_voxels
 ops.NoGradient("DenseConvOp")

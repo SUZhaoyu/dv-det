@@ -20,7 +20,7 @@ using ::tensorflow::shape_inference::DimensionHandle;
 using ::tensorflow::shape_inference::InferenceContext;
 using ::tensorflow::shape_inference::ShapeHandle;
 
-REGISTER_OP("DenseConvOp")
+REGISTER_OP("VoxelToColOp")
     .Input("input_voxels: float32")
     .Output("output_voxels: float32") // [center_coors.shape[0], voxel_size ** 3, channels]
     .Output("output_idx: int32") // [center_coors.shape[0], voxel_size ** 3, channels]
@@ -48,14 +48,14 @@ REGISTER_OP("DenseConvOp")
 
 
 
-void dense_conv_gpu_launcher(int input_num, int channels, int input_voxel_size, int output_voxel_size, int kernel_size,
+void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size, int output_voxel_size, int kernel_size,
                              const float* input_voxels,
                              float* output_voxels,
                              int* output_idx);
 
-class DenseConvOp: public OpKernel {
+class VoxelToColOp: public OpKernel {
 public:
-    explicit DenseConvOp(OpKernelConstruction* context): OpKernel(context) {
+    explicit VoxelToColOp(OpKernelConstruction* context): OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("kernel_size", &kernel_size));
         OP_REQUIRES(context, kernel_size % 2 == 1,
                     errors::InvalidArgument("DenseConvOp expects kernel_size to be an odd number."));
@@ -92,7 +92,7 @@ public:
         int* output_idx_ptr = output_idx->template flat<int>().data();
         cudaMemset(output_idx_ptr, 0., input_num*output_voxel_num*kernel_num*sizeof(float));
 
-        dense_conv_gpu_launcher(input_num, channels, input_voxel_size, output_voxel_size, kernel_size,
+        voxel2col_gpu_launcher(input_num, channels, input_voxel_size, output_voxel_size, kernel_size,
                                 input_voxels_ptr,
                                 output_voxels_ptr,
                                 output_idx_ptr);
@@ -101,4 +101,4 @@ public:
 private:
     int kernel_size;
 }; // OpKernel
-REGISTER_KERNEL_BUILDER(Name("DenseConvOp").Device(DEVICE_GPU), DenseConvOp);
+REGISTER_KERNEL_BUILDER(Name("VoxelToColOp").Device(DEVICE_GPU), VoxelToColOp);
