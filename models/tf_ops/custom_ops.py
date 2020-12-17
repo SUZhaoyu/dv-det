@@ -129,9 +129,20 @@ def roi_pooling_grad(op, grad, _):
 # =============================================RoI Filter===============================================
 
 roi_filter_exe = tf.load_op_library(join(CWD, 'build', 'roi_filter.so'))
-def roi_filter(input_roi_conf, input_num_list, conf_thres):
+def roi_filter(input_roi_attrs, input_roi_conf, input_num_list, conf_thres):
     output_num_list, output_idx = roi_filter_exe.roi_filter_op(input_roi_conf=input_roi_conf,
                                                                input_num_list=input_num_list,
                                                                conf_thres=conf_thres)
-    return output_num_list, output_idx
+    output_roi_attrs = tf.gather(input_roi_attrs, output_idx, axis=0)
+    return output_roi_attrs, output_num_list
 ops.NoGradient("RoiFilterOp")
+
+
+# =============================================Dense Conv===============================================
+
+dense_conv_exe = tf.load_op_library(join(CWD, 'build', 'dense_conv.so'))
+def dense_conv(input_voxels, kernel_size=3):
+    output_voxels, _ = dense_conv_exe.dense_conv_op(input_voxels=input_voxels,
+                                                    kernel_size=kernel_size)
+    return output_voxels
+ops.NoGradient("DenseConvOp")

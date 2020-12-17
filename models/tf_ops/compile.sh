@@ -28,4 +28,7 @@ TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.ge
 # nvcc src/roi_pooling.cu -o build/roi_pooling.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
 # g++ -std=c++11 src/roi_pooling.cpp build/roi_pooling.cu.o -o build/roi_pooling.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 
-g++ -std=c++11 src/roi_filter.cpp -o build/roi_filter.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+# g++ -std=c++11 src/roi_filter.cpp -o build/roi_filter.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+
+nvcc src/dense_conv.cu -o build/dense_conv.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
+g++ -std=c++11 src/dense_conv.cpp build/dense_conv.cu.o -o build/dense_conv.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
