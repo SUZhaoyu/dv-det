@@ -71,7 +71,7 @@ public:
         int input_num = input_voxels.dim_size(0);
         int input_voxel_num = input_voxels.dim_size(1);
         int channels = input_voxels.dim_size(2);
-        int kernel_num = kernel_size*kernel_size*kernel_size;
+        int ngrid = kernel_size*kernel_size*kernel_size;
         int input_voxel_size = (int)round(cbrt(input_voxel_num));
         OP_REQUIRES(context, input_voxel_size * input_voxel_size * input_voxel_size == input_voxel_num,
                     errors::InvalidArgument("Input 3-D dimension of DenseConvOp must be the same, identical dimensions are not currently supported."));
@@ -82,16 +82,16 @@ public:
 
 
         Tensor* output_voxels = nullptr;
-        auto output_voxels_shape = TensorShape({input_num, output_voxel_num, kernel_num * channels});
+        auto output_voxels_shape = TensorShape({input_num, output_voxel_num, ngrid * channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_voxels_shape, &output_voxels));
         float* output_voxels_ptr = output_voxels->template flat<float>().data();
-        cudaMemset(output_voxels_ptr, 0., input_num*output_voxel_num*kernel_num*channels*sizeof(float));
+        cudaMemset(output_voxels_ptr, 0., input_num*output_voxel_num*ngrid*channels*sizeof(float));
 
         Tensor* output_idx = nullptr;
-        auto output_idx_shape = TensorShape({input_num, output_voxel_num, kernel_num});
+        auto output_idx_shape = TensorShape({input_num, output_voxel_num, ngrid});
         OP_REQUIRES_OK(context, context->allocate_output(1, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
-        cudaMemset(output_idx_ptr, 0, input_num*output_voxel_num*kernel_num*sizeof(float));
+        cudaMemset(output_idx_ptr, 0, input_num*output_voxel_num*ngrid*sizeof(float));
 
         voxel2col_gpu_launcher(input_num, channels, input_voxel_size, output_voxel_size, kernel_size,
                                 input_voxels_ptr,

@@ -35,40 +35,44 @@ __device__ int get_batch_id(int* accu_list, int batch_size, int id) {
     return batch_size - 1;
 }
 
-__global__ void output_init_gpu_kernel(int batch_size, int center_num, int kernel_num,
-                                       float padding, int channels,
+__global__ void output_init_gpu_kernel(int batch_size, int ngrid, int channels,
+                                       float padding, int kernel_number,
+                                       const int* center_num_list,
+                                       int* center_accu_list,
                                        float* output_features,
                                        int* output_idx) {
-    int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
-    if (thread_id < center_num * kernel_num) {
-        output_idx[thread_id] = -1;
-        for (int c=0; c<channels; c++) {
-            output_features[thread_id*channels + c] = padding;
+    int center_id = threadIdx.x + blockIdx.x * blockDim.x;
+    if (center_id < kernel_number) {
+        int batch_id = get_batch_id(center_accu_list, batch_size, center_id);
+        for (int i=0; i<ngrid; i++) {
+            output_idx[center_id*ngrid + i] = -1;
+            for (int c=0; c<channels; c++) {
+                output_features[center_id*ngrid*channels + i*channels + c] = padding;
+            }
         }
     }
 }
 
 __global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_npoint, float resolution,
-                                            int grid_dim_w, int grid_dim_l, int grid_dim_h,
+                                            int grid_w, int grid_l, int grid_h, int grid_size,
                                             const float* input_coors,
                                             int* input_accu_list,
                                             int* grid_buffer) {
-    const int grid_dim_size = grid_dim_w * grid_dim_h * grid_dim_l;
     int point_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (point_id < input_npoint) {
-        int center_grid_coor_x = (int)floor(input_coors[point_id*3 + 0] / resolution);
-        int center_grid_coor_y = (int)floor(input_coors[point_id*3 + 1] / resolution);
-        int center_grid_coor_z = (int)floor(input_coors[point_id*3 + 2] / resolution);
+        int grid_coor_w = (int)floor(input_coors[point_id*3 + 0] / resolution);
+        int grid_coor_l = (int)floor(input_coors[point_id*3 + 1] / resolution);
+        int grid_coor_h = (int)floor(input_coors[point_id*3 + 2] / resolution);
         int batch_id = get_batch_id(input_accu_list, batch_size, point_id);
-        int grid_buffer_idx = batch_id * grid_dim_size + center_grid_coor_x * grid_dim_l * grid_dim_h + center_grid_coor_y * grid_dim_h + center_grid_coor_z;
+        int grid_buffer_idx = batch_id * grid_size + grid_coor_w * grid_l * grid_h + grid_coor_l * grid_h + grid_coor_h;
         atomicExch(&grid_buffer[grid_buffer_idx], point_id);
     }
 }
 
 
-__global__ void voxel_sampling_gpu_kernel(int batch_size, int center_num, int channels,
-                                          int kernel_size,
-                                          int grid_dim_w, int grid_dim_l, int grid_dim_h,
+__global__ void voxel_sampling_gpu_kernel(int batch_size, int channels,
+                                          int kernel_number, int kernel_size, int ngrid,
+                                          int grid_w, int grid_l, int grid_h,
                                           float resolution,
                                           const float* input_coors,
                                           const float* input_features,
@@ -78,68 +82,79 @@ __global__ void voxel_sampling_gpu_kernel(int batch_size, int center_num, int ch
                                           float* output_features,
                                           int* output_idx) {
 
-	const int kernel_num = kernel_size * kernel_size * kernel_size;
+    const int grid_size = grid_w * grid_l * grid_h;
 	const int half_kernel_size = (kernel_size - 1) / 2;
-	const int half_kernel_num = kernel_size * kernel_size * half_kernel_size + \
-                                kernel_size * half_kernel_size + \
-                                half_kernel_size;
-	const int search_kernel_size = kernel_size + 1;
-	const int search_kernel_num = search_kernel_size * search_kernel_size * search_kernel_size;
-    const int grid_dim_size = grid_dim_w * grid_dim_l * grid_dim_h;
 	const float radius = 1.5 * resolution;
 	const float r2 = radius * radius;
+	const int center_offset = kernel_size * kernel_size * half_kernel_size + \
+                              kernel_size * half_kernel_size + \
+                              half_kernel_size;
 
-    int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
-    if (thread_id < center_num * search_kernel_num) {
-
-        int center_id = thread_id / search_kernel_num;
-        int search_grid_id = thread_id % search_kernel_num;
+    int center_id = threadIdx.x + blockIdx.x * blockDim.x;
+    if (center_id < kernel_number) {
         int batch_id = get_batch_id(center_accu_list, batch_size, center_id);
+        float x_c = center_coors[center_id*3 + 0];
+        float y_c = center_coors[center_id*3 + 1];
+        float z_c = center_coors[center_id*3 + 2];
+        int grid_coor_w = __float2int_rz(x_c / resolution);
+        int grid_coor_l = __float2int_rz(y_c / resolution);
+        int grid_coor_h = __float2int_rz(z_c / resolution);
+//	        long long grid_idx_c = grid_coor_h * grid_w * grid_l + grid_coor_l * grid_w + grid_coor_w;
+        int grid_search_w_min, grid_search_w_max;
+        int grid_search_l_min, grid_search_l_max;
+        int grid_search_h_min, grid_search_h_max;
+        if (grid_coor_w * resolution + 0.5 * resolution > x_c) {
+            grid_search_w_min = grid_coor_w - 2;
+            grid_search_w_max = grid_coor_w + 1;
+        }else{
+            grid_search_w_min = grid_coor_w - 1;
+            grid_search_w_max = grid_coor_w + 2;
+        }
+        if (grid_coor_l * resolution + 0.5 * resolution > y_c) {
+            grid_search_l_min = grid_coor_l - 2;
+            grid_search_l_max = grid_coor_l + 1;
+        }else{
+            grid_search_l_min = grid_coor_l - 1;
+            grid_search_l_max = grid_coor_l + 2;
+        }
+        if (grid_coor_h * resolution + 0.5 * resolution > z_c) {
+            grid_search_h_min = grid_coor_h - 2;
+            grid_search_h_max = grid_coor_h + 1;
+        }else{
+            grid_search_h_min = grid_coor_h - 1;
+            grid_search_h_max = grid_coor_h + 2;
+        }
 
-        float center_coor_x = center_coors[center_id*3 + 0];
-        float center_coor_y = center_coors[center_id*3 + 1];
-        float center_coor_z = center_coors[center_id*3 + 2];
-        int center_grid_coor_x = __float2int_rz(center_coor_x / resolution);
-        int center_grid_coor_y = __float2int_rz(center_coor_y / resolution);
-        int center_grid_coor_z = __float2int_rz(center_coor_z / resolution);
-
-
-        int search_grid_x = search_grid_id / (search_kernel_size * search_kernel_size);
-        int search_grid_y = search_grid_id % (search_kernel_size * search_kernel_size) / search_kernel_size;
-        int search_grid_z = search_grid_id % search_kernel_size;
-
-        int search_offset_x = -2 + round(center_coor_x / resolution - center_grid_coor_x) + search_grid_x;
-        int search_offset_y = -2 + round(center_coor_y / resolution - center_grid_coor_y) + search_grid_y;
-        int search_offset_z = -2 + round(center_coor_z / resolution - center_grid_coor_z) + search_grid_z;
-
-        int target_grid_x = max(0, min(center_grid_coor_x + search_offset_x, grid_dim_w - 1));
-        int target_grid_y = max(0, min(center_grid_coor_y + search_offset_y, grid_dim_l - 1));
-        int target_grid_z = max(0, min(center_grid_coor_z + search_offset_z, grid_dim_h - 1));
-        int target_grid_id = batch_id * grid_dim_size + target_grid_x * grid_dim_l * grid_dim_h + target_grid_y * grid_dim_h + target_grid_z;
-        int point_id = grid_buffer[target_grid_id];
-
-        if (point_id>=0) {
-            float coor_x = input_coors[point_id*3 +0];
-            float coor_y = input_coors[point_id*3 +1];
-            float coor_z = input_coors[point_id*3 +2];
-            float dx = coor_x - center_coor_x + FLT_EPSILON;
-            float dy = coor_y - center_coor_y + FLT_EPSILON;
-            float dz = coor_z - center_coor_z + FLT_EPSILON;
-            float dx2 = dx * dx;
-            float dy2 = dy * dy;
-            float dz2 = dz * dz;
-            if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
-                int kernel_coor_x = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
-                int kernel_coor_y = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
-                int kernel_coor_z = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
-                int voxel_coor = center_id * kernel_num + half_kernel_num + \
-                                 kernel_size * kernel_size * kernel_coor_x + \
-                                 kernel_size * kernel_coor_y + \
-                                 kernel_coor_z;
-                if (output_idx[voxel_coor] < 0) {
-                    output_idx[voxel_coor] = point_id;
-                    for (int c=0; c<channels; c++) {
-                        output_features[voxel_coor * channels + c] = input_features[point_id * channels + c];
+        for (int w=max(0, grid_search_w_min); w<=min(grid_search_w_max, grid_w-1); w++) {
+            for (int l=max(0, grid_search_l_min); l<=min(grid_search_l_max, grid_l-1); l++) {
+                for (int h=max(0, grid_search_h_min); h<=min(grid_search_h_max, grid_h-1); h++) {
+                    int target_grid_id = batch_id * grid_size + w * grid_l * grid_h + l * grid_h + h;
+                    int point_id = grid_buffer[target_grid_id];
+                    if (point_id>=0) {
+                        float x_i = input_coors[point_id*3 +0];
+                        float y_i = input_coors[point_id*3 +1];
+                        float z_i = input_coors[point_id*3 +2];
+                        float dx = x_i - x_c + FLT_EPSILON;
+                        float dy = y_i - y_c + FLT_EPSILON;
+                        float dz = z_i - z_c + FLT_EPSILON;
+                        float dx2 = dx * dx;
+                        float dy2 = dy * dy;
+                        float dz2 = dz * dz;
+                        if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
+                            int x_coor = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
+                            int y_coor = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
+                            int z_coor = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
+                            int voxel_coor = center_id * ngrid + center_offset + \
+                                             kernel_size * kernel_size * x_coor + \
+                                             kernel_size * y_coor + \
+                                             z_coor;
+                            if (output_idx[voxel_coor] < 0) {
+                                output_idx[voxel_coor] = point_id;
+                                for (int c=0; c<channels; c++) {
+                                    output_features[voxel_coor * channels + c] = input_features[point_id * channels + c];
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -168,8 +183,8 @@ __global__ void voxel_sampling_grad_gpu_kernel(int kernel_number, int ngrid, int
 
 
 void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
-                                 int center_num, int kernel_size,
-                                 int grid_dim_w, int grid_dim_l, int grid_dim_h,
+                                 int kernel_number, int kernel_size,
+                                 int grid_w, int grid_l, int grid_h,
                                  float resolution, float padding,
                                  const float* input_coors,
                                  const float* input_features,
@@ -181,37 +196,40 @@ void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
                                  int* grid_buffer,
                                  float* output_features,
                                  int* output_idx) {
-    if (batch_size*input_npoint <=0 || center_num * channels <= 0) {
+    if (batch_size*input_npoint <=0 || channels * kernel_number <= 0) {
         printf("VoxelSampleOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
-    int kernel_num = kernel_size * kernel_size * kernel_size;
-    int search_kernel_num = (kernel_size + 1) * (kernel_size + 1) * (kernel_size + 1);
+    int ngrid = kernel_size * kernel_size * kernel_size;
+    int grid_size = grid_w * grid_l * grid_h;
 
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, output_init_gpu_kernel, 0, center_num * kernel_num);
-    gridSize = (center_num * kernel_num + blockSize - 1) / blockSize;
-    output_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num, kernel_num,
-                                                    padding, channels,
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, output_init_gpu_kernel, 0, kernel_number);
+    gridSize = (kernel_number + blockSize - 1) / blockSize;
+    output_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, ngrid, channels,
+                                                    padding, kernel_number,
+                                                    center_num_list,
+                                                    center_accu_list,
                                                     output_features,
                                                     output_idx);
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_buffer_init_gpu_kernel, 0, input_npoint);
     gridSize = (input_npoint + blockSize - 1) / blockSize;
     grid_buffer_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_npoint, resolution,
-                                                         grid_dim_w, grid_dim_l, grid_dim_h,
+                                                         grid_w, grid_l, grid_h, grid_size,
                                                          input_coors,
                                                          input_accu_list,
                                                          grid_buffer);
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_gpu_kernel, 0, center_num * search_kernel_num);
-    gridSize = (center_num * search_kernel_num + blockSize - 1) / blockSize;
-    voxel_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num, channels,
-                                                       kernel_size,
-                                                       grid_dim_w, grid_dim_l, grid_dim_h, resolution,
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_gpu_kernel, 0, kernel_number);
+    gridSize = (kernel_number + blockSize - 1) / blockSize;
+    voxel_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, channels,
+                                                       kernel_number, kernel_size, ngrid,
+                                                       grid_w, grid_l, grid_h,
+                                                       resolution,
                                                        input_coors,
                                                        input_features,
                                                        center_coors,

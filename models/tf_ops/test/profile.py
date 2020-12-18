@@ -18,28 +18,28 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 anchor_size = tf.constant([1.6, 3.9, 1.5])
 batch_size = 1
-epoch = 1000
+epoch = 10
 if __name__ == '__main__':
-    # Dataset = Dataset(task='training',
-    #                   batch_size=batch_size,
-    #                   num_worker=6,
-    #                   hvd_size=1,
-    #                   hvd_id=0)
-    # input_coors, input_features, input_num_list = [], [], []
-    # for i in tqdm(range(epoch)):
-    #     coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
-    #     input_coors.append(coors_d)
-    #     input_features.append(features_d)
-    #     input_num_list.append(num_list_d)
-    # Dataset.stop()
+    Dataset = Dataset(task='training',
+                      batch_size=batch_size,
+                      num_worker=6,
+                      hvd_size=1,
+                      hvd_id=0)
+    input_coors, input_features, input_num_list = [], [], []
+    for i in tqdm(range(epoch)):
+        coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
+        input_coors.append(coors_d)
+        input_features.append(features_d)
+        input_num_list.append(num_list_d)
+    Dataset.stop()
 
-    # np.save("input_coors.npy", input_coors)
-    # np.save("input_features.npy", input_features)
-    # np.save("input_num_list.npy", input_num_list)
+    np.save("input_coors.npy", input_coors)
+    np.save("input_features.npy", input_features)
+    np.save("input_num_list.npy", input_num_list)
 
-    input_coors = np.load("input_coors.npy", allow_pickle=True)
-    input_features = np.load("input_features.npy", allow_pickle=True)
-    input_num_list = np.load("input_num_list.npy", allow_pickle=True)
+    # input_coors = np.load("input_coors.npy", allow_pickle=True)
+    # input_features = np.load("input_features.npy", allow_pickle=True)
+    # input_num_list = np.load("input_num_list.npy", allow_pickle=True)
 
     coors_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 1])
@@ -54,16 +54,16 @@ if __name__ == '__main__':
 
     logits = fully_connected(features, 8, '5')
     roi_attrs = get_roi_attrs_from_logits(logits, coors, anchor_size)
-    roi_attrs = roi_attrs[:50*batch_size, :]
-    num_list = tf.ones(batch_size, dtype=tf.int32) * 50
-
-    voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, 5)
-    # voxels = conv_3d(voxels, 256, '6')
-    voxels = conv_3d(voxels, 256, '7')
-    voxels = conv_3d(voxels, 256, '8')
-    features = tf.squeeze(voxels, axis=[1])
-    logits = fully_connected(features, 8, '9')
-    bbox_attrs = get_bbox_attrs_from_logits(logits, roi_attrs)
+    # roi_attrs = roi_attrs[:50*batch_size, :]
+    # num_list = tf.ones(batch_size, dtype=tf.int32) * 50
+    #
+    # voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, 5)
+    # # voxels = conv_3d(voxels, 256, '6')
+    # voxels = conv_3d(voxels, 256, '7')
+    # voxels = conv_3d(voxels, 256, '8')
+    # features = tf.squeeze(voxels, axis=[1])
+    # logits = fully_connected(features, 8, '9')
+    # bbox_attrs = get_bbox_attrs_from_logits(logits, roi_attrs)
 
 
 
@@ -105,21 +105,21 @@ if __name__ == '__main__':
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            output_features = sess.run(bbox_attrs,
+            output_features = sess.run(roi_attrs,
                                 # output_voxels = sess.run(voxels,
                                 feed_dict={coors_p: input_coors[i],
                                            features_p: input_features[i],
-                                           num_list_p: input_num_list[i]},
-                                options=run_options,
-                                run_metadata=run_metadata)
+                                           num_list_p: input_num_list[i]})
+                                # options=run_options,
+                                # run_metadata=run_metadata)
 
             # print(output_features.shape)
             # ## time.sleep(0.1)
             # #
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format(show_memory=True)
-            with open('timeline.json'.format(i), 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format(show_memory=True)
+            # with open('timeline.json'.format(i), 'w') as f:
+            #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
 

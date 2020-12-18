@@ -40,12 +40,12 @@ REGISTER_OP("VoxelSamplingOp")
 
         int kernel_size = 3;
 
-        DimensionHandle center_num = c->Dim(center_coors_shape, 0);
+        DimensionHandle kernel_number = c->Dim(center_coors_shape, 0);
         DimensionHandle channels = c->Dim(input_features_shape, 1);
 
         // The output shape during the shape inference stage is pseudo.
-        ShapeHandle output_feature_shape = c->MakeShape({center_num, kernel_size * kernel_size * kernel_size, channels});
-        ShapeHandle output_idx_shape = c->MakeShape({center_num, kernel_size * kernel_size * kernel_size, 1});
+        ShapeHandle output_feature_shape = c->MakeShape({kernel_number, kernel_size*kernel_size*kernel_size, channels});
+        ShapeHandle output_idx_shape = c->MakeShape({kernel_number, kernel_size*kernel_size*kernel_size, 1});
 
         c->set_output(0, output_feature_shape); // output_features
         c->set_output(1, output_idx_shape); // output_idx
@@ -56,8 +56,8 @@ REGISTER_OP("VoxelSamplingOp")
 
 
 void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
-                                int center_num, int kernel_size,
-                                int grid_dim_w, int grid_dim_l, int grid_dim_h,
+                                int kernel_number, int kernel_size,
+                                int grid_w, int grid_l, int grid_h,
                                 float resolution, float padding,
                                 const float* input_coors,
                                 const float* input_features,
@@ -110,16 +110,16 @@ public:
 
         int kernel_size = 3;
         int input_npoint = input_coors.dim_size(0);
-        int center_num = center_coors.dim_size(0);
+        int kernel_number = center_coors.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         int channels = input_features.dim_size(1);
-        int kernel_num = kernel_size * kernel_size * kernel_size;
-        int grid_dim_w = (int)floor(dimension[0] / resolution);
-        int grid_dim_l = (int)floor(dimension[1] / resolution);
-        int grid_dim_h = (int)floor(dimension[2] / resolution);
-        if (INT_MAX / grid_dim_h / grid_dim_l / grid_dim_w < batch_size){
+        int ngrid = kernel_size * kernel_size * kernel_size;
+        int grid_w = (int)floor(dimension[0] / resolution);
+        int grid_l = (int)floor(dimension[1] / resolution);
+        int grid_h = (int)floor(dimension[2] / resolution);
+        if (INT_MAX / grid_h / grid_l / grid_w < batch_size){
             printf("VoxelSamplingOp ERROR: size of grid buffer %d x [%d x %d x %d] exceeds INT32 range: %d.\n",
-	                batch_size, grid_dim_w, grid_dim_l, grid_dim_h, INT_MAX);}
+	                batch_size, grid_w, grid_l, grid_h, INT_MAX);}
 
 //        printf("******************input shape = %d************************\n", input_npoint);
 //        printf("******************output shape = %d************************\n", kernel_number);
@@ -157,27 +157,27 @@ public:
 
         Tensor grid_buffer;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
-                                                       TensorShape{batch_size, grid_dim_w, grid_dim_l, grid_dim_h},
+                                                       TensorShape{batch_size, grid_w, grid_l, grid_h},
                                                        &grid_buffer));
         int* grid_buffer_ptr = grid_buffer.template flat<int>().data();
-        cudaMemset(grid_buffer_ptr, 0xEF, batch_size*grid_dim_w*grid_dim_l*grid_dim_h*sizeof(int));
+        cudaMemset(grid_buffer_ptr, 0xEF, batch_size*grid_w*grid_l*grid_h*sizeof(int));
 //
 //
         Tensor* output_features = nullptr;
-        auto output_features_shape = TensorShape({center_num, kernel_num, channels});
+        auto output_features_shape = TensorShape({kernel_number, ngrid, channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_features_shape, &output_features));
         float* output_features_ptr = output_features->template flat<float>().data();
 //        cudaMemset(output_features_ptr, padding_value, kernel_number*ngrid*channels*sizeof(float));
 
         Tensor* output_idx = nullptr;
-        auto output_idx_shape = TensorShape({center_num, kernel_num, 1});
+        auto output_idx_shape = TensorShape({kernel_number, ngrid, 1});
         OP_REQUIRES_OK(context, context->allocate_output(1, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
 //        cudaMemset(output_idx_ptr, -1, kernel_number*ngrid*channels*sizeof(int));
 //
         voxel_sampling_gpu_launcher(batch_size, input_npoint, channels,
-                                    center_num, kernel_size,
-                                    grid_dim_w, grid_dim_l, grid_dim_h,
+                                    kernel_number, kernel_size,
+                                    grid_w, grid_l, grid_h,
                                     resolution, padding_value,
                                     input_coors_ptr,
                                     input_features_ptr,
