@@ -54,13 +54,12 @@ void grid_sampling_gpu_launcher(int batch_size, int input_npoint, float resoluti
                                 int* output_idx_temp,
                                 int* output_num_list,
                                 int* grid_buffer) {
-    int N = input_npoint;
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_sampling_gpu_kernel, 0, N);
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_sampling_gpu_kernel, 0, input_npoint);
     // Round up according to array size
-    gridSize = (N + blockSize - 1) / blockSize;
+    gridSize = (input_npoint + blockSize - 1) / blockSize;
 
     grid_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_npoint, resolution,
                                           grid_w, grid_l, grid_h,

@@ -22,7 +22,7 @@ def point_conv(input_coors,
     if layer_params['subsample_res'] is not None:
         kernel_center_coors, center_num_list = grid_sampling(input_coors=input_coors,
                                                              input_num_list=input_num_list,
-                                                             resolution=layer_params['kernel_res'],
+                                                             resolution=layer_params['subsample_res'],
                                                              dimension=model_params['dimension'],
                                                              offset=model_params['offset'])
     else:
