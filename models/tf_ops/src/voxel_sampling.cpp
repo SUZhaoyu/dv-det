@@ -55,7 +55,7 @@ REGISTER_OP("VoxelSamplingOp")
     }); // InferenceContext
 
 
-void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
+void voxel_sampling_gpu_launcher(int batch_size, int input_point_num, int channels,
                                 int center_num, int kernel_size,
                                 int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                 float resolution, float padding,
@@ -86,12 +86,12 @@ public:
         const Tensor& input_coors = context->input(0);
         auto input_coors_ptr = input_coors.template flat<float>().data();
         OP_REQUIRES(context, input_coors.dims()==2 && input_coors.shape().dim_size(1)==3,
-                    errors::InvalidArgument("Voxel Sample Op expects input_coors in shape: [npoints, 3]."));
+                    errors::InvalidArgument("Voxel Sample Op expects input_coors in shape: [point_nums, 3]."));
 
         const Tensor& input_features = context->input(1);
         auto input_features_ptr = input_features.template flat<float>().data();
         OP_REQUIRES(context, input_features.dims()==2 && input_features.shape().dim_size(1) > 0,
-                    errors::InvalidArgument("Voxel Sample Op expects input_features in shape: [npoints, channels(>0)]."));
+                    errors::InvalidArgument("Voxel Sample Op expects input_features in shape: [point_nums, channels(>0)]."));
 
         const Tensor& input_num_list = context->input(2);
         auto input_num_list_ptr = input_num_list.template flat<int>().data();
@@ -109,7 +109,7 @@ public:
                     errors::InvalidArgument("Voxel Sample Op expects center_num_list in shape: [batch_size]."));
 
         int kernel_size = 3;
-        int input_npoint = input_coors.dim_size(0);
+        int input_point_num = input_coors.dim_size(0);
         int center_num = center_coors.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         int channels = input_features.dim_size(1);
@@ -121,7 +121,7 @@ public:
             printf("VoxelSamplingOp ERROR: size of grid buffer %d x [%d x %d x %d] exceeds INT32 range: %d.\n",
 	                batch_size, grid_dim_w, grid_dim_l, grid_dim_h, INT_MAX);}
 
-//        printf("******************input shape = %d************************\n", input_npoint);
+//        printf("******************input shape = %d************************\n", input_point_num);
 //        printf("******************output shape = %d************************\n", kernel_number);
 
 
@@ -175,7 +175,7 @@ public:
         int* output_idx_ptr = output_idx->template flat<int>().data();
 //        cudaMemset(output_idx_ptr, -1, kernel_number*ngrid*channels*sizeof(int));
 //
-        voxel_sampling_gpu_launcher(batch_size, input_npoint, channels,
+        voxel_sampling_gpu_launcher(batch_size, input_point_num, channels,
                                     center_num, kernel_size,
                                     grid_dim_w, grid_dim_l, grid_dim_h,
                                     resolution, padding_value,
@@ -228,7 +228,7 @@ public:
         const Tensor& input_features = context->input(0);
         auto input_features_ptr = input_features.template flat<float>().data();
         OP_REQUIRES(context, input_features.dims()==2 && input_features.shape().dim_size(1) > 0,
-                    errors::InvalidArgument("VoxelSamplingGradOp expects input features in shape: [npoints, channels(>0)]."));
+                    errors::InvalidArgument("VoxelSamplingGradOp expects input features in shape: [point_nums, channels(>0)]."));
 
         const Tensor& output_idx = context->input(1);
         auto output_idx_ptr = output_idx.template flat<int>().data();
@@ -238,20 +238,20 @@ public:
         const Tensor& output_features_grad = context->input(2);
         auto output_features_grad_ptr = output_features_grad.template flat<float>().data();
         OP_REQUIRES(context, output_features_grad.dims()==3 && output_features_grad.shape().dim_size(2) > 0,
-                    errors::InvalidArgument("VoxelSamplingGradOp expects output_features_grad in shape: [npoints, kernel_size*3, channels(>0)]."));
+                    errors::InvalidArgument("VoxelSamplingGradOp expects output_features_grad in shape: [point_nums, kernel_size*3, channels(>0)]."));
         OP_REQUIRES(context, output_idx.shape().dim_size(0) == output_features_grad.shape().dim_size(0) &&
                              output_idx.shape().dim_size(1) == output_features_grad.shape().dim_size(1),
                              errors::InvalidArgument("VoxelSamplingGradOp needs output_features and output_idx has the same length."));
 
-        int input_npoint = input_features.shape().dim_size(0);
+        int input_point_num = input_features.shape().dim_size(0);
         int channels = input_features.shape().dim_size(1);
         int kernel_number = output_idx.shape().dim_size(0);
         int ngrid = output_idx.shape().dim_size(1);
 
         Tensor* input_features_grad = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape{input_npoint, channels}, &input_features_grad));
+        OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape{input_point_num, channels}, &input_features_grad));
         auto input_features_grad_ptr = input_features_grad->template flat<float>().data();
-        cudaMemset(input_features_grad_ptr, 0.f, input_npoint*channels*sizeof(float));
+        cudaMemset(input_features_grad_ptr, 0.f, input_point_num*channels*sizeof(float));
 
         voxel_sampling_grad_gpu_launcher(kernel_number, ngrid, channels,
                                        output_idx_ptr,

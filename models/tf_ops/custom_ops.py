@@ -154,7 +154,7 @@ roi_logits_to_attrs_exe = tf.load_op_library(join(CWD, 'build', 'roi_logits_to_a
 def roi_logits_to_attrs(base_coors, input_logits, anchor_size):
     output_attrs = roi_logits_to_attrs_exe.roi_logits_to_attrs_op(base_coors=base_coors,
                                                                   input_logits=input_logits,
-                                                                  ananchor_sizechor=anchor_size)
+                                                                  anchor_size=anchor_size)
     return output_attrs
 ops.NoGradient("RoiLogitsToAttrs")
 

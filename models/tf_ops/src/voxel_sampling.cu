@@ -48,14 +48,14 @@ __global__ void output_init_gpu_kernel(int batch_size, int center_num, int kerne
     }
 }
 
-__global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_npoint, float resolution,
+__global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num, float resolution,
                                             int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                             const float* input_coors,
                                             int* input_accu_list,
                                             int* grid_buffer) {
     const int grid_dim_size = grid_dim_w * grid_dim_h * grid_dim_l;
     int point_id = threadIdx.x + blockIdx.x * blockDim.x;
-    if (point_id < input_npoint) {
+    if (point_id < input_point_num) {
         int center_grid_coor_x = (int)floor(input_coors[point_id*3 + 0] / resolution);
         int center_grid_coor_y = (int)floor(input_coors[point_id*3 + 1] / resolution);
         int center_grid_coor_z = (int)floor(input_coors[point_id*3 + 2] / resolution);
@@ -167,7 +167,7 @@ __global__ void voxel_sampling_grad_gpu_kernel(int kernel_number, int ngrid, int
 }
 
 
-void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
+void voxel_sampling_gpu_launcher(int batch_size, int input_point_num, int channels,
                                  int center_num, int kernel_size,
                                  int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                  float resolution, float padding,
@@ -181,7 +181,7 @@ void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
                                  int* grid_buffer,
                                  float* output_features,
                                  int* output_idx) {
-    if (batch_size*input_npoint <=0 || center_num * channels <= 0) {
+    if (batch_size*input_point_num <=0 || center_num * channels <= 0) {
         printf("VoxelSampleOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
@@ -199,9 +199,9 @@ void voxel_sampling_gpu_launcher(int batch_size, int input_npoint, int channels,
                                                     output_features,
                                                     output_idx);
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_buffer_init_gpu_kernel, 0, input_npoint);
-    gridSize = (input_npoint + blockSize - 1) / blockSize;
-    grid_buffer_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_npoint, resolution,
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_buffer_init_gpu_kernel, 0, input_point_num);
+    gridSize = (input_point_num + blockSize - 1) / blockSize;
+    grid_buffer_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num, resolution,
                                                          grid_dim_w, grid_dim_l, grid_dim_h,
                                                          input_coors,
                                                          input_accu_list,

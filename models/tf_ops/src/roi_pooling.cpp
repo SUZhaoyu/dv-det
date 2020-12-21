@@ -64,13 +64,14 @@ REGISTER_OP("RoiPoolingGradOp")
     }); // InferenceContext
 
 
-void roi_pooling_gpu_launcher(int batch_size, int input_npoint, int channels,
-                              int kernel_number, int voxel_size, int pooling_size, float padding_value,
+void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
+                              int roi_num, int voxel_size, int pooling_size, float padding_value,
                               const float* input_coors,
                               const float* input_features,
                               const float* roi_attrs,
                               const int* input_num_list,
                               const int* roi_num_list,
+                              int* input_num_list_host,
                               int* input_accu_list,
                               int* roi_accu_list,
                               int* temp_pool,
@@ -116,11 +117,11 @@ public:
         OP_REQUIRES(context, roi_num_list.dims()==1,
                     errors::InvalidArgument("RoIPoolingOp  expects roi_num_list in shape: [batch_size]."));
 
-        int input_npoint = input_coors.dim_size(0);
-        int kernel_number = roi_attrs.dim_size(0);
+        int input_point_num = input_coors.dim_size(0);
+        int roi_num = roi_attrs.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         int channels = input_features.dim_size(1);
-        int ngrid = voxel_size * voxel_size * voxel_size;
+        int voxel_num = voxel_size * voxel_size * voxel_size;
 
 
         int batch_byte_size = batch_size * sizeof(int);
@@ -158,43 +159,49 @@ public:
 
         Tensor temp_pool;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
-                                                       TensorShape{kernel_number, ngrid, pooling_size},
+                                                       TensorShape{roi_num, voxel_num, pooling_size},
                                                        &temp_pool));
         int* temp_pool_ptr = temp_pool.template flat<int>().data();
+        cudaMemset(temp_pool_ptr, 0, roi_num*voxel_num*pooling_size*sizeof(float));
 
 
         Tensor temp_count;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
-                                                       TensorShape{kernel_number, ngrid},
+                                                       TensorShape{roi_num, voxel_num},
                                                        &temp_count));
         int* temp_count_ptr = temp_count.template flat<int>().data();
-        cudaMemset(temp_count_ptr, 0, kernel_number*ngrid*sizeof(int));
+        cudaMemset(temp_count_ptr, 0, roi_num*voxel_num*sizeof(int));
 
         Tensor* output_features = nullptr;
-        auto output_features_shape = TensorShape({kernel_number, ngrid, channels});
+        auto output_features_shape = TensorShape({roi_num, voxel_num, channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_features_shape, &output_features));
         float* output_features_ptr = output_features->template flat<float>().data();
 //        cudaMemset(output_features_ptr, padding_value, kernel_number*ngrid*channels*sizeof(float));
 
         Tensor* output_idx = nullptr;
-        auto output_idx_shape = TensorShape({kernel_number, ngrid, channels});
+        auto output_idx_shape = TensorShape({roi_num, voxel_num, channels});
         OP_REQUIRES_OK(context, context->allocate_output(1, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
 //        cudaMemset(output_idx_ptr, -1, kernel_number*ngrid*channels*sizeof(int));
 
-        roi_pooling_gpu_launcher(batch_size, input_npoint, channels,
-                                 kernel_number, voxel_size, pooling_size, padding_value,
+        roi_pooling_gpu_launcher(batch_size, input_point_num, channels,
+                                 roi_num, voxel_size, pooling_size, padding_value,
                                  input_coors_ptr,
                                  input_features_ptr,
                                  roi_attrs_ptr,
                                  input_num_list_ptr,
                                  roi_num_list_ptr,
+                                 input_num_list_ptr_host,
                                  input_accu_list_ptr,
                                  roi_accu_list_ptr,
                                  temp_pool_ptr,
                                  temp_count_ptr,
                                  output_features_ptr,
                                  output_idx_ptr);
+        free(input_num_list_ptr_host);
+        free(roi_num_list_ptr_host);
+        free(input_accu_list_ptr_host);
+        free(roi_accu_list_ptr_host);
     }
 private:
     float padding_value;

@@ -35,8 +35,8 @@ REGISTER_OP("GridSamplingOp")
         ShapeHandle input_num_list_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 1, &input_num_list_shape));
 
-        DimensionHandle input_npoint = c->Dim(input_coors_shape, 0);
-        ShapeHandle output_idx_shape = c->MakeShape({input_npoint});
+        DimensionHandle input_point_num = c->Dim(input_coors_shape, 0);
+        ShapeHandle output_idx_shape = c->MakeShape({input_point_num});
         c->set_output(0, output_idx_shape);
         c->set_output(1, input_num_list_shape);
 
@@ -44,7 +44,7 @@ REGISTER_OP("GridSamplingOp")
 
     }); // InferenceContext
 
-void grid_sampling_gpu_launcher(int batch_size, int input_npoint, float resolution,
+void grid_sampling_gpu_launcher(int batch_size, int input_point_num, float resolution,
                                 int grid_w, int grid_l, int grid_h,
                                 const float* input_coors,
                                 const int* input_num_list,
@@ -75,7 +75,7 @@ public:
         OP_REQUIRES(context, input_num_list.dims()==1,
                     errors::InvalidArgument("GridSamplingOp expects input_num_list in 1-D."));
 
-        int input_npoint = input_coors.dim_size(0);
+        int input_point_num = input_coors.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         int grid_w = (int)floor(dimension[0] / resolution);
         int grid_l = (int)floor(dimension[1] / resolution);
@@ -101,10 +101,10 @@ public:
 
         Tensor output_idx_temp;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
-                                                       TensorShape{input_npoint},
+                                                       TensorShape{input_point_num},
                                                        &output_idx_temp));
         int* output_idx_temp_ptr = output_idx_temp.template flat<int>().data();
-        cudaMemset(output_idx_temp_ptr, 0, input_npoint*sizeof(int));
+        cudaMemset(output_idx_temp_ptr, 0, input_point_num*sizeof(int));
 
         Tensor grid_buffer;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
@@ -120,7 +120,7 @@ public:
         int* output_num_list_ptr = output_num_list->template flat<int>().data();
         cudaMemset(output_num_list_ptr, 0, batch_size*sizeof(int));
 
-        grid_sampling_gpu_launcher(batch_size, input_npoint, resolution,
+        grid_sampling_gpu_launcher(batch_size, input_point_num, resolution,
                                    grid_w, grid_l, grid_h,
                                    input_coors_ptr,
                                    input_num_list_ptr,
@@ -129,8 +129,8 @@ public:
                                    output_num_list_ptr,
                                    grid_buffer_ptr);
 
-        int* output_idx_temp_ptr_host = (int*)malloc(input_npoint*sizeof(int));
-        cudaMemcpy(output_idx_temp_ptr_host, output_idx_temp_ptr, input_npoint*sizeof(int), cudaMemcpyDeviceToHost);
+        int* output_idx_temp_ptr_host = (int*)malloc(input_point_num*sizeof(int));
+        cudaMemcpy(output_idx_temp_ptr_host, output_idx_temp_ptr, input_point_num*sizeof(int), cudaMemcpyDeviceToHost);
         int* output_num_list_ptr_host = (int*)malloc(batch_size*sizeof(int));
         cudaMemcpy(output_num_list_ptr_host, output_num_list_ptr, batch_size*sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -139,7 +139,7 @@ public:
         for (int i=0; i<batch_size; i++) {
             output_count += output_num_list_ptr_host[i];
         }
-//        printf("******************input shape = %d************************\n", input_npoint);
+//        printf("******************input shape = %d************************\n", input_point_num);
 //        printf("******************output shape = %d************************\n", output_count);
         Tensor* output_idx = nullptr;
         auto output_idx_shape = TensorShape({output_count});
