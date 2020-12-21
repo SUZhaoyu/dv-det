@@ -34,11 +34,11 @@ REGISTER_OP("RoiLogitsToAttrsOp")
 
     }); // InferenceContext
 
-roi_logits_to_attrs_gpu_launcher(int input_npoint, int channels,
-                                 float anchor_w, float anchor_l, float anchor_h,
-                                 const float* base_coors,
-                                 const float* input_logits,
-                                 float* output_attrs);
+void roi_logits_to_attrs_gpu_launcher(int input_npoint, int channels,
+                                      float anchor_w, float anchor_l, float anchor_h,
+                                      const float* base_coors,
+                                      const float* input_logits,
+                                      float* output_attrs);
 
 class RoiLogitsToAttrsOp: public OpKernel {
 public:

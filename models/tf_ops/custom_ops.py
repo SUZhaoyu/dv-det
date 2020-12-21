@@ -146,3 +146,23 @@ def voxel2col(input_voxels, kernel_size=3):
                                                         kernel_size=kernel_size)
     return output_voxels
 ops.NoGradient("DenseConvOp")
+
+
+# =============================================Roi Logits To Attrs===============================================
+
+roi_logits_to_attrs_exe = tf.load_op_library(join(CWD, 'build', 'roi_logits_to_attrs.so'))
+def roi_logits_to_attrs(base_coors, input_logits, anchor_size):
+    output_attrs = roi_logits_to_attrs_exe.roi_logits_to_attrs_op(base_coors=base_coors,
+                                                                  input_logits=input_logits,
+                                                                  ananchor_sizechor=anchor_size)
+    return output_attrs
+ops.NoGradient("RoiLogitsToAttrs")
+
+# =============================================Bbox Logits To Attrs===============================================
+
+bbox_logits_to_attrs_exe = tf.load_op_library(join(CWD, 'build', 'bbox_logits_to_attrs.so'))
+def bbox_logits_to_attrs(input_roi_attrs, input_logits):
+    output_attrs = bbox_logits_to_attrs_exe.bbox_logits_to_attrs_op(input_roi_attrs=input_roi_attrs,
+                                                                    input_logits=input_logits)
+    return output_attrs
+ops.NoGradient("BboxLogitsToAttrs")

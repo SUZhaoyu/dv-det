@@ -19,17 +19,17 @@ __global__ void roi_logits_to_attrs_gpu_kernel(int input_npoint, int channels,
 }
 
 
-roi_logits_to_attrs_gpu_launcher(int input_npoint, int channels,
-                                 float anchor_w, float anchor_l, float anchor_h,
-                                 const float* base_coors,
-                                 const float* input_logits,
-                                 float* output_attrs) {
+void roi_logits_to_attrs_gpu_launcher(int input_npoint, int channels,
+                                      float anchor_w, float anchor_l, float anchor_h,
+                                      const float* base_coors,
+                                      const float* input_logits,
+                                      float* output_attrs) {
     if (input_npoint == 0)
         return;
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_sampling_gpu_kernel, 0, input_npoint);
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, roi_logits_to_attrs_gpu_kernel, 0, input_npoint);
     // Round up according to array size
     gridSize = (input_npoint + blockSize - 1) / blockSize;
 
