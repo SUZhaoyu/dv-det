@@ -78,13 +78,13 @@ def get_roi_bbox(input_coors, bboxes, input_num_list, anchor_size, expand_ratio=
     :return: output_attrs: 2-D Tensor with shape [npoint, 10]
                            [confidence, w, l, h, offset_x, offset_y, offset_z, angle, *face_direction(binary), *class]
     '''
-    roi_logits, roi_conf, roi_diff = get_roi_bbox_exe.get_roi_bbox_op(input_coors=input_coors,
+    roi_attrs, roi_conf, roi_diff = get_roi_bbox_exe.get_roi_bbox_op(input_coors=input_coors,
                                                                       gt_bbox=bboxes,
                                                                       input_num_list=input_num_list,
                                                                       anchor_size=anchor_size,
                                                                       expand_ratio=expand_ratio,
                                                                       diff_thres=diff_thres)
-    return roi_logits, roi_conf, roi_diff
+    return roi_attrs, roi_conf, roi_diff
 
 
 ops.NoGradient("GetRoiBboxOp")
@@ -93,19 +93,19 @@ ops.NoGradient("GetRoiBboxOp")
 
 get_bbox_exe = tf.load_op_library(join(CWD, 'build', 'get_bbox.so'))
 def get_bbox(roi_bbox, bboxes, input_num_list, expand_ratio=0.15, diff_thres=3):
-    bbox_logits, bbox_conf = get_bbox_exe.get_bbox_op(roi_bbox=roi_bbox,
+    bbox_attrs, bbox_conf = get_bbox_exe.get_bbox_op(roi_bbox=roi_bbox,
                                                       gt_bbox=bboxes,
                                                       input_num_list=input_num_list,
                                                       expand_ratio=expand_ratio,
                                                       diff_thres=diff_thres)
-    return bbox_logits, bbox_conf
+    return bbox_attrs, bbox_conf
 ops.NoGradient("GetBboxOp")
 
 # =============================================Roi Pooling===============================================
 
 roi_pooling_exe = tf.load_op_library(join(CWD, 'build', 'roi_pooling.so'))
 def roi_pooling(input_coors, input_features, roi_attrs, input_num_list, rois_num_list,
-                voxel_size=3, padding_value=0., pooling_size=5):
+                voxel_size=5, padding_value=0., pooling_size=5):
     output_features, output_idx = roi_pooling_exe.roi_pooling_op(input_coors=input_coors,
                                                                  input_features=input_features,
                                                                  roi_attrs=roi_attrs,

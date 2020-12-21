@@ -23,8 +23,8 @@ using ::tensorflow::shape_inference::ShapeHandle;
 REGISTER_OP("RoiFilterOp")
     .Input("input_roi_conf: float32")
     .Input("input_num_list: int32")
-    .Output("output_num_list: int32") // [center_coors.shape[0], voxel_size ** 3, channels]
-    .Output("output_idx: int32") // [center_coors.shape[0], voxel_size ** 3, channels]
+    .Output("output_num_list: int32")
+    .Output("output_idx: int32")
     .Attr("conf_thres: float")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle input_roi_conf_shape;
@@ -32,12 +32,12 @@ REGISTER_OP("RoiFilterOp")
         ShapeHandle input_num_list_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 1, &input_num_list_shape));
 
-        DimensionHandle input_npoint = c->Dim(input_roi_conf_shape, 0);
-        DimensionHandle batch_size = c->Dim(input_num_list_shape, 1);
+        DimensionHandle input_point_num = c->Dim(input_roi_conf_shape, 0);
+        DimensionHandle batch_size = c->Dim(input_num_list_shape, 0);
 
         // The output shape during the shape inference stage is pseudo.
         ShapeHandle output_num_list_shape = c->MakeShape({batch_size});
-        ShapeHandle output_idx_shape = c->MakeShape({input_npoint});
+        ShapeHandle output_idx_shape = c->MakeShape({input_point_num});
 
         c->set_output(0, output_num_list_shape); // output_features
         c->set_output(1, output_idx_shape); // output_idx
@@ -63,7 +63,7 @@ public:
         OP_REQUIRES(context, input_num_list.dims()==1,
                     errors::InvalidArgument("RoIFilterOp expects input_num_list in shape: [batch_size]."));
 //
-        int input_npoint = input_roi_conf.dim_size(0);
+        int input_point_num = input_roi_conf.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         std::vector<int> output_idx_list;
 
