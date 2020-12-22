@@ -106,7 +106,7 @@ ops.NoGradient("GetBboxOp")
 roi_pooling_exe = tf.load_op_library(join(CWD, 'build', 'roi_pooling.so'))
 def roi_pooling(input_coors, input_features, roi_attrs, input_num_list, rois_num_list,
                 voxel_size=5, padding_value=0., pooling_size=5):
-    output_features, output_idx = roi_pooling_exe.roi_pooling_op(input_coors=input_coors,
+    output_features, _ = roi_pooling_exe.roi_pooling_op(input_coors=input_coors,
                                                                  input_features=input_features,
                                                                  roi_attrs=roi_attrs,
                                                                  input_num_list=input_num_list,
@@ -114,22 +114,22 @@ def roi_pooling(input_coors, input_features, roi_attrs, input_num_list, rois_num
                                                                  voxel_size=voxel_size,
                                                                  padding_value=padding_value,
                                                                  pooling_size=pooling_size)
-    return output_features, output_idx
+    return output_features
 
-# @ops.RegisterGradient("RoiPoolingOp")
-# def roi_pooling_grad(op, grad, _):
-#     input_features = op.inputs[1]
-#     output_idx = op.outputs[1]
-#     input_features_grad = roi_pooling_exe.roi_pooling_grad_op(output_idx=output_idx,
-#                                                               input_features=input_features,
-#                                                               output_features_grad=grad)
-#     return [None, input_features_grad, None, None, None]
-
-def roi_pooling_grad(input_features, output_idx, grad):
+@ops.RegisterGradient("RoiPoolingOp")
+def roi_pooling_grad(op, grad, _):
+    input_features = op.inputs[1]
+    output_idx = op.outputs[1]
     input_features_grad = roi_pooling_exe.roi_pooling_grad_op(output_idx=output_idx,
                                                               input_features=input_features,
                                                               output_features_grad=grad)
-    return input_features_grad
+    return [None, input_features_grad, None, None, None]
+
+# def roi_pooling_grad(input_features, output_idx, grad):
+#     input_features_grad = roi_pooling_exe.roi_pooling_grad_op(output_idx=output_idx,
+#                                                               input_features=input_features,
+#                                                               output_features_grad=grad)
+#     return input_features_grad
 
 
 # =============================================RoI Filter===============================================
@@ -144,12 +144,14 @@ def roi_filter(input_roi_attrs, input_roi_conf, input_num_list, conf_thres):
 ops.NoGradient("RoiFilterOp")
 
 
-# =============================================Dense Conv===============================================
+# =============================================Voxel2Col===============================================
 
 voxel_to_col_exe = tf.load_op_library(join(CWD, 'build', 'voxel2col.so'))
 def voxel2col(input_voxels, kernel_size=3):
+    channels = input_voxels.shape[2]
     output_voxels, _ = voxel_to_col_exe.voxel_to_col_op(input_voxels=input_voxels,
-                                                        kernel_size=kernel_size)
+                                                        kernel_size=kernel_size,
+                                                        channels=channels)
     return output_voxels
 ops.NoGradient("DenseConvOp")
 

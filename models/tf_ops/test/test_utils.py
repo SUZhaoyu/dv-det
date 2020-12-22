@@ -84,7 +84,7 @@ def plot_points_from_roi_voxels(voxels, roi_attrs, kernel_size=5, mask=-1, name=
         roi_w, roi_l, roi_h, roi_x, roi_y, roi_z, roi_r = roi_attrs[i, :]
         for n in range(kernel_size ** 3):
             r, g, b = voxels[i, n, :]
-            if r != mask:
+            if r + g + b > 0:
                 x = n % kernel_size
                 z = n // (kernel_size ** 2)
                 y = (n - z * kernel_size ** 2) // kernel_size
