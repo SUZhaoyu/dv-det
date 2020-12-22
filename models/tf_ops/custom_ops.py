@@ -114,16 +114,22 @@ def roi_pooling(input_coors, input_features, roi_attrs, input_num_list, rois_num
                                                                  voxel_size=voxel_size,
                                                                  padding_value=padding_value,
                                                                  pooling_size=pooling_size)
-    return output_features
+    return output_features, output_idx
 
-@ops.RegisterGradient("RoiPoolingOp")
-def roi_pooling_grad(op, grad, _):
-    input_features = op.inputs[1]
-    output_idx = op.outputs[1]
+# @ops.RegisterGradient("RoiPoolingOp")
+# def roi_pooling_grad(op, grad, _):
+#     input_features = op.inputs[1]
+#     output_idx = op.outputs[1]
+#     input_features_grad = roi_pooling_exe.roi_pooling_grad_op(output_idx=output_idx,
+#                                                               input_features=input_features,
+#                                                               output_features_grad=grad)
+#     return [None, input_features_grad, None, None, None]
+
+def roi_pooling_grad(input_features, output_idx, grad):
     input_features_grad = roi_pooling_exe.roi_pooling_grad_op(output_idx=output_idx,
                                                               input_features=input_features,
                                                               output_features_grad=grad)
-    return [None, input_features_grad, None, None, None]
+    return input_features_grad
 
 
 # =============================================RoI Filter===============================================
