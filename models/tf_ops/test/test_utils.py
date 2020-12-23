@@ -9,10 +9,10 @@ from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
 
-def get_rgbs_from_coors(coors):
+def get_rgbs_from_coors(coors, repeat=5):
     norm_coors = coors - np.min(coors, axis=0, keepdims=True)
     norm_coors = norm_coors / np.max(norm_coors, axis=0, keepdims=True)
-    return norm_coors * 255.
+    return norm_coors * repeat * 255 % 255.
 
 def fetch_instance(input_list, num_list, id=0):
     accu_num_list = np.cumsum(num_list)

@@ -18,8 +18,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 anchor_size = [1.6, 3.9, 1.5]
-batch_size = 16
-epoch = 5
+batch_size = 4
+epoch = 1
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
                       batch_size=batch_size,
@@ -86,11 +86,18 @@ if __name__ == '__main__':
                                            num_list_p: input_num_list[i],
                                            bbox_p: input_bbox[i]})
             output_voxels = np.reshape(output_voxels, newshape=[output_voxels.shape[0], output_voxels.shape[1], 27, -1])
-            output_voxels = np.max(output_voxels, axis=2)
+            output = np.zeros([output_voxels.shape[0], output_voxels.shape[1], output_voxels.shape[3]])
+            for i in range(output_voxels.shape[0]*output_voxels.shape[1]):
+                input_num = i//output_voxels.shape[1]
+                output_num = i%output_voxels.shape[1]
+                non_void_idx = np.sum(output_voxels[input_num, output_num, :, :], axis=-1) > 0
+                for j in range(3):
+                    output[input_num, output_num, j] = np.mean(output_voxels[input_num, output_num, non_void_idx, j])
 
 
-    id = 6
-    output_voxels = fetch_instance(output_voxels, output_num_list, id=id)
+
+    id = 2
+    output_voxels = fetch_instance(output, output_num_list, id=id)
     output_roi_attrs = fetch_instance(output_roi_attrs, output_num_list, id=id)
     plot_points_from_roi_voxels(voxels=output_voxels,
                                 roi_attrs=output_roi_attrs,
