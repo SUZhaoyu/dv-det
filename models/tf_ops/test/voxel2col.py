@@ -66,8 +66,8 @@ if __name__ == '__main__':
                                          seed=None,
                                          name=None)
     roi_attrs += rois_attrs_noise
-    voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, voxel_size=5, padding_value=-1)
-    voxels = voxel2col(voxels, 3)
+    roi_voxels = roi_pooling(coors, features, roi_attrs, num_list, roi_num_list, voxel_size=5, padding_value=-1)
+    voxels = voxel2col(roi_voxels, 3)
 
 
     init_op = tf.initialize_all_variables()
@@ -78,16 +78,16 @@ if __name__ == '__main__':
     config.gpu_options.visible_device_list = '0'
     with tf.Session(config=config) as sess:
         sess.run(init_op)
-        for i in tqdm(range(epoch)):
-            output_voxels, output_roi_attrs, output_num_list = sess.run([voxels, roi_attrs, roi_num_list],
+        for n in tqdm(range(epoch)):
+            output_roi_voxels, output_voxels, output_roi_attrs, output_num_list = sess.run([roi_voxels, voxels, roi_attrs, roi_num_list],
             # output_attrs = sess.run([roi_attrs],
-                                feed_dict={coors_p: input_coors[i],
-                                           features_p: get_rgbs_from_coors(input_coors[i]),
-                                           num_list_p: input_num_list[i],
-                                           bbox_p: input_bbox[i]})
+                                feed_dict={coors_p: input_coors[n],
+                                           features_p: get_rgbs_from_coors(input_coors[n]),
+                                           num_list_p: input_num_list[n],
+                                           bbox_p: input_bbox[n]})
             output_voxels = np.reshape(output_voxels, newshape=[output_voxels.shape[0], output_voxels.shape[1], 27, -1])
             output = np.zeros([output_voxels.shape[0], output_voxels.shape[1], output_voxels.shape[3]])
-            for i in range(output_voxels.shape[0]*output_voxels.shape[1]):
+            for i in tqdm(range(output_voxels.shape[0]*output_voxels.shape[1])):
                 input_num = i//output_voxels.shape[1]
                 output_num = i%output_voxels.shape[1]
                 non_void_idx = np.sum(output_voxels[input_num, output_num, :, :], axis=-1) > 0
@@ -96,13 +96,24 @@ if __name__ == '__main__':
 
 
 
-    id = 2
-    output_voxels = fetch_instance(output, output_num_list, id=id)
-    output_roi_attrs = fetch_instance(output_roi_attrs, output_num_list, id=id)
-    plot_points_from_roi_voxels(voxels=output_voxels,
-                                roi_attrs=output_roi_attrs,
-                                kernel_size=3,
-                                name='voxel2col')
+        id = 2
+        output_voxels = fetch_instance(output, output_num_list, id=id)
+        output_roi_attrs = fetch_instance(output_roi_attrs, output_num_list, id=id)
+        plot_points_from_roi_voxels(voxels=output_voxels,
+                                    roi_attrs=output_roi_attrs,
+                                    kernel_size=3,
+                                    name='voxel2col')
+
+        output_roi_voxels = fetch_instance(output_roi_voxels, output_num_list, id=id)
+        plot_points_from_roi_voxels(voxels=output_roi_voxels,
+                                    roi_attrs=output_roi_attrs,
+                                    kernel_size=5,
+                                    name='voxel2col_roi')
+
+        output_coors = fetch_instance(input_coors[n], input_num_list[n], id=id)
+        output_features = fetch_instance(get_rgbs_from_coors(input_coors[n]), input_num_list[n], id=id)
+        plot_points(output_coors, rgb=output_features, name='voxel2col_input')
+
     #
     # output_coors = fetch_instance(input_coors[i], input_num_list[i], id=id)
     # output_features = fetch_instance(get_rgbs_from_coors(input_coors[i]), input_num_list[i], id=id)

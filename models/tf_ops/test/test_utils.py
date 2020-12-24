@@ -3,6 +3,7 @@ import json
 import numpy as np
 from point_viz.converter import PointvizConverter
 from tqdm import tqdm
+from copy import deepcopy
 
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox
 
@@ -99,8 +100,8 @@ def plot_points_from_roi_voxels(voxels, roi_attrs, kernel_size=5, mask=-1, name=
                 output_rgb.append([r, g, b])
 
     output_coors, output_rgb = np.array(output_coors), np.array(output_rgb)
-    Converter.compile(coors=convert_threejs_coors(output_coors),
-                      bbox_params=convert_threejs_bbox(roi_attrs),
+    Converter.compile(coors=convert_threejs_coors(deepcopy(output_coors)),
+                      bbox_params=convert_threejs_bbox(deepcopy(roi_attrs)),
                       default_rgb=output_rgb,
                       task_name=name)
 

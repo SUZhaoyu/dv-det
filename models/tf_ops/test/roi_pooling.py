@@ -91,9 +91,9 @@ if __name__ == '__main__':
     plot_points_from_roi_voxels(voxels=output_voxels,
                                 roi_attrs=output_roi_attrs,
                                 kernel_size=5,
-                                name='roi_pooling_5')
+                                name='roi_pooling')
 
     output_coors = fetch_instance(input_coors[i], input_num_list[i], id=id)
     output_features = fetch_instance(get_rgbs_from_coors(input_coors[i]), input_num_list[i], id=id)
-    plot_points(output_coors, rgb=output_features, name='roi_pooling_input_5')
+    plot_points(output_coors, rgb=output_features, name='roi_pooling_input')
 
