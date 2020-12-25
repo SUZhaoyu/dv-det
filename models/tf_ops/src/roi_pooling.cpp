@@ -95,12 +95,12 @@ public:
         const Tensor& input_coors = context->input(0);
         auto input_coors_ptr = input_coors.template flat<float>().data();
         OP_REQUIRES(context, input_coors.dims()==2 && input_coors.shape().dim_size(1)==3,
-                    errors::InvalidArgument("RoIPoolingOp expects input coors in shape: [npoints, 3]."));
+                    errors::InvalidArgument("RoIPoolingOp expects input coors in shape: [input_point_nums, 3]."));
 
         const Tensor& input_features = context->input(1);
         auto input_features_ptr = input_features.template flat<float>().data();
         OP_REQUIRES(context, input_features.dims()==2 && input_features.shape().dim_size(1) > 0,
-                    errors::InvalidArgument("RoIPoolingOp expects input features in shape: [npoints, channels(>0)]."));
+                    errors::InvalidArgument("RoIPoolingOp expects input features in shape: [input_point_nums, channels(>0)]."));
 
         const Tensor& roi_attrs = context->input(2);
         auto roi_attrs_ptr = roi_attrs.template flat<float>().data();
@@ -225,7 +225,7 @@ public:
         const Tensor& input_features = context->input(0);
         auto input_features_ptr = input_features.template flat<float>().data();
         OP_REQUIRES(context, input_features.dims()==2 && input_features.shape().dim_size(1) > 0,
-                    errors::InvalidArgument("RoiPoolingGradOp expects input features in shape: [npoints, channels(>0)]."));
+                    errors::InvalidArgument("RoiPoolingGradOp expects input features in shape: [input_point_nums, channels(>0)]."));
 
         const Tensor& output_idx = context->input(1);
         auto output_idx_ptr = output_idx.template flat<int>().data();
@@ -235,21 +235,21 @@ public:
         const Tensor& output_features_grad = context->input(2);
         auto output_features_grad_ptr = output_features_grad.template flat<float>().data();
         OP_REQUIRES(context, output_features_grad.dims()==3 && output_features_grad.shape().dim_size(2) > 0,
-                    errors::InvalidArgument("RoiPoolingGradOp expects output_features_grad in shape: [npoints, voxel_size*3, channels(>0)]."));
+                    errors::InvalidArgument("RoiPoolingGradOp expects output_features_grad in shape: [input_point_nums, voxel_size*3, channels(>0)]."));
         OP_REQUIRES(context, output_idx.shape().dim_size(0)==output_features_grad.shape().dim_size(0) &&
                              output_idx.shape().dim_size(1)==output_features_grad.shape().dim_size(1) &&
                              output_idx.shape().dim_size(2)==output_features_grad.shape().dim_size(2),
                              errors::InvalidArgument("RoiPoolingGradOp expects output_idx and output_features_grad has the same shape."));
 
-        int npoint = input_features.shape().dim_size(0);
+        int input_point_num = input_features.shape().dim_size(0);
         int ncenters = output_idx.shape().dim_size(0);
         int ngrid = output_idx.shape().dim_size(1);
         int channels = output_idx.shape().dim_size(2);
 
         Tensor* input_features_grad = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape{npoint, channels}, &input_features_grad));
+        OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape{input_point_num, channels}, &input_features_grad));
         auto input_features_grad_ptr = input_features_grad->template flat<float>().data();
-        cudaMemset(input_features_grad_ptr, 0.f, npoint*channels*sizeof(float));
+        cudaMemset(input_features_grad_ptr, 0.f, input_point_num*channels*sizeof(float));
 
         roi_pooling_grad_gpu_launcher(ncenters, ngrid, channels,
                                        output_idx_ptr,

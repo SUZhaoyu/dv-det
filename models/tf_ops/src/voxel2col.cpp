@@ -49,6 +49,16 @@ REGISTER_OP("VoxelToColOp")
     }); // InferenceContext
 
 
+REGISTER_OP("VoxelToColGradOp")
+    .Input("input_voxels: float32")
+    .Input("output_idx: int32")
+    .Input("output_voxels_grad: float32")
+    .Output("input_voxels_grad: float32")
+    .SetShapeFn([](InferenceContext* c){
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    }); // InferenceContext
+
 
 void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size, int output_voxel_size, int kernel_size,
                              const float* input_voxels,
@@ -104,3 +114,56 @@ private:
     int kernel_size;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("VoxelToColOp").Device(DEVICE_GPU), VoxelToColOp);
+
+
+void voxel2col_grad_gpu_launcher(int input_num, int output_voxel_num, int kernel_num, int channels,
+                                 const float* input_voxels,
+                                 const int* output_idx,
+                                 const float* output_voxels_grad,
+                                 float* input_voxels_grad);
+
+class VoxelToColGradOp: public OpKernel {
+public:
+    explicit VoxelToColGradOp(OpKernelConstruction* context): OpKernel(context) {}
+    void Compute(OpKernelContext* context) override {
+
+        const Tensor& input_voxels = context->input(0);
+        auto input_voxels_ptr = input_voxels.template flat<float>().data();
+        OP_REQUIRES(context, input_voxels.dims()==3,
+                    errors::InvalidArgument("DenseConvGradOp expects input_voxels in shape: [input_num, input_voxel_num, input_channels]."));
+
+        const Tensor& output_idx = context->input(1);
+        auto output_idx_ptr = output_idx.template flat<int>().data();
+        OP_REQUIRES(context, output_idx.dims()==3,
+                    errors::InvalidArgument("DenseConvGradOp expects output_idx in shape: [input_num, output_voxel_num, kernel_num]."));
+
+        const Tensor& output_voxels_grad = context->input(2);
+        auto output_voxels_grad_ptr = output_voxels_grad.template flat<float>().data();
+        OP_REQUIRES(context, output_voxels_grad.dims()==3,
+                    errors::InvalidArgument("DenseConvGradOp expects output_voxels_grad in shape: [input_num, output_voxel_num, kernel_num * channels]."));
+
+        int input_num = input_voxels.dim_size(0);
+        int input_voxel_num = input_voxels.dim_size(1);
+        int channels = input_voxels.dim_size(2);
+        int output_voxel_num = output_idx.dim_size(1);
+        int kernel_num = output_idx.dim_size(2);
+        OP_REQUIRES(context, input_voxels.dim_size(0) == output_idx.dim_size(0),
+                    errors::InvalidArgument("DenseConvGradOp expects input_voxels and output_idx has the same length (input_point_num)."));
+        OP_REQUIRES(context, output_voxels_grad.dim_size(2) / kernel_num == channels,
+                    errors::InvalidArgument("DenseConvGradOp expects output_voxels_grad in shape: [input_num, output_voxel_num, kernel_num * channels]."));
+
+        Tensor* input_voxels_grad = nullptr;
+        auto input_voxels_grad_shape = TensorShape({input_num, input_voxel_num, channels});
+        OP_REQUIRES_OK(context, context->allocate_output(0, input_voxels_grad_shape, &input_voxels_grad));
+        float* input_voxels_grad_ptr = input_voxels_grad->template flat<float>().data();
+        cudaMemset(input_voxels_grad_ptr, 0., input_num*input_voxel_num*channels*sizeof(float));
+
+        voxel2col_grad_gpu_launcher(input_num, output_voxel_num, kernel_num, channels,
+                                    input_voxels_ptr,
+                                    output_idx_ptr,
+                                    output_voxels_grad_ptr,
+                                    input_voxels_grad_ptr);
+
+    }
+}; // OpKernel
+REGISTER_KERNEL_BUILDER(Name("VoxelToColGradOp").Device(DEVICE_GPU), VoxelToColGradOp);

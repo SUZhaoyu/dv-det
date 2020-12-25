@@ -149,11 +149,25 @@ ops.NoGradient("RoiFilterOp")
 voxel_to_col_exe = tf.load_op_library(join(CWD, 'build', 'voxel2col.so'))
 def voxel2col(input_voxels, kernel_size=3):
     channels = input_voxels.shape[2]
-    output_voxels, _ = voxel_to_col_exe.voxel_to_col_op(input_voxels=input_voxels,
+    output_voxels, output_idx = voxel_to_col_exe.voxel_to_col_op(input_voxels=input_voxels,
                                                         kernel_size=kernel_size,
                                                         channels=channels)
-    return output_voxels
+    return output_voxels, output_idx
 ops.NoGradient("DenseConvOp")
+
+# def voxel2col_grad(op, grad, _):
+#     input_voxels = op.inputs[0]
+#     output_idx = op.outputs[1]
+#     input_voxels_grad = voxel_to_col_exe.voxel_to_col_grad_op(input_voxels=input_voxels,
+#                                                               output_idx=output_idx,
+#                                                               output_voxels_grad=grad)
+#     return input_voxels_grad
+
+def voxel2col_grad(input_voxels, output_idx, output_voxels_grad):
+    input_voxels_grad = voxel_to_col_exe.voxel_to_col_grad_op(input_voxels=input_voxels,
+                                                              output_idx=output_idx,
+                                                              output_voxels_grad=output_voxels_grad)
+    return input_voxels_grad
 
 
 # =============================================Roi Logits To Attrs===============================================

@@ -55,6 +55,23 @@ __global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxe
 }
 
 
+__global__ void voxel2col_grad_gpu_kernel(int input_num, int output_voxel_num, int kernel_num, int channels,
+                                          const float* input_voxels,
+                                          const int* output_idx,
+                                          const float* output_voxels_grad,
+                                          float* input_voxels_grad) {
+    int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+    if (thread_id < input_num * output_voxel_num * kernel_num) {
+        int input_voxel_id = output_idx[thread_id];
+        if (input_voxel_id >= 0) {
+            for (int c=0; c<channels; c++) {
+                atomicAdd(&input_voxels_grad[input_voxel_id*channels + c], output_voxels_grad[thread_id*channels + c]);
+            }
+        }
+    }
+}
+
+
 
 void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size,
                              int output_voxel_size, int kernel_size,
@@ -62,7 +79,7 @@ void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size,
                              float* output_voxels,
                              int* output_idx) {
     if (channels * input_voxel_size * output_voxel_size * kernel_size <= 0) {
-        printf("Voxel2Col ERROR: Invalid CUDA input dimensions.\n");
+        printf("Voxel2ColOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
     if (input_num <=0) {
@@ -82,4 +99,33 @@ void voxel2col_gpu_launcher(int input_num, int channels, int input_voxel_size,
                                                   input_voxels,
                                                   output_voxels,
                                                   output_idx);
+}
+
+void voxel2col_grad_gpu_launcher(int input_num, int output_voxel_num, int kernel_num, int channels,
+                                 const float* input_voxels,
+                                 const int* output_idx,
+                                 const float* output_voxels_grad,
+                                 float* input_voxels_grad) {
+    if (channels * output_voxel_num * kernel_num <= 0) {
+        printf("Voxel2ColGradOp ERROR: Invalid CUDA input dimensions.\n");
+        return;
+    }
+    if (input_num <=0) {
+        return;
+    }
+
+    int blockSize;      // The launch configurator returned block size
+    int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
+    int gridSize;       // The actual grid size needed, based on input size
+
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel2col_gpu_kernel, 0, input_num * output_voxel_num * kernel_num);
+    gridSize = (input_num * output_voxel_num * kernel_num + blockSize - 1) / blockSize;
+
+    voxel2col_grad_gpu_kernel<<<gridSize, blockSize>>>(input_num, output_voxel_num, kernel_num, channels,
+                                                       input_voxels,
+                                                       output_idx,
+                                                       output_voxels_grad,
+                                                       input_voxels_grad);
+
+
 }
