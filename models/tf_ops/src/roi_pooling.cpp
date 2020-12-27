@@ -25,7 +25,7 @@ REGISTER_OP("RoiPoolingOp")
     .Input("input_features: float32")
     .Input("roi_attrs: float32")
     .Input("input_num_list: int32")
-    .Input("rois_num_list: int32")
+    .Input("roi_num_list: int32")
     .Output("output_features: float32") // [center_coors.shape[0], voxel_size ** 3, channels]
     .Output("output_idx: int32") // [center_coors.shape[0], voxel_size ** 3, channels]
     .Attr("voxel_size: int")

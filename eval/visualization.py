@@ -9,8 +9,8 @@ from os.path import join
 from point_viz.converter import PointvizConverter
 Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
 
-from train.configs import roi_config as config
-from models import rcnn as model
+from train.configs import single_stage_config as config
+from models import rcnn_single_stage as model
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_prob
 
 model_path = '/home/tan/tony/dv-det/checkpoints/test_dense/test/best_model_0.6230139189799166'

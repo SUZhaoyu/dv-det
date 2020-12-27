@@ -14,8 +14,8 @@ from shutil import copyfile, rmtree
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import rcnn as model
-from train.configs import roi_config as config
+from models import rcnn_single_stage as model
+from train.configs import single_stage_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_bn_decay, get_learning_rate, get_train_op, get_config, get_weight_decay, \
     save_best_sess

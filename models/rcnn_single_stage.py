@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 from models.tf_ops.custom_ops import get_roi_bbox
-from models.utils.iou_utils import cal_3d_iou, get_roi_attrs_from_logits
+from models.utils.iou_utils import cal_3d_iou, roi_logits_to_attrs_tf
 from models.utils.model_layers import point_conv, fully_connected
 
 anchor_size = tf.constant([1.6, 3.9, 1.5])
@@ -61,10 +61,10 @@ def model(input_coors,
                                      is_training=is_training,
                                      last_layer=True)
 
-        roi_attrs = get_roi_attrs_from_logits(input_logits=roi_logits,
-                                              base_coors=base_coors,
-                                              anchor_size=anchor_size,
-                                              norm_angle=config.norm_angle)
+        roi_attrs = roi_logits_to_attrs_tf(input_logits=roi_logits,
+                                           base_coors=base_coors,
+                                           anchor_size=anchor_size,
+                                           norm_angle=config.norm_angle)
         roi_conf_logits = roi_logits[:, 7]
 
         return base_coors, roi_attrs, roi_conf_logits, roi_num_list
