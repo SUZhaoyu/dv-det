@@ -17,11 +17,12 @@ using ::tensorflow::shape_inference::InferenceContext;
 using ::tensorflow::shape_inference::ShapeHandle;
 
 REGISTER_OP("GetBboxOp")
-    .Input("roi_bbox: float32")
+    .Input("roi_attrs: float32")
     .Input("gt_bbox: float32")
     .Input("input_num_list: int32")
     .Output("bbox: float32")
     .Output("bbox_conf: int32")
+    .Output("bbox_diff: int32")
     .Attr("diff_thres: int")
     .Attr("expand_ratio: float")
     .SetShapeFn([](InferenceContext* c){
@@ -34,18 +35,20 @@ REGISTER_OP("GetBboxOp")
         ShapeHandle bbox_conf_shape = c->MakeShape({npoint});
         c->set_output(0, bbox_shape);
         c->set_output(1, bbox_conf_shape);
+        c->set_output(2, bbox_conf_shape);
 
         return Status::OK();
 
     }); // InferenceContext
 
 void get_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, float expand_ratio,
-                           const float* roi_bbox,
+                           const float* roi_attrs,
                            const float* gt_bbox,
                            const int* input_num_list,
                            int* input_accu_list,
                            float* bbox,
-                           int* bbox_conf);
+                           int* bbox_conf,
+                           int* bbox_diff);
 
 class GetBboxOp: public OpKernel {
 public:
@@ -56,10 +59,10 @@ public:
     }
     void Compute(OpKernelContext* context) override {
 
-        const Tensor& roi_bbox = context->input(0);
-        auto roi_bbox_ptr = roi_bbox.template flat<float>().data();
-        OP_REQUIRES(context, roi_bbox.shape().dims() == 2 && roi_bbox.shape().dim_size(1) == 7,
-            errors::InvalidArgument("Expect input roi_bbox has shape [npoints, 7]"));
+        const Tensor& roi_attrs = context->input(0);
+        auto roi_attrs_ptr = roi_attrs.template flat<float>().data();
+        OP_REQUIRES(context, roi_attrs.shape().dims() == 2 && roi_attrs.shape().dim_size(1) == 7,
+            errors::InvalidArgument("Expect input roi_attrs has shape [npoints, 7]"));
 
         const Tensor& gt_bbox = context->input(1);
         auto gt_bbox_ptr = gt_bbox.template flat<float>().data();
@@ -72,7 +75,7 @@ public:
                     errors::InvalidArgument("FPS Op expects input in shape: [batch_size]."));
 
         int batch_size = input_num_list.shape().dim_size(0);
-        int npoint = roi_bbox.shape().dim_size(0);
+        int npoint = roi_attrs.shape().dim_size(0);
         int bbox_attr = gt_bbox.shape().dim_size(2);
         int nbbox = gt_bbox.shape().dim_size(1);
 
@@ -95,13 +98,20 @@ public:
         int* bbox_conf_ptr = bbox_conf->template flat<int>().data();
         cudaMemset(bbox_conf_ptr, 0, npoint * sizeof(int));
 
+        Tensor* bbox_diff = nullptr;
+        auto bbox_diff_shape = TensorShape({npoint});
+        OP_REQUIRES_OK(context, context->allocate_output(2, bbox_diff_shape, &bbox_diff));
+        int* bbox_diff_ptr = bbox_diff->template flat<int>().data();
+        cudaMemset(bbox_diff_ptr, 0, npoint * sizeof(int));
+
         get_bbox_gpu_launcher(batch_size, npoint, nbbox, bbox_attr, diff_thres, expand_ratio,
-                                     roi_bbox_ptr,
+                                     roi_attrs_ptr,
                                      gt_bbox_ptr,
                                      input_num_list_ptr,
                                      input_accu_list_ptr,
                                      bbox_ptr,
-                                     bbox_conf_ptr);
+                                     bbox_conf_ptr,
+                                     bbox_diff_ptr);
     }
 private:
     int diff_thres;

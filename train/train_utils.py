@@ -40,7 +40,7 @@ def log_dir_setup(home, config_file):
     return logdir, task_name
 
 
-def get_bn_decay(init_decay, current_step, decay_step, decay_rate, name=None):
+def get_bn_decay(init_decay, current_step, decay_step, decay_rate, name='bn_decay'):
     if init_decay is not None:
         bn_momentum = tf.train.exponential_decay(
             init_decay,
@@ -48,17 +48,14 @@ def get_bn_decay(init_decay, current_step, decay_step, decay_rate, name=None):
             decay_step,
             decay_rate,
             staircase=True)
-        bn_decay = tf.minimum(0.95, 1 - bn_momentum)
-        if name is None:
-            tf.summary.scalar('bn_decay', bn_decay)
-        else:
-            tf.summary.scalar(name, bn_decay)
+        bn_decay = tf.minimum(0.95, 1 - bn_momentum, name=name)
+        tf.summary.scalar(name, bn_decay)
         return bn_decay
     else:
         return None
 
 
-def get_weight_decay(init_decay, current_step, decay_step, decay_rate, limit=2e-5):
+def get_weight_decay(init_decay, current_step, decay_step, decay_rate, limit=2e-5, name='weight_decay'):
     if init_decay is not None:
         wd_decay = tf.train.exponential_decay(
             init_decay,
@@ -66,15 +63,15 @@ def get_weight_decay(init_decay, current_step, decay_step, decay_rate, limit=2e-
             decay_step,
             decay_rate,
             staircase=True)
-        wd_decay = tf.maximum(wd_decay, limit)
-        tf.summary.scalar('wd_decay', wd_decay)
+        wd_decay = tf.maximum(wd_decay, limit, name=name)
+        tf.summary.scalar(name, wd_decay)
         return wd_decay
     else:
         return None
 
 
-def get_learning_rate(init_lr, current_step, decay_step, decay_rate, name=None, hvd_size=1, lr_scale=False,
-                      warm_up=False):
+def get_learning_rate(init_lr, current_step, decay_step, decay_rate, hvd_size=1, lr_scale=False,
+                      warm_up=False, name='learning_rate'):
     if not lr_scale:
         hvd_size = 1
     decay_learning_rate = tf.train.exponential_decay(
@@ -92,12 +89,31 @@ def get_learning_rate(init_lr, current_step, decay_step, decay_rate, name=None, 
                                 lambda: decay_learning_rate)
     else:
         learning_rate = decay_learning_rate
-    learning_rate = tf.maximum(learning_rate, 1e-7) * hvd_size  # CLIP THE LEARNING RATE!
-    if name is None:
-        tf.summary.scalar('learning_rate', learning_rate)
-    else:
-        tf.summary.scalar(name, learning_rate)
+    learning_rate = tf.maximum(learning_rate, 1e-7, name=name) * hvd_size  # CLIP THE LEARNING RATE!
+    tf.summary.scalar(name, learning_rate)
     return learning_rate
+
+
+def set_training_controls(config, decay_batch, step, hvd_size, prefix):
+    lr = get_learning_rate(init_lr=config.init_lr,
+                           current_step=step,
+                           decay_step=decay_batch,
+                           decay_rate=config.lr_decay,
+                           name='{}_learning_rate'.format(prefix),
+                           hvd_size=hvd_size,
+                           lr_scale=config.lr_scale)
+    bn = get_bn_decay(init_decay=0.5,
+                      current_step=step,
+                      decay_step=decay_batch,
+                      decay_rate=0.5,
+                      name='{}_batch_decay'.format(prefix))
+    wd = get_weight_decay(init_decay=config.weight_decay,
+                          current_step=step,
+                          decay_step=decay_batch,
+                          decay_rate=0.8,
+                          name='{}_weight_decay'.format(prefix))
+    return lr, bn, wd
+
 
 
 def get_iou_loss_weight(current_step, total_l1_step):

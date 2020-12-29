@@ -65,7 +65,7 @@ def conv_3d(input_voxels,
 
     output_features = dense_conv_wrapper(inputs=input_voxels,
                                          num_output_channels=layer_params['c_out'],
-                                         kernel_size=layer_params['kernel_res'],
+                                         kernel_size=layer_params['kernel_size'],
                                          scope=scope,
                                          use_xavier=model_params['xavier'],
                                          stddev=model_params['stddev'],

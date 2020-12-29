@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-exe_file="training.py"
+exe_file="training_two_stage.py"
 pkill -f -9 $exe_file
 
 HOME="dv-det"

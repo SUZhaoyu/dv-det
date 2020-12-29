@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import logging
 from models.utils.var_utils import _variable_with_l2_loss
 from models.utils.iou_utils import roi_logits_to_attrs_tf, bbox_logits_to_attrs_tf
 from models.tf_ops.custom_ops import roi_logits_to_attrs, bbox_logits_to_attrs
@@ -37,7 +38,8 @@ def kernel_conv_wrapper(inputs,
                         histogram=False,
                         summary=False):
     if scope == 'default':
-        print("WARNING: scope name was not given and has been assigned as 'default' ")
+        logging.warning("Scope name was not given and has been assigned as 'default'. ")
+        l2_loss_collection = 'default'
     else:
         l2_loss_collection = scope.split('_')[0] + "_l2"
 
@@ -91,8 +93,10 @@ def dense_conv_wrapper(inputs,
                        histogram=False,
                        summary=False):
     if scope == 'default':
-        print("WARNING: scope name was not given and has been assigned as 'default' ")
-    l2_loss_collection = "l2" # TODO: need to change the l2 loss collection for two-stage training.
+        logging.warning("Scope name was not given and has been assigned as 'default'. ")
+        l2_loss_collection = 'default'
+    else:
+        l2_loss_collection = scope.split('_')[0] + "_l2"
     with tf.variable_scope(scope):
         num_input_channels = inputs.get_shape()[-1].value
         kernel_shape = [kernel_size * kernel_size * kernel_size * num_input_channels, num_output_channels]
@@ -142,8 +146,10 @@ def fully_connected_wrapper(inputs,
                             histogram=False,
                             summary=False):
     if scope == 'default':
-        print("WARNING: scope name was not given and has been assigned as 'default' ")
-    l2_loss_collection = "l2"
+        logging.warning("Scope name was not given and has been assigned as 'default'. ")
+        l2_loss_collection = 'default'
+    else:
+        l2_loss_collection = scope.split('_')[0] + "_l2"
     with tf.variable_scope(scope):
         num_input_channels = inputs.get_shape()[-1].value
         weight_shape = [num_input_channels, num_output_channels]

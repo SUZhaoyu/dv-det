@@ -33,15 +33,15 @@ def roi_logits_to_attrs_tf(base_coors, input_logits, anchor_size):
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
 
 
-def bbox_logits_to_attrs_tf(roi_attrs, input_logits):
-    roi_diag = tf.sqrt(tf.pow(roi_attrs[:, 0], 2.) + tf.pow(roi_attrs[:, 1], 2.))
-    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * roi_attrs[:, 0], 0., 1e5)
-    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * roi_attrs[:, 1], 0., 1e5)
-    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * roi_attrs[:, 2], 0., 1e5)
-    x = tf.clip_by_value(input_logits[:, 3] * roi_diag + roi_attrs[:, 3], -1e5, 1e5)
-    y = tf.clip_by_value(input_logits[:, 4] * roi_diag + roi_attrs[:, 4], -1e5, 1e5)
-    z = tf.clip_by_value(input_logits[:, 5] * roi_attrs[:, 2] + roi_attrs[:, 5], -1e5, 1e5)
-    r = input_logits[:, 6] + roi_attrs[:, 6]
+def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
+    roi_diag = tf.sqrt(tf.pow(input_roi_attrs[:, 0], 2.) + tf.pow(input_roi_attrs[:, 1], 2.))
+    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * input_roi_attrs[:, 0], 0., 1e5)
+    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * input_roi_attrs[:, 1], 0., 1e5)
+    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * input_roi_attrs[:, 2], 0., 1e5)
+    x = tf.clip_by_value(input_logits[:, 3] * roi_diag + input_roi_attrs[:, 3], -1e5, 1e5)
+    y = tf.clip_by_value(input_logits[:, 4] * roi_diag + input_roi_attrs[:, 4], -1e5, 1e5)
+    z = tf.clip_by_value(input_logits[:, 5] * input_roi_attrs[:, 2] + input_roi_attrs[:, 5], -1e5, 1e5)
+    r = input_logits[:, 6] + input_roi_attrs[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
 
 
@@ -223,8 +223,8 @@ def get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersectio
     gt_volume = gt_attrs[:, 0] * gt_attrs[:, 1] * gt_attrs[:, 2]
     pred_volume = pred_attrs[:, 0] * pred_attrs[:, 1] * pred_attrs[:, 2]
     iou = tf.math.divide_no_nan(intersection_volume, gt_volume + pred_volume - intersection_volume)
-    tf.summary.scalar('iou_nan_sum',
-                      hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
+    # tf.summary.scalar('iou_nan_sum',
+    #                   hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
     if clip:
         iou = tf.where(tf.is_nan(iou), tf.ones_like(iou), iou)
     return iou

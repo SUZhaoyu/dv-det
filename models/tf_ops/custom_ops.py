@@ -92,13 +92,13 @@ ops.NoGradient("GetRoiBboxOp")
 # =============================================Get Bbox Ground Truth===============================================
 
 get_bbox_exe = tf.load_op_library(join(CWD, 'build', 'get_bbox.so'))
-def get_bbox(roi_bbox, bboxes, input_num_list, expand_ratio=0.15, diff_thres=3):
-    bbox_attrs, bbox_conf = get_bbox_exe.get_bbox_op(roi_bbox=roi_bbox,
-                                                      gt_bbox=bboxes,
-                                                      input_num_list=input_num_list,
-                                                      expand_ratio=expand_ratio,
-                                                      diff_thres=diff_thres)
-    return bbox_attrs, bbox_conf
+def get_bbox(roi_attrs, bboxes, input_num_list, expand_ratio=0.15, diff_thres=3):
+    bbox_attrs, bbox_conf, bbox_diff = get_bbox_exe.get_bbox_op(roi_attrs=roi_attrs,
+                                                                gt_bbox=bboxes,
+                                                                input_num_list=input_num_list,
+                                                                expand_ratio=expand_ratio,
+                                                                diff_thres=diff_thres)
+    return bbox_attrs, bbox_conf, bbox_diff
 ops.NoGradient("GetBboxOp")
 
 # =============================================Roi Pooling===============================================
@@ -134,7 +134,7 @@ def roi_filter(input_roi_attrs, input_roi_conf, input_num_list, conf_thres):
                                                                input_num_list=input_num_list,
                                                                conf_thres=conf_thres)
     output_roi_attrs = tf.gather(input_roi_attrs, output_idx, axis=0)
-    return output_roi_attrs, output_num_list
+    return output_roi_attrs, output_num_list, output_idx
 ops.NoGradient("RoiFilterOp")
 
 
@@ -143,12 +143,12 @@ ops.NoGradient("RoiFilterOp")
 voxel_to_col_exe = tf.load_op_library(join(CWD, 'build', 'voxel2col.so'))
 def voxel2col(input_voxels, kernel_size=3):
     channels = input_voxels.shape[2]
-    output_voxels, output_idx = voxel_to_col_exe.voxel_to_col_op(input_voxels=input_voxels,
+    output_voxels, _ = voxel_to_col_exe.voxel_to_col_op(input_voxels=input_voxels,
                                                         kernel_size=kernel_size,
                                                         channels=channels)
-    return output_voxels, output_idx
+    return output_voxels
 
-@ops.RegisterGradient("Voxel2ColOp")
+@ops.RegisterGradient("VoxelToColOp")
 def voxel2col_grad(op, grad, _):
     input_voxels = op.inputs[0]
     output_idx = op.outputs[1]

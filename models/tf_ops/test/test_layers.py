@@ -40,25 +40,3 @@ def fully_connected(input_points, c_out, scope):
                                             scope=scope,
                                             bn_decay=1.)
     return output_points
-
-def get_roi_attrs_from_logits(input_logits, base_coors, anchor_size):
-    anchor_diag = tf.sqrt(tf.pow(anchor_size[0], 2.) + tf.pow(anchor_size[1], 2.))
-    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * anchor_size[0], 0., 1e5)
-    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * anchor_size[1], 0., 1e5)
-    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * anchor_size[2], 0., 1e5)
-    x = tf.clip_by_value(input_logits[:, 3] * anchor_diag + base_coors[:, 0], -1e5, 1e5)
-    y = tf.clip_by_value(input_logits[:, 4] * anchor_diag + base_coors[:, 1], -1e5, 1e5)
-    z = tf.clip_by_value(input_logits[:, 5] * anchor_size[2] + base_coors[:, 2], -1e5, 1e5)
-    r = input_logits[:, 6]
-    return tf.stack([w, l, h, x, y, z, r], axis=-1)
-
-def get_bbox_attrs_from_logits(input_logits, roi_attrs):
-    roi_diag = tf.sqrt(tf.pow(roi_attrs[:, 0], 2.) + tf.pow(roi_attrs[:, 1], 2.))
-    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * roi_attrs[:, 0], 0., 1e5)
-    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * roi_attrs[:, 1], 0., 1e5)
-    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * roi_attrs[:, 2], 0., 1e5)
-    x = tf.clip_by_value(input_logits[:, 3] * roi_diag + roi_attrs[:, 3], -1e5, 1e5)
-    y = tf.clip_by_value(input_logits[:, 4] * roi_diag + roi_attrs[:, 4], -1e5, 1e5)
-    z = tf.clip_by_value(input_logits[:, 5] * roi_attrs[:, 2] + roi_attrs[:, 5], -1e5, 1e5)
-    r = input_logits[:, 6] + roi_attrs[:, 6]
-    return tf.stack([w, l, h, x, y, z, r], axis=-1)

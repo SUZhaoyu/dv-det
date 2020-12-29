@@ -4,8 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 from tqdm import tqdm
-from models.tf_ops.test.test_layers import point_conv, conv_3d, fully_connected, roi_pooling, \
-    get_roi_attrs_from_logits, get_bbox_attrs_from_logits
+from models.tf_ops.test.test_layers import point_conv, conv_3d, fully_connected, roi_pooling
 
 # tf.enable_eager_execution()
 from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, roi_logits_to_attrs, roi_logits_to_attrs, bbox_logits_to_attrs
@@ -20,26 +19,26 @@ anchor_size = [1.6, 3.9, 1.5]
 batch_size = 1
 epoch = 1000
 if __name__ == '__main__':
-    # Dataset = Dataset(task='training',
-    #                   batch_size=batch_size,
-    #                   num_worker=6,
-    #                   hvd_size=1,
-    #                   hvd_id=0)
-    # input_coors, input_features, input_num_list = [], [], []
-    # for i in tqdm(range(epoch)):
-    #     coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
-    #     input_coors.append(coors_d)
-    #     input_features.append(features_d)
-    #     input_num_list.append(num_list_d)
-    # Dataset.stop()
+    Dataset = Dataset(task='training',
+                      batch_size=batch_size,
+                      num_worker=6,
+                      hvd_size=1,
+                      hvd_id=0)
+    input_coors, input_features, input_num_list = [], [], []
+    for i in tqdm(range(epoch)):
+        coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
+        input_coors.append(coors_d)
+        input_features.append(features_d)
+        input_num_list.append(num_list_d)
+    Dataset.stop()
     #
     # np.save("input_coors.npy", input_coors)
     # np.save("input_features.npy", input_features)
     # np.save("input_num_list.npy", input_num_list)
 
-    input_coors = np.load("input_coors.npy", allow_pickle=True)
-    input_features = np.load("input_features.npy", allow_pickle=True)
-    input_num_list = np.load("input_num_list.npy", allow_pickle=True)
+    # input_coors = np.load("input_coors.npy", allow_pickle=True)
+    # input_features = np.load("input_features.npy", allow_pickle=True)
+    # input_num_list = np.load("input_num_list.npy", allow_pickle=True)
 
     coors_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 1])
@@ -83,17 +82,17 @@ if __name__ == '__main__':
                                 # output_voxels = sess.run(voxels,
                                 feed_dict={coors_p: input_coors[i],
                                            features_p: input_features[i],
-                                           num_list_p: input_num_list[i]},
-                                options=run_options,
-                                run_metadata=run_metadata)
+                                           num_list_p: input_num_list[i]})
+                                # options=run_options,
+                                # run_metadata=run_metadata)
 
             # print(output_features.shape)
             # ## time.sleep(0.1)
             # #
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format(show_memory=True)
-            with open('timeline.json'.format(i), 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format(show_memory=True)
+            # with open('timeline.json'.format(i), 'w') as f:
+            #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
 
