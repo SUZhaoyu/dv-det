@@ -62,12 +62,12 @@ public:
     void Compute(OpKernelContext* context) override {
         const Tensor& input_coors = context->input(0);
         auto input_coors_ptr = input_coors.template flat<float>().data();
-        OP_REQUIRES(context, input_coors.shape().dim_size(1) == 3,
+        OP_REQUIRES(context, input_coors.dim_size(1) == 3,
             errors::InvalidArgument("The attribute of lidar coors has to be 3."));
 
         const Tensor& gt_bbox = context->input(1);
         auto gt_bbox_ptr = gt_bbox.template flat<float>().data();
-        OP_REQUIRES(context, gt_bbox.shape().dim_size(2)==9,
+        OP_REQUIRES(context, gt_bbox.dim_size(2)==9,
                     errors::InvalidArgument("Attribute of bbox has to be 9: [l, h, w, x, y, z, r, cls, diff_idx]."));
 
         const Tensor& input_num_list = context->input(2);
@@ -80,10 +80,10 @@ public:
         OP_REQUIRES(context, anchor_size.dims()==1 && anchor_size.dim_size(0)==3,
                     errors::InvalidArgument("FPS Op expects anchor in shape: [3]."));
 
-        int batch_size = input_num_list.shape().dim_size(0);
-        int bbox_attr = gt_bbox.shape().dim_size(2);
-        int npoint = input_coors.shape().dim_size(0);
-        int nbbox = gt_bbox.shape().dim_size(1);
+        int batch_size = input_num_list.dim_size(0);
+        int bbox_attr = gt_bbox.dim_size(2);
+        int npoint = input_coors.dim_size(0);
+        int nbbox = gt_bbox.dim_size(1);
 
         Tensor input_accu_list;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,

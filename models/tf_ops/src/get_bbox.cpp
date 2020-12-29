@@ -61,12 +61,12 @@ public:
 
         const Tensor& roi_attrs = context->input(0);
         auto roi_attrs_ptr = roi_attrs.template flat<float>().data();
-        OP_REQUIRES(context, roi_attrs.shape().dims() == 2 && roi_attrs.shape().dim_size(1) == 7,
+        OP_REQUIRES(context, roi_attrs.dims() == 2 && roi_attrs.dim_size(1) == 7,
             errors::InvalidArgument("Expect input roi_attrs has shape [npoints, 7]"));
 
         const Tensor& gt_bbox = context->input(1);
         auto gt_bbox_ptr = gt_bbox.template flat<float>().data();
-        OP_REQUIRES(context, gt_bbox.shape().dim_size(2) == 9,
+        OP_REQUIRES(context, gt_bbox.dim_size(2) == 9,
                     errors::InvalidArgument("Attribute of bbox has to be 9: [w, l, h, x, y, z, r, cls, diff_idx]."));
 
         const Tensor& input_num_list = context->input(2);
@@ -74,10 +74,10 @@ public:
         OP_REQUIRES(context, input_num_list.dims() == 1,
                     errors::InvalidArgument("FPS Op expects input in shape: [batch_size]."));
 
-        int batch_size = input_num_list.shape().dim_size(0);
-        int npoint = roi_attrs.shape().dim_size(0);
-        int bbox_attr = gt_bbox.shape().dim_size(2);
-        int nbbox = gt_bbox.shape().dim_size(1);
+        int batch_size = input_num_list.dim_size(0);
+        int npoint = roi_attrs.dim_size(0);
+        int bbox_attr = gt_bbox.dim_size(2);
+        int nbbox = gt_bbox.dim_size(1);
 
         Tensor input_accu_list;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,

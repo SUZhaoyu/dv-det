@@ -7,7 +7,7 @@ from models.utils.iou_utils import cal_3d_iou
 from models.utils.model_layers import point_conv, fully_connected, conv_3d
 from models.utils.ops_wrapper import get_roi_attrs, get_bbox_attrs
 from models.utils.loss_utils import get_masked_average, smooth_l1_loss, focal_loss
-import train.configs.single_stage_config as config
+import train.configs.rcnn_config as config
 
 anchor_size = [1.6, 3.9, 1.5]
 eps = tf.constant(1e-6)
@@ -27,56 +27,6 @@ def inputs_placeholder(input_channels=1,
     input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='input_bbox_p')
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
-
-def model_test(input_coors,
-                 input_features,
-                 input_num_list,
-                 is_training,
-                 is_eval,
-                 bn):
-
-    base_params = config.base_params
-    coors, features, num_list = input_coors, input_features, input_num_list
-
-    with tf.variable_scope("stage1"):
-        # =============================== STAGE-1 [base] ================================
-        for layer_name in sorted(base_params.keys()):
-            coors, features, num_list = point_conv(input_coors=coors,
-                                                   input_features=features,
-                                                   input_num_list=num_list,
-                                                   layer_params=base_params[layer_name],
-                                                   scope="stage1_" + layer_name,
-                                                   is_training=is_training,
-                                                   model_params=model_params,
-                                                   bn_decay=bn)
-
-        # =============================== STAGE-1 [rpn] ================================
-
-        roi_coors, roi_features, roi_num_list = point_conv(input_coors=coors,
-                                                           input_features=features,
-                                                           input_num_list=num_list,
-                                                           layer_params=config.rpn_params,
-                                                           scope="stage1_rpn_conv",
-                                                           is_training=is_training,
-                                                           model_params=model_params,
-                                                           bn_decay=bn)
-
-        roi_logits = fully_connected(input_points=roi_features,
-                                     num_output_channels=config.output_attr,
-                                     drop_rate=0.,
-                                     model_params=model_params,
-                                     scope='stage1_rpn_fc',
-                                     is_training=is_training,
-                                     last_layer=True)
-
-        roi_attrs = get_roi_attrs(input_logits=roi_logits,
-                                  base_coors=roi_coors,
-                                  anchor_size=anchor_size,
-                                  is_eval=is_eval)
-
-        roi_conf_logits = roi_logits[:, 7]
-
-        return roi_logits
 
 def model_stage1(input_coors,
                  input_features,
@@ -177,6 +127,57 @@ def model_stage2(coors,
         bbox_conf_logits = bbox_logits[:, 7]
 
     return bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx
+
+
+def model_test(coors,
+                 features,
+                 num_list,
+                 roi_attrs,
+                 roi_conf_logits,
+                 roi_num_list,
+                 is_training,
+                 is_eval,
+                 bn):
+    with tf.variable_scope("stage2"):
+        roi_conf = tf.nn.sigmoid(roi_conf_logits)
+        bbox_roi_attrs, bbox_num_list, bbox_idx = roi_filter(input_roi_attrs=roi_attrs,
+                                                             input_roi_conf=roi_conf,
+                                                             input_num_list=roi_num_list,
+                                                             conf_thres=config.roi_thres)
+
+        bbox_voxels = roi_pooling(input_coors=coors,
+                                  input_features=features,
+                                  roi_attrs=bbox_roi_attrs,
+                                  input_num_list=num_list,
+                                  roi_num_list=bbox_num_list,
+                                  voxel_size=config.roi_voxel_size,
+                                  pooling_size=5.)
+
+        # for i in range(config.roi_voxel_size // 2):
+        #     bbox_voxels = conv_3d(input_voxels=bbox_voxels,
+        #                           layer_params=config.refine_params,
+        #                           scope="stage2_refine_conv_{}".format(i),
+        #                           is_training=is_training,
+        #                           model_params=model_params,
+        #                           bn_decay=bn)
+        #
+        # bbox_features = tf.squeeze(bbox_voxels, axis=[1])
+        #
+        # bbox_logits = fully_connected(input_points=bbox_features,
+        #                               num_output_channels=config.output_attr,
+        #                               drop_rate=0.,
+        #                               model_params=model_params,
+        #                               scope='stage2_refine_fc',
+        #                               is_training=is_training,
+        #                               last_layer=True)
+        #
+        # bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,
+        #                             input_roi_attrs=bbox_roi_attrs,
+        #                             is_eval=is_eval)
+        #
+        # bbox_conf_logits = bbox_logits[:, 7]
+
+    return bbox_voxels
 
 
 def loss_stage1(roi_coors,

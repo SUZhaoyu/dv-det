@@ -15,7 +15,7 @@ HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
 from models import rcnn_two_stage as model
-from train.configs import single_stage_config as config
+from train.configs import rcnn_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_bn_decay, get_learning_rate, get_train_op, get_config, get_weight_decay, \
     save_best_sess, set_training_controls
@@ -206,6 +206,8 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
+        if is_hvd_root:
+            saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/test/test/best_model_0.6326049416787648')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

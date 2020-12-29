@@ -39,9 +39,10 @@ REGISTER_OP("VoxelToColOp")
         auto output_voxel_num = (int)std::pow(cbrt(input_voxel_num) - 2, 3);
 
         // The output shape during the shape inference stage is pseudo.
-        ShapeHandle output_voxels_shape = c->MakeShape({input_num, InferenceContext::kUnknownDim, kernel_size * kernel_size * kernel_size * channels});
-        ShapeHandle output_idx_shape = c->MakeShape({input_num, InferenceContext::kUnknownDim, kernel_size * kernel_size * kernel_size});
-
+        ShapeHandle output_voxels_shape = c->MakeShape({input_num, output_voxel_num, kernel_size * kernel_size * kernel_size * channels});
+        ShapeHandle output_idx_shape = c->MakeShape({input_num, output_voxel_num, kernel_size * kernel_size * kernel_size});
+//        printf("********************output_voxel_num=%d\n************************", output_voxel_num);
+//        InferenceContext::kUnknownDim
         c->set_output(0, output_voxels_shape); // output_voxels_shape
         c->set_output(1, output_idx_shape); // output_idx
 

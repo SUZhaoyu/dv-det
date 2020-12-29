@@ -45,14 +45,14 @@ public:
 
         const Tensor& input_roi_attrs = context->input(0);
         auto input_roi_attrs_ptr = input_roi_attrs.template flat<float>().data();
-        OP_REQUIRES(context, input_roi_attrs.dims()==2 && input_roi_attrs.shape().dim_size(1)==7,
+        OP_REQUIRES(context, input_roi_attrs.dims()==2 && input_roi_attrs.dim_size(1)==7,
                     errors::InvalidArgument("RoiLogitsToAttrsOp expects input_roi_attrs in shape: [npoints, 7]."));
 
         const Tensor& input_logits = context->input(1);
         auto input_logits_ptr = input_logits.template flat<float>().data();
-        OP_REQUIRES(context, input_logits.dims()==2 && input_logits.shape().dim_size(1)>=7,
+        OP_REQUIRES(context, input_logits.dims()==2 && input_logits.dim_size(1)>=7,
                     errors::InvalidArgument("RoiLogitsToAttrsOp expects input_logits in shape: [npoints, logits(>=7)]."));
-        OP_REQUIRES(context, input_logits.shape().dim_size(0) == input_roi_attrs.shape().dim_size(0),
+        OP_REQUIRES(context, input_logits.dim_size(0) == input_roi_attrs.dim_size(0),
                     errors::InvalidArgument("RoiLogitsToAttrsOp expects input_roi_attrs and input_logits has the same length."));
 
         int input_npoint = input_roi_attrs.dim_size(0);

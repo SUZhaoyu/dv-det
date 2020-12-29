@@ -154,10 +154,12 @@ void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
                               int* temp_count,
                               float* output_features,
                               int* output_idx) {
-    if (batch_size*input_point_num <=0 || channels <= 0) {
+    if (batch_size * channels <= 0) {
         printf("RoiPoolingOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
+    if (input_point_num <= 0)
+        return;
 
     const int voxel_num = voxel_size * voxel_size * voxel_size;
     int max_batch_input_point_num = 0;
@@ -202,10 +204,12 @@ void roi_pooling_grad_gpu_launcher(int ncenters, int voxel_num, int channels,
                                    const int* output_idx,
                                    const float* output_features_grad,
                                    float* input_features_grad) {
-    if (ncenters * channels <= 0) {
+    if (channels <= 0) {
         printf("RoiPoolingGradOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
+    if (ncenters == 0)
+        return;
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
     int gridSize;       // The actual grid size needed, based on input size

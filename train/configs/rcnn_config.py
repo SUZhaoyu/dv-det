@@ -27,7 +27,7 @@ model_file_dir = os.path.dirname(os.path.abspath(__file__))
 config_dir = os.path.join(model_file_dir, model_file_name)
 
 bbox_padding = 64
-batch_size = 8
+batch_size = 2
 decay_epochs = 20
 init_lr = 1e-4
 lr_decay = 0.5
@@ -48,11 +48,11 @@ num_worker = 5
 weighted = False
 use_l2 = True
 output_attr = 8
-stage1_training_epoch = 50
+stage1_training_epoch = 1
 total_epoch = 500
 
 
-roi_thres = 0.2
+roi_thres = 0.3
 roi_voxel_size = 5
 base_params = {'base_0': {'subsample_res': 0.1, 'c_out': 16, 'kernel_res': 0.1, 'padding': -1.},
                'base_1': {'subsample_res': 0.2, 'c_out': 32, 'kernel_res': 0.2, 'padding': 0.},

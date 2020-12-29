@@ -3,7 +3,7 @@ import os
 import tensorflow as tf
 from tqdm import tqdm
 
-import train.configs.single_stage_config as training_config
+import train.configs.rcnn_config as training_config
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
 from models.utils.model_layers import point_conv
