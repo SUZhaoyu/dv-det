@@ -97,6 +97,7 @@ public:
         auto output_voxels_shape = TensorShape({input_num, output_voxel_num, kernel_num * channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_voxels_shape, &output_voxels));
         float* output_voxels_ptr = output_voxels->template flat<float>().data();
+        printf("Voxel2Col Output Voxel Size: %d MB\n", input_num*output_voxel_num*kernel_num*channels*sizeof(float)/1024/1024);
         cudaMemset(output_voxels_ptr, 0., input_num*output_voxel_num*kernel_num*channels*sizeof(float));
 
         Tensor* output_idx = nullptr;

@@ -149,7 +149,7 @@ def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step
 
 def get_config(gpu=None):
     config = tf.ConfigProto()
-    config.gpu_options.allow_growth = False
+    config.gpu_options.allow_growth = True
     config.allow_soft_placement = False
     config.log_device_placement = False
     if gpu is not None:

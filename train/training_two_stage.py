@@ -46,12 +46,14 @@ DatasetTrain = Dataset(task="training",
                        num_worker=config.num_worker,
                        hvd_size=hvd.size(),
                        hvd_id=hvd.rank())
+# DatasetTrain.stop()
 
 DatasetValid = Dataset(task="validation",
                        validation=True,
                        batch_size=config.batch_size,
                        hvd_size=hvd.size(),
                        hvd_id=hvd.rank())
+# DatasetValid.stop()
 
 training_batch = DatasetTrain.batch_sum
 validation_batch = DatasetValid.batch_sum
@@ -104,8 +106,8 @@ stage2_loss, averaged_bbox_iou = model.loss_stage2(roi_attrs=roi_attrs,
                                                    roi_ious=roi_ious,
                                                    wd=stage2_wd)
 
-stage1_train_op = get_train_op(stage1_loss, stage1_lr, opt='adam', global_step=stage1_step, use_hvd=True)
-stage2_train_op = get_train_op(stage2_loss, stage2_lr, opt='adam', global_step=stage2_step, use_hvd=True)
+stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
+stage2_train_op = get_train_op(stage2_loss, stage2_lr, var_keywords=['stage2'], opt='adam', global_step=stage2_step, use_hvd=True)
 
 stage1_summary = tf.summary.merge_all(key='stage1')
 stage2_summary = tf.summary.merge_all(key='stage2')
