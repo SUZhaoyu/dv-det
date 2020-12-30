@@ -53,13 +53,13 @@ if __name__ == '__main__':
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
     coors, features, num_list = coors_p, features_p, num_list_p
 
-    coors = point_conv(coors, features, num_list, 16, 0.1, '0')
-    # coors, features, num_list = point_conv(coors, features, num_list, 32, 0.2, '1')
-    # coors, features, num_list = point_conv(coors, features, num_list, 64, 0.4, '2')
-    # coors, features, num_list = point_conv(coors, features, num_list,128, 0.6, '3')
-    # roi_coors, roi_features, roi_num_list = point_conv(coors, features, num_list,128, 0.8, '4')
+    coors, features, num_list = point_conv(coors, features, num_list, 16, 0.1, '0')
+    coors, features, num_list = point_conv(coors, features, num_list, 32, 0.2, '1')
+    coors, features, num_list = point_conv(coors, features, num_list, 64, 0.4, '2')
+    coors, features, num_list = point_conv(coors, features, num_list,128, 0.6, '3')
+    roi_coors, roi_features, roi_num_list = point_conv(coors, features, num_list, 128, 0.8, '4')
     #
-    # roi_logits = fully_connected(roi_features, 8, '5')
+    roi_logits = fully_connected(roi_features, 8, '5')
     # roi_attrs = roi_logits_to_attrs(roi_coors, roi_logits, anchor_size)
     # roi_attrs = roi_attrs[:50*batch_size, :]
     # roi_num_list = tf.ones(batch_size, dtype=tf.int32) * 50
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            output_features = sess.run(coors,
+            output_features = sess.run(roi_logits,
                                 # output_voxels = sess.run(voxels,
                                 feed_dict={coors_p: input_coors[i],
                                            features_p: input_features[i],

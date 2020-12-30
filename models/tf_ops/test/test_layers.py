@@ -9,20 +9,20 @@ def point_conv(input_coors, input_features, input_num_list, c_out, resolution, s
                                     input_num_list=input_num_list,
                                     resolution=resolution)
 
-    # voxels = voxel_sampling(input_coors=input_coors,
-    #                         input_features=input_features,
-    #                         input_num_list=input_num_list,
-    #                         center_coors=coors,
-    #                         center_num_list=num_list,
-    #                         resolution=resolution,
-    #                         padding=-1)
-    #
-    # features = kernel_conv_wrapper(inputs=voxels,
-    #                                num_output_channels=c_out,
-    #                                scope=scope,
-    #                                bn_decay=1.)
+    voxels = voxel_sampling(input_coors=input_coors,
+                            input_features=input_features,
+                            input_num_list=input_num_list,
+                            center_coors=coors,
+                            center_num_list=num_list,
+                            resolution=resolution,
+                            padding=-1)
 
-    return coors#, num_list, features
+    features = kernel_conv_wrapper(inputs=voxels,
+                                   num_output_channels=c_out,
+                                   scope=scope,
+                                   bn_decay=1.)
+
+    return coors, features, num_list
 
 
 def conv_3d(input_voxels, c_out, scope):

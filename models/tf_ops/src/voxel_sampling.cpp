@@ -192,9 +192,9 @@ public:
 
         free(input_num_list_ptr_host);
         free(center_num_list_ptr_host);
-        cudaFree(input_accu_list_ptr);
-        cudaFree(center_accu_list_ptr);
-        cudaFree(grid_buffer_ptr);
+//        cudaFree(input_accu_list_ptr);
+//        cudaFree(center_accu_list_ptr);
+//        cudaFree(grid_buffer_ptr);
     }
 private:
     float padding_value, resolution;
