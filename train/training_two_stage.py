@@ -24,7 +24,7 @@ hvd.init()
 is_hvd_root = hvd.rank() == 0
 
 if config.local:
-    log_dir = '/home/tan/tony/dv_detection/checkpoints/bbox_RoI'
+    log_dir = '/home/tan/tony/dv-det/checkpoints/local-debug'
     try:
         rmtree(log_dir)
     except:
@@ -36,8 +36,9 @@ else:
     parser.add_argument('--log_dir', dest='log_dir', default='test')
     args = parser.parse_args()
     log_dir = args.log_dir
-if is_hvd_root:
-    copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
+
+# if is_hvd_root:
+#     copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
 
 DatasetTrain = Dataset(task="training",
                        batch_size=config.batch_size,

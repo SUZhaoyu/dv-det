@@ -33,29 +33,29 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_eval=False,
                        bn=1.)
 
-bbox_voxels = model.model_test(coors,
-                                 features,
-                                 num_list,
-                                 roi_attrs,
-                                 roi_conf_logits,
-                                 roi_num_list,
-                                 is_training=True,
-                                 is_eval=False,
-                                 bn=1.)
+# bbox_voxels = model.model_test(coors,
+#                                  features,
+#                                  num_list,
+#                                  roi_attrs,
+#                                  roi_conf_logits,
+#                                  roi_num_list,
+#                                  is_training=True,
+#                                  is_eval=False,
+#                                  bn=1.)
 # roi_conf = tf.nn.sigmoid(roi_conf_logits)
 #
 #
-# bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
-#     model.model_stage2(coors=coors,
-#                        features=features,
-#                        num_list=num_list,
-#                        roi_attrs=roi_attrs,
-#                        roi_conf_logits=roi_conf_logits,
-#                        roi_num_list=roi_num_list,
-#                        is_training=False,
-#                        is_eval=False,
-#                        bn=1.)
-# bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
+bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
+    model.model_stage2(coors=coors,
+                       features=features,
+                       num_list=num_list,
+                       roi_attrs=roi_attrs,
+                       roi_conf_logits=roi_conf_logits,
+                       roi_num_list=roi_num_list,
+                       is_training=False,
+                       is_eval=False,
+                       bn=1.)
+bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -75,12 +75,12 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             output_attrs = \
-                sess.run(bbox_voxels,
+                sess.run(bbox_attrs,
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
-            print(output_attrs.shape)
+            # print(output_attrs.shape)
 
             # input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             # output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]

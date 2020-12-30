@@ -162,8 +162,8 @@ public:
         free(output_idx_temp_ptr_host);
         free(output_num_list_ptr_host);
         free(input_accu_list_ptr_host);
-        cudaFree(grid_buffer_ptr);
-        cudaFree(input_accu_list_ptr);
+//        cudaFree(grid_buffer_ptr);
+//        cudaFree(input_accu_list_ptr);
     }
 private:
     float resolution;
