@@ -53,7 +53,7 @@ def plot_points_from_voxels(voxels, center_coors, resolution, kernel_size=3, mas
                       task_name=name)
 
 
-def plot_points_from_voxels_with_color(voxels, center_coors, resolution, kernel_size=3, mask=-1, name='test'):
+def plot_points_from_voxels_with_color(voxels, center_coors, resolution, self_rgbs=False, kernel_size=3, mask=-1, name='test'):
     output_coors = []
     output_rgb = []
     half_kernel_size = (kernel_size - 1) / 2
@@ -69,7 +69,10 @@ def plot_points_from_voxels_with_color(voxels, center_coors, resolution, kernel_
                 y_coor = (y - half_kernel_size) * resolution + center_coors[i, 1]
                 z_coor = (z - half_kernel_size) * resolution + center_coors[i, 2]
                 output_coors.append([x_coor, y_coor, z_coor])
-                output_rgb.append([r, g, b])
+                if not self_rgbs:
+                    output_rgb.append([r, g, b])
+                else:
+                    output_rgb.append(voxels[i, n, :])
 
     output_coors, output_rgb = np.array(output_coors), np.array(output_rgb)
     Converter.compile(coors=convert_threejs_coors(output_coors),

@@ -2,7 +2,7 @@ from __future__ import division
 
 import tensorflow as tf
 
-from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, roi_pooling
+from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, roi_pooling, grid_sampling_thrust, voxel_sampling_binary
 from models.utils.ops_wrapper import kernel_conv_wrapper, fully_connected_wrapper, dense_conv_wrapper
 
 
@@ -12,6 +12,7 @@ def point_conv(input_coors,
                layer_params,
                scope,
                is_training,
+               is_eval,
                model_params,
                bn_decay=None,
                histogram=False,
@@ -19,8 +20,10 @@ def point_conv(input_coors,
                last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
+    grid_sampling_method = grid_sampling if not is_eval else grid_sampling_thrust
+    voxel_sampling_method = voxel_sampling if not is_eval else voxel_sampling_binary
     if layer_params['subsample_res'] is not None:
-        kernel_center_coors, center_num_list = grid_sampling(input_coors=input_coors,
+        kernel_center_coors, center_num_list = grid_sampling_method(input_coors=input_coors,
                                                              input_num_list=input_num_list,
                                                              resolution=layer_params['subsample_res'],
                                                              dimension=model_params['dimension'],
@@ -28,7 +31,7 @@ def point_conv(input_coors,
     else:
         kernel_center_coors = input_coors
         center_num_list = input_num_list
-    voxels = voxel_sampling(input_coors=input_coors,
+    voxels = voxel_sampling_method(input_coors=input_coors,
                             input_features=input_features,
                             input_num_list=input_num_list,
                             center_coors=kernel_center_coors,

@@ -176,7 +176,7 @@ public:
         auto output_features_shape = TensorShape({roi_num, voxel_num, channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_features_shape, &output_features));
         float* output_features_ptr = output_features->template flat<float>().data();
-        printf("RoI Pooling Feature Size: %d MB\n", roi_num*voxel_num*channels*sizeof(float)/1024/1024);
+//        printf("RoI Pooling Feature Size: %d MB\n", roi_num*voxel_num*channels*sizeof(float)/1024/1024);
 //        cudaMemset(output_features_ptr, padding_value, kernel_number*ngrid*channels*sizeof(float));
 
         Tensor* output_idx = nullptr;

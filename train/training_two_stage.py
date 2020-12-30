@@ -14,7 +14,7 @@ from shutil import copyfile, rmtree
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import rcnn_two_stage as model
+from models import rcnn_two_stage_training as model
 from train.configs import rcnn_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_bn_decay, get_learning_rate, get_train_op, get_config, get_weight_decay, \
@@ -76,7 +76,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_stage1_training_p,
-                       is_eval=False,
+                       is_eval=True,
                        bn=stage1_bn)
 
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
@@ -149,7 +149,7 @@ def train_one_epoch(sess, step, dataset_generator, vars, writer):
         output_iou = vars['roi_iou'] if is_stage1_training else vars['bbox_iou']
         tf_summary = vars['stage1_summary'] if is_stage1_training else vars['stage2_summary']
         coors, features, num_list, bboxes = next(dataset_generator)
-        iou, _, summary = sess.run([output_iou, train_op, tf_summary],
+        iou, _ = sess.run([output_iou, train_op],
                                     feed_dict={vars['input_coors_p']: coors,
                                                vars['input_features_p']: features,
                                                vars['input_num_list_p']: num_list,
@@ -159,8 +159,8 @@ def train_one_epoch(sess, step, dataset_generator, vars, writer):
 
         iou_sum += iou
         step += 1
-        if is_hvd_root:
-            writer.add_summary(summary, step)
+        # if is_hvd_root:
+        #     writer.add_summary(summary, step)
 
     iou = iou_sum / batch_per_epoch
 
@@ -182,8 +182,8 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
     iter = tqdm(range(batch_per_epoch)) if is_hvd_root else range(batch_per_epoch)
     for _, batch_id in enumerate(iter):
         coors, features, num_list, bboxes = next(dataset_generator)
-        iou, summary = \
-            sess.run([output_iou, tf_summary],
+        iou = \
+            sess.run(output_iou,
                      feed_dict={vars['input_coors_p']: coors,
                                 vars['input_features_p']: features,
                                 vars['input_num_list_p']: num_list,
@@ -193,8 +193,8 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
 
         iou_sum += (iou * len(features))
         instance_count += len(features)
-        if is_hvd_root:
-            writer.add_summary(summary, step + batch_id)
+        # if is_hvd_root:
+        #     writer.add_summary(summary, step + batch_id)
 
     iou = iou_sum / instance_count
 
@@ -210,7 +210,7 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
         if is_hvd_root:
-            saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/test/test/best_model_0.6326049416787648')
+            saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6451177316231407')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
