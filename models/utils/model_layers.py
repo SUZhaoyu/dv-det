@@ -20,8 +20,8 @@ def point_conv(input_coors,
                last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
-    grid_sampling_method = grid_sampling if not is_eval else grid_sampling_thrust
-    voxel_sampling_method = voxel_sampling if not is_eval else voxel_sampling_binary
+    grid_sampling_method = grid_sampling if is_eval else grid_sampling_thrust
+    voxel_sampling_method = voxel_sampling if is_eval else voxel_sampling_binary
     if layer_params['subsample_res'] is not None:
         kernel_center_coors, center_num_list = grid_sampling_method(input_coors=input_coors,
                                                              input_num_list=input_num_list,

@@ -272,25 +272,25 @@ def voxel_sampling_binary(input_coors,
     sorted_voxel_ids = tf.gather(input_voxel_ids, sorted_args) - voxel_offset_masks
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
     sorted_features = tf.gather(input_features, sorted_args, axis=0)
-
-    output_voxels, output_idx = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
-                                                                            input_features=sorted_features,
-                                                                            input_voxel_idx=sorted_voxel_ids,
-                                                                            input_num_list=input_num_list,
-                                                                            center_coors=center_coors + offset,
-                                                                            center_num_list=center_num_list,
-                                                                            dimension=dimension,
-                                                                            resolution=resolution,
-                                                                            padding_value=padding)
-    return output_voxels, output_idx, sorted_features
+    # XXX: Need to pay attention to the back-propagation implementation.
+    output_voxels, _ = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
+                                                                          input_features=sorted_features,
+                                                                          input_voxel_idx=sorted_voxel_ids,
+                                                                          input_num_list=input_num_list,
+                                                                          center_coors=center_coors + offset,
+                                                                          center_num_list=center_num_list,
+                                                                          dimension=dimension,
+                                                                          resolution=resolution,
+                                                                          padding_value=padding)
+    return output_voxels
 
 @ops.RegisterGradient("VoxelSamplingBinaryOp")
 def voxel_sampling_binary_grad(op, grad, _):
     input_features = op.inputs[1]
     output_idx = op.outputs[1]
     input_features_grad = voxel_sampling_binary_exe.voxel_sampling_binary_grad_op(input_features=input_features,
-                                                                                    output_idx=output_idx,
-                                                                                    output_features_grad=grad)
+                                                                                  output_idx=output_idx,
+                                                                                  output_features_grad=grad)
     return [None, input_features_grad, None, None, None, None]
 
 # def voxel_sampling_binary_grad_test(input_features, output_idx, output_grad):

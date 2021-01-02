@@ -11,10 +11,10 @@ os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
 
 from train.configs import rcnn_config as config
-from models import rcnn_two_stage as model
+from models import rcnn_two_stage_training as model
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_prob
 
-model_path = '/home/tan/tony/dv-det/checkpoints/test/test/best_model_0.6326049416787648'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6451177316231407'
 data_home = '/home/tan/tony/dv-det/eval/data'
 
 input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)
@@ -42,7 +42,8 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
 #                                  is_training=True,
 #                                  is_eval=False,
 #                                  bn=1.)
-# roi_conf = tf.nn.sigmoid(roi_conf_logits)
+roi_conf = tf.nn.sigmoid(roi_conf_logits)
+grad = tf.gradients(roi_attrs, input_features_p)
 #
 #
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
@@ -74,20 +75,22 @@ if __name__ == '__main__':
             batch_input_coors = input_coors_stack[frame_id]
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
-            output_attrs = \
-                sess.run(bbox_attrs,
+            # output_attrs, output_coors, output_conf = \
+            #     sess.run([roi_attrs, roi_coors, roi_conf],
+            output_attrs= \
+                sess.run(grad,
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
-            # print(output_attrs.shape)
+            print(output_attrs.shape)
 
             # input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             # output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
             # plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
             # plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
             #
-            # mask = output_conf > 0.2
+            # mask = output_conf > 0.3
             # output_conf = output_conf[mask]
             # output_bboxes = output_attrs[mask, :]
             # w = np.min(output_bboxes[:, :2], axis=-1)

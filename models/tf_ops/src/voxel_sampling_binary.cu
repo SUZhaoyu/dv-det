@@ -112,10 +112,12 @@ __global__ void voxel_sampling_binary_gpu_kernel(int batch_size, int input_npoin
                                                input_accu_list[b],
                                                input_accu_list[b] + input_num_list[b] - 1,
                                                target_grid_id);
+//                        if (id > 100000)
+//                            printf("************VoxelSamplingBinaryOpId: %d\n", id);
                         if (id>=0) {
-                            float x_i = input_coors[id*3 +0];
-                            float y_i = input_coors[id*3 +1];
-                            float z_i = input_coors[id*3 +2];
+                            float x_i = input_coors[id*3 + 0];
+                            float y_i = input_coors[id*3 + 1];
+                            float z_i = input_coors[id*3 + 2];
                             float dx = x_i - x_c + EPS;
                             float dy = y_i - y_c + EPS;
                             float dz = z_i - z_c + EPS;
@@ -163,7 +165,8 @@ __global__ void voxel_sampling_binary_grad_gpu_kernel(int output_ncenter, int ng
                 int voxel_coor = center_id*ngrid + i;
                 int id = output_idx[voxel_coor];
                 if (id != -1) {
-                    printf("%d\n", id);
+                    if (id > 100000)
+                        printf("************VoxelSamplingBinaryOpId: %d@[voxel_coor=%d]\n", id, voxel_coor);
                     for (int c=0; c<channels; c++) {
                         atomicAdd(&input_features_grad[id*channels + c], output_features_grad[voxel_coor*channels + c]);
                     }

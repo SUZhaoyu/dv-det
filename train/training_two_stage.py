@@ -76,7 +76,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_stage1_training_p,
-                       is_eval=True,
+                       is_eval=False,
                        bn=stage1_bn)
 
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \

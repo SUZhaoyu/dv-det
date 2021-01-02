@@ -12,7 +12,7 @@ output_home = '/home/tan/tony/dv-det/eval/data'
 
 
 DatasetEval = Dataset(task=task,
-                      batch_size=32,
+                      batch_size=1,
                       validation=validation,
                       evaluation=evaluation)
 

@@ -14,7 +14,7 @@ from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, p
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
-batch_size = 1
+batch_size = 16
 epoch = 10
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
 
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list, 16,0.8, 'layer_0')
-    coors, num_list = grid_sampling_thrust(coors_p, num_list_p, 0.8)
+    coors, num_list = grid_sampling_thrust(coors_p, num_list_p, 0.1)
     voxels, idx, sorted_coors, sorted_features = voxel_sampling_binary(input_coors=coors_p,
                                    input_features=features_p,
                                    input_num_list=num_list_p,
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
 
-    id = 0
+    id = 6
     output_features = fetch_instance(output_features, output_num_list, id=id)
     output_coors = fetch_instance(output_coors, output_num_list, id=id)
     plot_points(coors=output_coors,
