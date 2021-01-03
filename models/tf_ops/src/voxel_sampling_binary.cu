@@ -149,9 +149,9 @@ __global__ void voxel_sampling_binary_gpu_kernel(int batch_size, int input_npoin
 
 
 __global__ void voxel_sampling_binary_grad_gpu_kernel(int output_ncenter, int ngrid, int channels,
-                                             const int* output_idx,
-                                             const float* output_features_grad,
-                                             float* input_features_grad) {
+                                                     const int* output_idx,
+                                                     const float* output_features_grad,
+                                                     float* input_features_grad) {
     int batch_size = __float2int_ru((float)output_ncenter / blockDim.x);
     if (output_ncenter==0 || ngrid*channels == 0) {
         printf("Voxel sample grad Op exited unexpectedly.\n");
@@ -165,11 +165,11 @@ __global__ void voxel_sampling_binary_grad_gpu_kernel(int output_ncenter, int ng
                 int voxel_coor = center_id*ngrid + i;
                 int id = output_idx[voxel_coor];
                 if (id != -1) {
-                    if (id > 100000)
-                        printf("************VoxelSamplingBinaryOpId: %d@[voxel_coor=%d]\n", id, voxel_coor);
-                    for (int c=0; c<channels; c++) {
+//                    if (id > 1000000)
+//                        printf("************VoxelSamplingBinaryOpId: %d@[voxel_coor=%d, center_id=%d, i=%d, output_ncenter=%d]\n", id, voxel_coor, center_id, i, output_ncenter);
+                     for (int c=0; c<channels; c++) {
                         atomicAdd(&input_features_grad[id*channels + c], output_features_grad[voxel_coor*channels + c]);
-                    }
+                     }
                 }
             }
         }

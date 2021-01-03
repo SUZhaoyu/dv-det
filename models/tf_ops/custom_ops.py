@@ -226,16 +226,21 @@ sampling result. This operation is implemented in stack style, which means the n
     unique_coors = tf.gather(input_coors, unique_point_ids, axis=0)
     unique_voxels = tf.gather(input_voxel_ids, unique_point_ids, axis=0)
 
-    unique_voxels_array = tf.cast(tf.tile(tf.expand_dims(unique_voxels, 0), [batch_size, 1]), dtype=tf.float32)
-    bottom_offset_list = tf.cast(tf.range(batch_size), dtype=tf.float32) * tf.to_float(dim_offset)
-    upper_offset_list = tf.cast(tf.range(batch_size) + 1, dtype=tf.float32) * tf.to_float(dim_offset)
-    bottom_masks = tf.cast(tf.greater(unique_voxels_array / tf.expand_dims(bottom_offset_list, axis=-1), 1.0), dtype=tf.float32)
-    up_masks = tf.cast(tf.greater(unique_voxels_array / tf.expand_dims(upper_offset_list, axis=-1), 1.0), dtype=tf.float32)
-    bottom_count = tf.reduce_sum(bottom_masks, axis=-1)
-    up_count = tf.reduce_sum(up_masks, axis=-1)
-    output_num_list = bottom_count - up_count
+    voxel_batch_id = tf.cast(tf.floor(unique_voxels / dim_offset), dtype=tf.int32)
+    batch_array = tf.cast(tf.tile(tf.expand_dims(tf.range(batch_size), 1), [1, tf.shape(unique_voxels)[0]]), dtype=tf.int32)
+    output_num_list = tf.reduce_sum(tf.cast(tf.equal(voxel_batch_id, batch_array), dtype=tf.int32), axis=-1)
 
-    return unique_coors, tf.cast(output_num_list, tf.int32)
+
+    # unique_voxels_array = tf.cast(tf.tile(tf.expand_dims(unique_voxels, 0), [batch_size, 1]), dtype=tf.float32)
+    # bottom_offset_list = tf.cast(tf.range(batch_size), dtype=tf.float32) * tf.to_float(dim_offset)
+    # upper_offset_list = tf.cast(tf.range(batch_size) + 1, dtype=tf.float32) * tf.to_float(dim_offset)
+    # bottom_masks = tf.cast(tf.greater(unique_voxels_array / tf.expand_dims(bottom_offset_list, axis=-1), 1.0), dtype=tf.float32)
+    # up_masks = tf.cast(tf.greater(unique_voxels_array / tf.expand_dims(upper_offset_list, axis=-1), 1.0), dtype=tf.float32)
+    # bottom_count = tf.reduce_sum(bottom_masks, axis=-1)
+    # up_count = tf.reduce_sum(up_masks, axis=-1)
+    # output_num_list = tf.cast(bottom_count - up_count, tf.int32)
+
+    return unique_coors, output_num_list
 
 ops.NoGradient("UniqueOp")
 
@@ -273,7 +278,7 @@ def voxel_sampling_binary(input_coors,
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
     sorted_features = tf.gather(input_features, sorted_args, axis=0)
     # XXX: Need to pay attention to the back-propagation implementation.
-    output_voxels, _ = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
+    output_voxels, output_idx = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
                                                                           input_features=sorted_features,
                                                                           input_voxel_idx=sorted_voxel_ids,
                                                                           input_num_list=input_num_list,
@@ -282,7 +287,7 @@ def voxel_sampling_binary(input_coors,
                                                                           dimension=dimension,
                                                                           resolution=resolution,
                                                                           padding_value=padding)
-    return output_voxels
+    return output_voxels, output_idx
 
 @ops.RegisterGradient("VoxelSamplingBinaryOp")
 def voxel_sampling_binary_grad(op, grad, _):

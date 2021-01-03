@@ -39,17 +39,23 @@ if __name__ == '__main__':
     coors_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
-    coors, num_list = coors_p, num_list_p
+    # coors, num_list = coors_p, num_list_p
 
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list, 16,0.8, 'layer_0')
-    coors, num_list = grid_sampling_thrust(coors, num_list, 0.3)
-    voxels, _ = voxel_sampling_binary(input_coors=coors_p,
-                                   input_features=features_p,
-                                   input_num_list=num_list_p,
-                                   center_coors=coors,
-                                   center_num_list=num_list,
-                                   resolution=0.1,
-                                   padding=-1)
+    coors_0, num_list_0 = grid_sampling_thrust(coors_p, num_list_p, 0.1)
+    coors_1, num_list_1 = grid_sampling_thrust(coors_0, num_list_0, 0.2)
+    coors_2, num_list_2 = grid_sampling_thrust(coors_1, num_list_1, 0.4)
+    coors_3, num_list_3 = grid_sampling_thrust(coors_2, num_list_2, 0.6)
+    coors_4, num_list_4 = grid_sampling_thrust(coors_3, num_list_3, 0.8)
+    voxels, idx = voxel_sampling_binary(input_coors=coors_3,
+                                        input_features=tf.ones_like(coors_1) * 255,
+                                        input_num_list=num_list_3,
+                                        center_coors=coors_4,
+                                        center_num_list=num_list_4,
+                                        resolution=0.2,
+                                        padding=-1,
+                                        dimension=[70.4, 80.0, 4.0],
+                                        offset=[0., 40.0, 3.0])
 
     init_op = tf.initialize_all_variables()
     config = tf.ConfigProto()
@@ -63,7 +69,7 @@ if __name__ == '__main__':
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            output_centers, output_num_list, output_features = sess.run([coors, num_list, voxels],
+            output_centers, output_num_list, output_features, output_idx = sess.run([coors_2, num_list_2, voxels, idx],
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: get_rgbs_from_coors(input_coors[i]),
@@ -80,6 +86,10 @@ if __name__ == '__main__':
             #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
+    for i in tqdm(range(output_idx.shape[0])):
+        for j in range(27):
+            if output_idx[i, j, 0] > 1e6:
+                print(i, j, output_idx[i, j, 0])
 
     id = 6
     output_voxels = fetch_instance(output_features, output_num_list, id=id)
@@ -90,7 +100,7 @@ if __name__ == '__main__':
     #                         name='voxel_sample')
     plot_points_from_voxels_with_color(voxels=output_voxels,
                             center_coors=output_centers,
-                            resolution=0.1,
+                            resolution=0.2,
                                        self_rgbs=True,
                             name='voxel_sampling_binary')
     #

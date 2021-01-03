@@ -10,6 +10,7 @@ from data.kitti_generator import Dataset
 from models.tf_ops.custom_ops import grid_sampling_thrust, grid_sampling
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 batch_size = 16

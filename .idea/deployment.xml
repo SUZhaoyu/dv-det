@@ -1,24 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="tan@gx4" showAutoUploadSettingsWarning="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="tan@gx4:22" showAutoUploadSettingsWarning="false">
     <serverData>
-      <paths name="tan@gx4">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/dv-det" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-          <excludedPaths>
-            <excludedPath path="/models/tf_ops/build" />
-            <excludedPath path="/checkpoints" />
-            <excludedPath path="/dataset" />
-          </excludedPaths>
-        </serverdata>
-      </paths>
       <paths name="tan@gx4:22">
         <serverdata>
           <mappings>
             <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" />
           </mappings>
+          <excludedPaths>
+            <excludedPath path="checkpoints" />
+            <excludedPath path="dataset" />
+            <excludedPath path="build" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

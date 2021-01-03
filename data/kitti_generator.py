@@ -118,6 +118,7 @@ class Dataset(object):
                         points = deepcopy(self.points[idx])
                         bboxes = np.array(deepcopy(self.bboxes[idx]))
 
+
                         if len(bboxes) > 0:
                             bboxes = bboxes[bboxes[:, 0] > 0, :]
 

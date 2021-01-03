@@ -74,7 +74,7 @@ def model_stage1(input_coors,
         roi_attrs = get_roi_attrs(input_logits=roi_logits,
                                   base_coors=roi_coors,
                                   anchor_size=anchor_size,
-                                  is_eval=False)
+                                  is_eval=is_eval)
 
         roi_conf_logits = roi_logits[:, 7]
 

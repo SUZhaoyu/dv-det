@@ -77,13 +77,13 @@ if __name__ == '__main__':
             batch_input_num_list = input_num_list_stack[frame_id]
             # output_attrs, output_coors, output_conf = \
             #     sess.run([roi_attrs, roi_coors, roi_conf],
-            output_attrs= \
+            output_attrs = \
                 sess.run(grad,
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
-            print(output_attrs.shape)
+            # print(output_attrs[0].shape)
 
             # input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             # output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]

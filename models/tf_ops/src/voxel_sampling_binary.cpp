@@ -144,8 +144,15 @@ public:
         for (int b=1; b<batch_size; b++) {
             input_accu_list_ptr_host[b] = input_accu_list_ptr_host[b-1] + input_num_list_ptr_host[b-1];
             center_accu_list_ptr_host[b] = center_accu_list_ptr_host[b-1] + center_num_list_ptr_host[b-1];
+//            printf("%d=%d+%d, %d\n", center_accu_list_ptr_host[b], center_accu_list_ptr_host[b-1], center_num_list_ptr_host[b-1], center_num_list_ptr_host[b]);
         }
 
+        int count = 0;
+        for (int b=0; b<batch_size; b++) {
+            count += center_num_list_ptr_host[b];
+        }
+        if (count != output_ncenter)
+            printf("*****************Mismatch Dimension: %d vs. %d; input_npoint=%d\n", output_ncenter, count, input_npoint);
 
         Tensor input_accu_list;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
@@ -171,6 +178,7 @@ public:
         auto output_idx_shape = TensorShape({output_ncenter, ngrid, 1});
         OP_REQUIRES_OK(context, context->allocate_output(1, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
+//        printf("VoxelSamplingBinaryOutputIdx Shape=[%d, %d, %d]\n", output_ncenter, ngrid, 1);
 //        cudaMemset(output_idx_ptr, -1, output_ncenter*ngrid*channels*sizeof(int));
 
         voxel_sampling_binary_gpu_launcher(batch_size, input_npoint, channels,
@@ -216,6 +224,7 @@ public:
         auto output_idx_ptr = output_idx.template flat<int>().data();
         OP_REQUIRES(context, output_idx.dims()==3 && output_idx.dim_size(2)==1,
                     errors::InvalidArgument("Voxel Sample Op expects output_idx in shape: [ncenters, kernel_size*3, 1]."));
+//        printf("VoxelSamplingBinaryGradOutputIdx Shape=[%d, %d, %d]\n", output_idx.dim_size(0), output_idx.dim_size(1), output_idx.dim_size(2));
 
         const Tensor& output_features_grad = context->input(2);
         auto output_features_grad_ptr = output_features_grad.template flat<float>().data();
@@ -230,6 +239,14 @@ public:
         int channels = input_features.dim_size(1);
         int output_ncenter = output_idx.dim_size(0);
         int ngrid = output_idx.dim_size(1);
+
+//        int* output_idx_host_ptr = (int*)malloc(output_ncenter*ngrid*sizeof(int));
+//        cudaMemcpy(output_idx_host_ptr, output_idx_ptr, output_ncenter*ngrid*sizeof(int), cudaMemcpyDeviceToHost);
+//        for (int i=0; i<output_ncenter*ngrid; i++) {
+//            if (output_idx_host_ptr[i] > 100000)
+//                printf("output_idx=%d\n", output_idx_host_ptr[i]);
+//        }
+//        free(output_idx_host_ptr);
 
         Tensor* input_features_grad = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape{input_npoint, channels}, &input_features_grad));
