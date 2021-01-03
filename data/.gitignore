@@ -1,6 +1,6 @@
-/checkpoints
-/dataset
-/models/tf_ops/build
+checkpoints/**
+dataset/**
+models/tf_ops/build/**
 *.pyc
 *.so
 *.cu.o
