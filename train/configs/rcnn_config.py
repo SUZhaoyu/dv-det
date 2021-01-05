@@ -14,8 +14,13 @@ aug_config = {'nbbox': 64,
               'paste_instance_num': 32,
               'maximum_interior_points': 40,
               'normalization': None}
-dimension = [70.4, 80.0, 4.0]
-offset = [0., 40.0, 3.0]
+
+dimension_training = [120, 160.0, 8.0]
+offset_training = [20., 80.0, 5.0]
+
+dimension_testing = [70.4, 80.0, 4.0]
+offset_testing = [0., 40.0, 3.0]
+
 
 local = False
 

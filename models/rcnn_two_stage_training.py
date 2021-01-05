@@ -14,10 +14,7 @@ eps = tf.constant(1e-6)
 
 model_params = {'xavier': config.xavier,
                 'stddev': config.stddev,
-                'activation': config.activation,
-                'dimension': config.dimension,
-                'offset': config.offset}
-
+                'activation': config.activation}
 
 def inputs_placeholder(input_channels=1,
                        bbox_padding=64):
@@ -34,6 +31,12 @@ def model_stage1(input_coors,
                  is_training,
                  is_eval,
                  bn):
+    if is_eval:
+        dimension_params = {'dimension': config.dimension_testing,
+                            'offset': config.offset_testing}
+    else:
+        dimension_params = {'dimension': config.dimension_training,
+                            'offset': config.offset_training}
 
     base_params = config.base_params
     coors, features, num_list = input_coors, input_features, input_num_list
@@ -45,6 +48,7 @@ def model_stage1(input_coors,
                                                    input_features=features,
                                                    input_num_list=num_list,
                                                    layer_params=base_params[layer_name],
+                                                   dimension_params=dimension_params,
                                                    scope="stage1_" + layer_name,
                                                    is_training=is_training,
                                                    is_eval=is_eval,
@@ -57,6 +61,7 @@ def model_stage1(input_coors,
                                                            input_features=features,
                                                            input_num_list=num_list,
                                                            layer_params=config.rpn_params,
+                                                           dimension_params=dimension_params,
                                                            scope="stage1_rpn_conv",
                                                            is_training=is_training,
                                                            is_eval=is_eval,

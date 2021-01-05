@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
     get_pasted_point_cloud
-from data.utils.normalization import feature_normalize, bboxes_normalization
+from data.utils.normalization import feature_normalize, bboxes_normalization, range_clip
 
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
@@ -147,6 +147,10 @@ class Dataset(object):
                         T_coors = multi_dot([T_scale, T_flip, T_rotate])
                         coors = transform(coors, T_coors)
 
+                        # keep_idx = range_clip(coors, self.range_x, self.range_y, self.range_z)
+                        # coors = coors[keep_idx, :]
+                        # features = features[keep_idx, :]
+
                         features = feature_normalize(features, method=self.normalization)
                         ret_bboxes = []
                         for box in bboxes:
@@ -205,8 +209,12 @@ class Dataset(object):
                 features = points[:, -1:]
 
                 if len(coors) == 0:
-                    coors = np.array([[0, 0, 0]])  # to keep the npoint always > 0 in a frame
+                    coors = np.array([[1., 0., 0.]])  # to keep the npoint always > 0 in a frame
                     features = np.array([[0.]])
+
+                # keep_idx = range_clip(coors, self.range_x, self.range_y, self.range_z)
+                # coors = coors[keep_idx, :]
+                # features = features[keep_idx, :]
 
                 batch_coors.append(coors)
                 batch_features.append(feature_normalize(features, method=self.normalization))

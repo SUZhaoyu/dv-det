@@ -204,9 +204,9 @@ sampling result. This operation is implemented in stack style, which means the n
 
     npoint = tf.shape(input_coors)[0]
     batch_size = tf.shape(input_num_list)[0]
-    dim_w = tf.cast(tf.floor(dimension[0] / resolution), dtype=tf.int64)
-    dim_l = tf.cast(tf.floor(dimension[1] / resolution), dtype=tf.int64)
-    dim_h = tf.cast(tf.floor(dimension[2] / resolution), dtype=tf.int64)
+    dim_w = tf.cast(tf.ceil(dimension[0] / resolution), dtype=tf.int64)
+    dim_l = tf.cast(tf.ceil(dimension[1] / resolution), dtype=tf.int64)
+    dim_h = tf.cast(tf.ceil(dimension[2] / resolution), dtype=tf.int64)
     dim_offset = dim_w * dim_l * dim_h
 
     point_ids = tf.range(npoint) + 1
@@ -278,7 +278,7 @@ def voxel_sampling_binary(input_coors,
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
     sorted_features = tf.gather(input_features, sorted_args, axis=0)
     # XXX: Need to pay attention to the back-propagation implementation.
-    output_voxels, output_idx = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
+    output_voxels, _ = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
                                                                           input_features=sorted_features,
                                                                           input_voxel_idx=sorted_voxel_ids,
                                                                           input_num_list=input_num_list,
@@ -287,7 +287,7 @@ def voxel_sampling_binary(input_coors,
                                                                           dimension=dimension,
                                                                           resolution=resolution,
                                                                           padding_value=padding)
-    return output_voxels, output_idx
+    return output_voxels
 
 @ops.RegisterGradient("VoxelSamplingBinaryOp")
 def voxel_sampling_binary_grad(op, grad, _):

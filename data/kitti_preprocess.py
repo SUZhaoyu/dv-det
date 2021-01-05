@@ -19,7 +19,6 @@ range_y = [-40., 40.]
 range_z = [-3., 1.]
 min_object_points = 10
 expand_ratio = 0.15
-clip_offset = 0.1
 home = dirname(os.getcwd())
 
 
@@ -57,12 +56,12 @@ def trim(img_dir, lidar_dir, calib_dir, range_x, range_y, range_z):
     trans_matrix = P2.dot(R0_rect.dot(Tr_velo_to_cam))
     trans_lidar_points = np.transpose(trans_matrix.dot(deepcopy(lidar_points).transpose()))  # [n, 4]
     proj_lidar_points = trans_lidar_points / trans_lidar_points[:, 2:3]
-    keep_idx = get_union_sets([lidar_points[:, 0] > range_x[0] + clip_offset,
-                               lidar_points[:, 0] < range_x[1] - clip_offset,
-                               lidar_points[:, 1] > range_y[0] + clip_offset,
-                               lidar_points[:, 1] < range_y[1] - clip_offset,
-                               lidar_points[:, 2] > range_z[0] + clip_offset,
-                               lidar_points[:, 2] < range_z[1] - clip_offset,
+    keep_idx = get_union_sets([lidar_points[:, 0] > range_x[0],
+                               lidar_points[:, 0] < range_x[1],
+                               lidar_points[:, 1] > range_y[0],
+                               lidar_points[:, 1] < range_y[1],
+                               lidar_points[:, 2] > range_z[0],
+                               lidar_points[:, 2] < range_z[1],
                                proj_lidar_points[:, 0] > 0,
                                proj_lidar_points[:, 0] < cols,
                                proj_lidar_points[:, 1] > 0,

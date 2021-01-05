@@ -10,8 +10,7 @@
           <excludedPaths>
             <excludedPath path="checkpoints" />
             <excludedPath path="dataset" />
-            <excludedPath path="build" />
-            <excludedPath path="__pycache__" />
+            <excludedPath path="models/tf_ops/build" />
           </excludedPaths>
         </serverdata>
       </paths>

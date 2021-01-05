@@ -10,6 +10,7 @@ def point_conv(input_coors,
                input_features,
                input_num_list,
                layer_params,
+               dimension_params,
                scope,
                is_training,
                is_eval,
@@ -26,8 +27,8 @@ def point_conv(input_coors,
         kernel_center_coors, center_num_list = grid_sampling_method(input_coors=input_coors,
                                                              input_num_list=input_num_list,
                                                              resolution=layer_params['subsample_res'],
-                                                             dimension=model_params['dimension'],
-                                                             offset=model_params['offset'])
+                                                             dimension=dimension_params['dimension'],
+                                                             offset=dimension_params['offset'])
     else:
         kernel_center_coors = input_coors
         center_num_list = input_num_list
@@ -38,8 +39,8 @@ def point_conv(input_coors,
                             center_num_list=center_num_list,
                             resolution=layer_params['kernel_res'],
                             padding=layer_params['padding'],
-                            dimension=model_params['dimension'],
-                            offset=model_params['offset'])
+                            dimension=dimension_params['dimension'],
+                            offset=dimension_params['offset'])
 
     output_features = kernel_conv_wrapper(inputs=voxels,
                                           num_output_channels=layer_params['c_out'],

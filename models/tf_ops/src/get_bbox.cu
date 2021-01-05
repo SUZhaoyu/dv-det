@@ -10,13 +10,13 @@
 #define USECPSEC 1000000ULL
 
 __global__ void get_bbox_gpu_kernel(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, float expand_ratio,
-                                           const float* roi_attrs,
-                                           const float* gt_bbox,
-                                           const int* input_num_list,
-                                           int* input_accu_list,
-                                           float* bbox,
-                                           int* bbox_conf,
-                                           int* bbox_diff) {
+                                   const float* roi_attrs,
+                                   const float* gt_bbox,
+                                   const int* input_num_list,
+                                   int* input_accu_list,
+                                   float* bbox,
+                                   int* bbox_conf,
+                                   int* bbox_diff) {
     if (batch_size * nbbox * bbox_attr <=0 || npoint <=0) {
 //        printf("Get Bbox Logits Op exited unexpectedly.\n");
         return;

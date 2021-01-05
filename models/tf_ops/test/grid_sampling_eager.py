@@ -34,9 +34,9 @@ sampling result. This operation is implemented in stack style, which means the n
 
     npoint = tf.shape(input_coors)[0]
     batch_size = tf.shape(input_num_list)[0]
-    dim_w = tf.cast(tf.floor(dimension[0] / resolution), dtype=tf.int64)
-    dim_l = tf.cast(tf.floor(dimension[1] / resolution), dtype=tf.int64)
-    dim_h = tf.cast(tf.floor(dimension[2] / resolution), dtype=tf.int64)
+    dim_w = tf.cast(tf.ceil(dimension[0] / resolution), dtype=tf.int64)
+    dim_l = tf.cast(tf.ceil(dimension[1] / resolution), dtype=tf.int64)
+    dim_h = tf.cast(tf.ceil(dimension[2] / resolution), dtype=tf.int64)
     dim_offset = dim_w * dim_l * dim_h
 
     point_ids = tf.range(npoint) + 1
@@ -76,7 +76,7 @@ sampling result. This operation is implemented in stack style, which means the n
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 batch_size = 16
-epoch = 50
+epoch = 1000
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
                       batch_size=batch_size,
@@ -85,10 +85,12 @@ if __name__ == '__main__':
                       hvd_id=0)
     input_coors, input_features, input_num_list = [], [], []
     for i in tqdm(range(epoch)):
-        coors_d, _, num_list_d, _ = next(Dataset.valid_generator())
+        coors_d, _, num_list_d, _ = next(Dataset.train_generator())
         accu = 0
         coors, num_list = coors_d, num_list_d
-        coors, num_list = grid_sampling_thrust(coors, num_list, 0.1)
-        coors, num_list = grid_sampling_thrust(coors, num_list, 0.2)
         coors, num_list = grid_sampling_thrust(coors, num_list, 0.4)
+        coors, num_list = grid_sampling_thrust(coors, num_list, 0.6)
         coors, num_list = grid_sampling_thrust(coors, num_list, 0.8)
+        if np.array(coors.shape[0]) != np.array(tf.reduce_sum(num_list)):
+            print(np.array(coors.shape[0]), np.array(tf.reduce_sum(num_list)))
+

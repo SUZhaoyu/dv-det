@@ -15,7 +15,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 batch_size = 16
-epoch = 10
+epoch = 100
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
                       batch_size=batch_size,
@@ -42,20 +42,20 @@ if __name__ == '__main__':
     # coors, num_list = coors_p, num_list_p
 
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list, 16,0.8, 'layer_0')
-    coors_0, num_list_0 = grid_sampling_thrust(coors_p, num_list_p, 0.1)
-    coors_1, num_list_1 = grid_sampling_thrust(coors_0, num_list_0, 0.2)
-    coors_2, num_list_2 = grid_sampling_thrust(coors_1, num_list_1, 0.4)
-    coors_3, num_list_3 = grid_sampling_thrust(coors_2, num_list_2, 0.6)
-    coors_4, num_list_4 = grid_sampling_thrust(coors_3, num_list_3, 0.8)
-    voxels, idx = voxel_sampling_binary(input_coors=coors_3,
+    coors_0, num_list_0 = grid_sampling_thrust(coors_p, num_list_p, 0.1, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_1, num_list_1 = grid_sampling_thrust(coors_0, num_list_0, 0.2, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_2, num_list_2 = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_3, num_list_3 = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_4, num_list_4 = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    voxels, idx = voxel_sampling_binary(input_coors=coors_1,
                                         input_features=tf.ones_like(coors_1) * 255,
-                                        input_num_list=num_list_3,
-                                        center_coors=coors_4,
-                                        center_num_list=num_list_4,
+                                        input_num_list=num_list_1,
+                                        center_coors=coors_2,
+                                        center_num_list=num_list_2,
                                         resolution=0.2,
                                         padding=-1,
-                                        dimension=[70.4, 80.0, 4.0],
-                                        offset=[0., 40.0, 3.0])
+                                        dimension=[100, 160.0, 8.0],
+                                        offset=[10., 80.0, 4.0])
 
     init_op = tf.initialize_all_variables()
     config = tf.ConfigProto()
@@ -86,10 +86,10 @@ if __name__ == '__main__':
             #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
-    for i in tqdm(range(output_idx.shape[0])):
-        for j in range(27):
-            if output_idx[i, j, 0] > 1e6:
-                print(i, j, output_idx[i, j, 0])
+    # for i in tqdm(range(output_idx.shape[0])):
+    #     for j in range(27):
+    #         if output_idx[i, j, 0] > 1e6:
+    #             print(i, j, output_idx[i, j, 0])
 
     id = 6
     output_voxels = fetch_instance(output_features, output_num_list, id=id)

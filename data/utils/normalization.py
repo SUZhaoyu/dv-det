@@ -5,6 +5,21 @@ from copy import deepcopy
 
 import numpy as np
 
+def get_union_sets(conditions):
+    output = conditions[0]
+    for i in np.arange(1, len(conditions)):
+        output = np.logical_and(output, conditions[i])
+    return output
+
+def range_clip(coors, range_x, range_y, range_z, offset=0.1):
+    assert len(coors.shape) == 2 and coors.shape[-1] == 3
+    keep_idx = get_union_sets([coors[:, 0] > range_x[0] + offset,
+                               coors[:, 0] < range_x[1] - offset,
+                               coors[:, 1] > range_y[0] + offset,
+                               coors[:, 1] < range_y[1] - offset,
+                               coors[:, 2] > range_z[0] + offset,
+                               coors[:, 2] < range_z[1] - offset])
+    return keep_idx
 
 def length_normalize(points, length, warning=False):
     assert len(points.shape) == 2
