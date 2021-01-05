@@ -204,9 +204,9 @@ sampling result. This operation is implemented in stack style, which means the n
 
     npoint = tf.shape(input_coors)[0]
     batch_size = tf.shape(input_num_list)[0]
-    dim_w = tf.cast(tf.ceil(dimension[0] / resolution), dtype=tf.int64)
-    dim_l = tf.cast(tf.ceil(dimension[1] / resolution), dtype=tf.int64)
-    dim_h = tf.cast(tf.ceil(dimension[2] / resolution), dtype=tf.int64)
+    dim_w = tf.cast(tf.floor(dimension[0] / resolution), dtype=tf.int64)
+    dim_l = tf.cast(tf.floor(dimension[1] / resolution), dtype=tf.int64)
+    dim_h = tf.cast(tf.floor(dimension[2] / resolution), dtype=tf.int64)
     dim_offset = dim_w * dim_l * dim_h
 
     point_ids = tf.range(npoint) + 1
@@ -297,9 +297,3 @@ def voxel_sampling_binary_grad(op, grad, _):
                                                                                   output_idx=output_idx,
                                                                                   output_features_grad=grad)
     return [None, input_features_grad, None, None, None, None]
-
-def voxel_sampling_binary_grad_test(input_features, output_idx, output_grad):
-    input_grad = voxel_sampling_binary_exe.voxel_sampling_binary_grad_op(input_features=input_features,
-                                                                        output_idx=output_idx,
-                                                                        output_features_grad=output_grad)
-    return input_grad

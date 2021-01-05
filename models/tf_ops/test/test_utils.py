@@ -1,5 +1,5 @@
 import json
-
+import tensorflow as tf
 import numpy as np
 from point_viz.converter import PointvizConverter
 from tqdm import tqdm
@@ -14,6 +14,13 @@ def get_rgbs_from_coors(coors, repeat=5):
     norm_coors = coors - np.min(coors, axis=0, keepdims=True)
     norm_coors = norm_coors / np.max(norm_coors, axis=0, keepdims=True)
     return norm_coors * repeat * 255 % 255.
+
+
+def get_rgbs_from_coors_tf(coors, repeat=5):
+    norm_coors = coors - tf.reduce_min(coors, axis=0, keepdims=True)
+    norm_coors = norm_coors / tf.reduce_max(norm_coors, axis=0, keepdims=True)
+    return norm_coors * repeat * 255 % 255.
+
 
 def fetch_instance(input_list, num_list, id=0):
     accu_num_list = np.cumsum(num_list)

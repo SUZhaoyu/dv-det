@@ -9,13 +9,13 @@ from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
 from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, voxel_sampling_binary, grid_sampling_thrust
 from models.utils.ops_wrapper import kernel_conv_wrapper
-from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points_from_voxels_with_color
+from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points_from_voxels_with_color, get_rgbs_from_coors_tf
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 batch_size = 16
-epoch = 100
+epoch = 10
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
                       batch_size=batch_size,
@@ -47,8 +47,8 @@ if __name__ == '__main__':
     coors_2, num_list_2 = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     coors_3, num_list_3 = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     coors_4, num_list_4 = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    voxels, idx = voxel_sampling_binary(input_coors=coors_1,
-                                        input_features=tf.ones_like(coors_1) * 255,
+    voxels = voxel_sampling_binary(input_coors=coors_1,
+                                        input_features=get_rgbs_from_coors_tf(coors_1),
                                         input_num_list=num_list_1,
                                         center_coors=coors_2,
                                         center_num_list=num_list_2,
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            output_centers, output_num_list, output_features, output_idx = sess.run([coors_2, num_list_2, voxels, idx],
+            output_centers, output_num_list, output_features = sess.run([coors_2, num_list_2, voxels,],
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: get_rgbs_from_coors(input_coors[i]),

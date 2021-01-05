@@ -237,22 +237,21 @@ class Dataset(object):
 
 
 if __name__ == '__main__':
-    config = {'task': 'training',
-              'batch_size': 16,
-              'nbbox': 64,
-              'rotate_range': np.pi / 4.,
-              'rotate_mode': 'u',
-              'scale_range': 0.05,
-              'scale_mode': 'u',
-              'drop_out': 0.1,
-              'flip': True,
-              'shuffle': True,
-              'paste_augmentation': True,
-              'paste_instance_num': 32,
-              'maximum_interior_points': 40,
-              'normalization': None}
+    aug_config = {'nbbox': 64,
+                  'rotate_range': np.pi / 4,
+                  'rotate_mode': 'u',
+                  'scale_range': 0.05,
+                  'scale_mode': 'u',
+                  'drop_out': 0.1,
+                  'flip': False,
+                  'shuffle': True,
+                  'paste_augmentation': True,
+                  'paste_instance_num': 32,
+                  'maximum_interior_points': 40,
+                  'normalization': None}
+
     dataset = Dataset(task='training',
-                      config=config,
+                      config=aug_config,
                       validation=False,
                       num_worker=40,
                       hvd_size=3,
@@ -261,6 +260,16 @@ if __name__ == '__main__':
     for i in tqdm(range(100000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
+
+        dimension = [100, 160.0, 9.0]
+        offset = [10., 60.0, 5.0]
+
+        coors += offset
+        coors_min = np.min(coors, axis=0)
+        coors_max = np.max(coors, axis=0)
+        for j in range(3):
+            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+                print(coors_min, coors_max)
         # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
