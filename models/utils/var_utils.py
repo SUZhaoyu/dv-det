@@ -40,6 +40,7 @@ def _variable_with_l2_loss(name,
                            stddev=None,
                            initializer=None,
                            use_xavier=True,
+                           trainable=True,
                            with_l2_loss=True,
                            l2_loss_collection=None):
     """Helper to create an initialized Variable with weight decay.
@@ -77,7 +78,7 @@ def _variable_with_l2_loss(name,
             initializer = tf.truncated_normal_initializer(stddev=stddev)
 
     dtype = tf.float32
-    var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype, trainable=True)
+    var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype, trainable=trainable)
     if with_l2_loss:
         if l2_loss_collection is not None:
             tf.add_to_collection(l2_loss_collection, tf.nn.l2_loss(var))

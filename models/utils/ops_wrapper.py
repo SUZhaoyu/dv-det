@@ -8,7 +8,7 @@ from models.tf_ops.custom_ops import roi_logits_to_attrs, bbox_logits_to_attrs
 
 from models.tf_ops.custom_ops import voxel2col
 
-def batch_norm_template(inputs, is_training, bn_decay, name):
+def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
     '''
     Batch Norm for voxel conv operation
 
@@ -23,6 +23,7 @@ def batch_norm_template(inputs, is_training, bn_decay, name):
                                          axis=-1,
                                          momentum=bn_decay,
                                          training=is_training,
+                                         trainable=trainable,
                                          name=name)
 
 
@@ -35,6 +36,7 @@ def kernel_conv_wrapper(inputs,
                         activation='relu',
                         bn_decay=None,
                         is_training=True,
+                        trainable=True,
                         histogram=False,
                         summary=False):
     if scope == 'default':
@@ -50,12 +52,14 @@ def kernel_conv_wrapper(inputs,
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
                                         stddev=stddev,
-                                        l2_loss_collection=l2_loss_collection)
+                                        l2_loss_collection=l2_loss_collection,
+                                        trainable=trainable)
         biases = _variable_with_l2_loss(name='biases',
                                         shape=[num_output_channels],
                                         initializer=tf.constant_initializer(0.0),
                                         with_l2_loss=False,
-                                        l2_loss_collection=None)
+                                        l2_loss_collection=None,
+                                        trainable=trainable)
         if histogram:
             tf.summary.histogram('kernel', kernel)
         if summary:
@@ -72,7 +76,8 @@ def kernel_conv_wrapper(inputs,
             outputs = batch_norm_template(inputs=outputs,
                                           is_training=is_training,
                                           bn_decay=bn_decay,
-                                          name='bn')
+                                          name='bn',
+                                          trainable=trainable)
         if activation is not None:
             activation_fn_dict = {'relu': tf.nn.relu,
                                   'elu': tf.nn.elu,
@@ -90,6 +95,7 @@ def dense_conv_wrapper(inputs,
                        activation='relu',
                        bn_decay=None,
                        is_training=True,
+                       trainable=True,
                        histogram=False,
                        summary=False):
     if scope == 'default':
@@ -104,12 +110,14 @@ def dense_conv_wrapper(inputs,
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
                                         stddev=stddev,
-                                        l2_loss_collection=l2_loss_collection)
+                                        l2_loss_collection=l2_loss_collection,
+                                        trainable=trainable)
         biases = _variable_with_l2_loss(name='biases',
                                         shape=[num_output_channels],
                                         initializer=tf.constant_initializer(0.0),
                                         with_l2_loss=False,
-                                        l2_loss_collection=None)
+                                        l2_loss_collection=None,
+                                        trainable=trainable)
         if histogram:
             tf.summary.histogram('kernel', kernel)
         if summary:
@@ -124,7 +132,8 @@ def dense_conv_wrapper(inputs,
             outputs = batch_norm_template(inputs=outputs,
                                           is_training=is_training,
                                           bn_decay=bn_decay,
-                                          name='bn')
+                                          name='bn',
+                                          trainable=trainable)
         if activation is not None:
             activation_fn_dict = {'relu': tf.nn.relu,
                                   'elu': tf.nn.elu,
@@ -143,6 +152,7 @@ def fully_connected_wrapper(inputs,
                             activation='relu',
                             bn_decay=None,
                             is_training=True,
+                            trainable=True,
                             histogram=False,
                             summary=False):
     if scope == 'default':
@@ -157,12 +167,14 @@ def fully_connected_wrapper(inputs,
                                         shape=weight_shape,
                                         use_xavier=use_xavier,
                                         stddev=stddev,
-                                        l2_loss_collection=l2_loss_collection)
+                                        l2_loss_collection=l2_loss_collection,
+                                        trainable=trainable)
         biases = _variable_with_l2_loss(name="biases",
                                         shape=[num_output_channels],
                                         initializer=tf.constant_initializer(0.0),
                                         with_l2_loss=False,
-                                        l2_loss_collection=None)
+                                        l2_loss_collection=None,
+                                        trainable=trainable)
         if histogram:
             tf.summary.histogram('weight', weight)
         if summary:
@@ -174,7 +186,8 @@ def fully_connected_wrapper(inputs,
             outputs = batch_norm_template(inputs=outputs,
                                           is_training=is_training,
                                           bn_decay=bn_decay,
-                                          name='bn')
+                                          name='bn',
+                                          trainable=trainable)
         if activation is not None:
             activation_fn_dict = {'relu': tf.nn.relu,
                                   'elu': tf.nn.elu,

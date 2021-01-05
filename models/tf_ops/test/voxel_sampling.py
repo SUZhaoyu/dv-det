@@ -99,8 +99,8 @@ if __name__ == '__main__':
     #                         resolution=0.1,
     #                         name='voxel_sample')
     plot_points_from_voxels_with_color(voxels=output_voxels,
-                            center_coors=output_centers,
-                            resolution=0.2,
+                                       center_coors=output_centers,
+                                       resolution=0.2,
                                        self_rgbs=True,
-                            name='voxel_sampling_binary')
+                                       name='voxel_sampling_binary')
     #

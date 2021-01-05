@@ -47,8 +47,8 @@ print("INFO: Loading completed.")
 
 
 input_coors_p, input_features_p, input_num_list_p, input_bbox_p = \
-    MODEL.inputs_placeholder(input_channels=1,
-                             bbox_padding=CONFIG.bbox_padding)
+    MODEL.stage1_inputs_placeholder(input_channels=1,
+                                    bbox_padding=CONFIG.bbox_padding)
 is_roi_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="roi_training")
 is_bbox_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="bbox_training")
 

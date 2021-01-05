@@ -11,7 +11,7 @@ os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
 
 from train.configs import rcnn_config as config
-from models import rcnn_two_stage_training as model
+from models import rcnn_model as model
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_prob
 
 model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6451177316231407'
@@ -21,16 +21,17 @@ input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=Tru
 input_features_stack = np.load(join(data_home, 'input_features.npy'), allow_pickle=True)
 input_num_list_stack = np.load(join(data_home, 'input_num_list.npy'), allow_pickle=True)
 
-input_coors_p, input_features_p, input_num_list_p, _ = model.inputs_placeholder()
+input_coors_p, input_features_p, input_num_list_p, _ = model.stage1_inputs_placeholder()
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
 coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
-    model.model_stage1(input_coors=input_coors_p,
+    model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
-                       is_training=False,
-                       is_eval=False,
+                       is_training=True,
+                       is_eval=True,
+                       trainable=True,
                        bn=1.)
 
 # bbox_voxels = model.model_test(coors,
@@ -43,26 +44,26 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
 #                                  is_eval=False,
 #                                  bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
-grad = tf.gradients(roi_attrs, input_features_p)
+# grad = tf.gradients(roi_attrs, input_features_p)
 #
 #
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
-    model.model_stage2(coors=coors,
-                       features=features,
-                       num_list=num_list,
-                       roi_attrs=roi_attrs,
-                       roi_conf_logits=roi_conf_logits,
-                       roi_num_list=roi_num_list,
-                       is_training=False,
-                       is_eval=False,
-                       bn=1.)
-bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
+# bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
+#     model.model_stage2(coors=coors,
+#                        features=features,
+#                        num_list=num_list,
+#                        roi_attrs=roi_attrs,
+#                        roi_conf_logits=roi_conf_logits,
+#                        roi_num_list=roi_num_list,
+#                        is_training=False,
+#                        is_eval=False,
+#                        bn=1.)
+# bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
 config = tf.ConfigProto()
 config.gpu_options.visible_device_list = "0"
-config.gpu_options.allow_growth = False
+config.gpu_options.allow_growth = True
 config.allow_soft_placement = False
 config.log_device_placement = False
 
@@ -78,7 +79,7 @@ if __name__ == '__main__':
             # output_attrs, output_coors, output_conf = \
             #     sess.run([roi_attrs, roi_coors, roi_conf],
             output_attrs = \
-                sess.run(grad,
+                sess.run(roi_conf,
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,

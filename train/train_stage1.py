@@ -63,12 +63,9 @@ input_coors_p, input_features_p, input_num_list_p, input_bbox_p = \
     model.stage1_inputs_placeholder(input_channels=1,
                                     bbox_padding=config.bbox_padding)
 is_stage1_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage1_training")
-is_stage2_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage2_training")
 
 stage1_step = tf.Variable(0, name='stage1_step')
-stage2_step = tf.Variable(0, name='stage2_step')
 stage1_lr, stage1_bn, stage1_wd = set_training_controls(config, decay_batch, stage1_step, hvd.size(), prefix='stage1')
-stage2_lr, stage2_bn, stage2_wd = set_training_controls(config, decay_batch, stage2_step, hvd.size(), prefix='stage2')
 
 
 coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
@@ -76,21 +73,10 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_stage1_training_p,
-                       is_eval=True,
-                       trainable=False,
-                       bn=stage1_bn)
-
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
-    model.stage2_model(coors=coors,
-                       features=features,
-                       num_list=num_list,
-                       roi_attrs=roi_attrs,
-                       roi_conf_logits=roi_conf_logits,
-                       roi_num_list=roi_num_list,
-                       is_training=is_stage2_training_p,
                        is_eval=False,
                        trainable=True,
-                       bn=stage2_bn)
+                       mem_saving=True,
+                       bn=stage1_bn)
 
 stage1_loss, roi_ious, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
                                                             pred_roi_attrs=roi_attrs,
@@ -99,21 +85,9 @@ stage1_loss, roi_ious, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
                                                             bbox_labels=input_bbox_p,
                                                             wd=stage1_wd)
 
-stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=roi_attrs,
-                                                   pred_bbox_attrs=bbox_attrs,
-                                                   bbox_conf_logits=bbox_conf_logits,
-                                                   bbox_num_list=bbox_num_list,
-                                                   bbox_labels=input_bbox_p,
-                                                   bbox_idx=bbox_idx,
-                                                   roi_ious=roi_ious,
-                                                   wd=stage2_wd)
+stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
 
-# stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
-stage2_train_op = get_train_op(stage2_loss, stage2_lr, var_keywords=['stage2'], opt='adam', global_step=stage2_step, use_hvd=True)
-
-stage1_summary = tf.summary.merge_all(key='stage1')
-stage2_summary = tf.summary.merge_all(key='stage2')
-total_summary = tf.summary.merge_all()
+summary = tf.summary.merge_all()
 hooks = [hvd.BroadcastGlobalVariablesHook(0)]
 session_config = get_config(gpu=config.gpu_list[hvd.rank()])
 
@@ -123,21 +97,16 @@ validation_writer = tf.summary.FileWriter(os.path.join(log_dir, 'valid'))
 saver = tf.train.Saver(max_to_keep=None)
 
 vars = {'stage1_step': stage1_step,
-        'stage2_step': stage2_step,
         'input_coors_p': input_coors_p,
         'input_features_p': input_features_p,
         'input_num_list_p': input_num_list_p,
         'input_bbox_p': input_bbox_p,
         'is_stage1_training_p': is_stage1_training_p,
-        'is_stage2_training_p': is_stage2_training_p,
         'training_batch': training_batch,
         'validation_batch': validation_batch,
         'roi_iou': averaged_roi_iou,
-        'bbox_iou': averaged_bbox_iou,
-        'stage1_train_op': stage2_train_op,
-        'stage2_train_op': stage2_train_op,
-        'stage1_summary': total_summary,
-        'stage2_summary': total_summary}
+        'stage1_train_op': stage1_train_op,
+        'summary': summary}
 
 
 def train_one_epoch(sess, step, dataset_generator, vars, writer):
@@ -145,24 +114,18 @@ def train_one_epoch(sess, step, dataset_generator, vars, writer):
     iou_sum = 0
     iter = tqdm(range(batch_per_epoch)) if is_hvd_root else range(batch_per_epoch)
     for _ in iter:
-        is_stage1_training = step < config.stage1_training_epoch * batch_per_epoch
-        is_stage2_training = not is_stage1_training
-        train_op = vars['stage1_train_op'] if is_stage1_training else vars['stage2_train_op']
-        output_iou = vars['roi_iou'] if is_stage1_training else vars['bbox_iou']
-        tf_summary = vars['stage1_summary'] if is_stage1_training else vars['stage2_summary']
         coors, features, num_list, bboxes = next(dataset_generator)
-        iou, _ = sess.run([output_iou, train_op],
+        iou, _, summary = sess.run([vars['roi_iou'], vars['stage1_train_op'], vars['summary']],
                                     feed_dict={vars['input_coors_p']: coors,
                                                vars['input_features_p']: features,
                                                vars['input_num_list_p']: num_list,
                                                vars['input_bbox_p']: bboxes,
-                                               vars['is_stage1_training_p']: is_stage1_training,
-                                               vars['is_stage2_training_p']: is_stage2_training,})
+                                               vars['is_stage1_training_p']: True})
 
         iou_sum += iou
         step += 1
-        # if is_hvd_root:
-        #     writer.add_summary(summary, step)
+        if is_hvd_root:
+            writer.add_summary(summary, step)
 
     iou = iou_sum / batch_per_epoch
 
@@ -178,25 +141,21 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
     batch_per_epoch = vars['validation_batch']
     iou_sum = 0
     instance_count = 0
-    is_stage1_training = step < config.stage1_training_epoch * batch_per_epoch
-    output_iou = vars['roi_iou'] if is_stage1_training else vars['bbox_iou']
-    tf_summary = vars['stage1_summary'] if is_stage1_training else vars['stage2_summary']
     iter = tqdm(range(batch_per_epoch)) if is_hvd_root else range(batch_per_epoch)
     for _, batch_id in enumerate(iter):
         coors, features, num_list, bboxes = next(dataset_generator)
-        iou = \
-            sess.run(output_iou,
+        iou, summary = \
+            sess.run([vars['roi_iou'], vars['summary']],
                      feed_dict={vars['input_coors_p']: coors,
                                 vars['input_features_p']: features,
                                 vars['input_num_list_p']: num_list,
                                 vars['input_bbox_p']: bboxes,
-                                vars['is_stage1_training_p']: False,
-                                vars['is_stage2_training_p']: False})
+                                vars['is_stage1_training_p']: False})
 
         iou_sum += (iou * len(features))
         instance_count += len(features)
-        # if is_hvd_root:
-        #     writer.add_summary(summary, step + batch_id)
+        if is_hvd_root:
+            writer.add_summary(summary, step + batch_id)
 
     iou = iou_sum / instance_count
 
@@ -211,8 +170,8 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        if is_hvd_root:
-            saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1-fast/test/best_model_0.6429708252924098')
+        # if is_hvd_root:
+        #     saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1-fast/test/best_model_0.6429708252924098')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

@@ -16,20 +16,34 @@ model_params = {'xavier': config.xavier,
                 'stddev': config.stddev,
                 'activation': config.activation}
 
-def inputs_placeholder(input_channels=1,
-                       bbox_padding=64):
-    input_coors_p = tf.placeholder(tf.float32, shape=[None, None], name='input_coors_p')
-    input_features_p = tf.placeholder(tf.float32, shape=[None, input_channels], name='input_features_p')
-    input_num_list_p = tf.placeholder(tf.int32, shape=[None], name='input_num_list_p')
-    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='input_bbox_p')
+def stage1_inputs_placeholder(input_channels=1,
+                              bbox_padding=config.aug_config['nbbox']):
+    input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage1_input_coors_p')
+    input_features_p = tf.placeholder(tf.float32, shape=[None, input_channels], name='stage1_input_features_p')
+    input_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage1_input_num_list_p')
+    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='stage1_input_bbox_p')
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
 
-def model_stage1(input_coors,
+def stage2_inputs_placeholder(input_feature_channels=config.base_params[sorted(config.base_params.keys())[-1]]['c_out'],
+                              bbox_padding=config.aug_config['nbbox']):
+    input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage2_input_coors_p')
+    input_features_p = tf.placeholder(tf.float32, shape=[None, input_feature_channels], name='stage2_input_features_p')
+    input_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage2_input_num_list_p')
+    input_roi_attrs_p = tf.placeholder(tf.float32, shape=[None, 7], name='stage2_input_roi_attrs_p')
+    input_roi_conf_p = tf.placeholder(tf.float32, shape=[None], name='stage2_input_roi_conf_p')
+    input_roi_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage2_input_roi_num_list_p')
+    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='input_bbox_p')
+    return input_coors_p, input_features_p, input_num_list_p, input_roi_attrs_p, input_roi_conf_p, input_roi_num_list_p, input_bbox_p
+
+
+def stage1_model(input_coors,
                  input_features,
                  input_num_list,
                  is_training,
+                 trainable,
                  is_eval,
+                 mem_saving,
                  bn):
     if is_eval:
         dimension_params = {'dimension': config.dimension_testing,
@@ -37,6 +51,7 @@ def model_stage1(input_coors,
     else:
         dimension_params = {'dimension': config.dimension_training,
                             'offset': config.offset_training}
+
 
     base_params = config.base_params
     coors, features, num_list = input_coors, input_features, input_num_list
@@ -51,7 +66,8 @@ def model_stage1(input_coors,
                                                    dimension_params=dimension_params,
                                                    scope="stage1_" + layer_name,
                                                    is_training=is_training,
-                                                   is_eval=is_eval,
+                                                   trainable=trainable,
+                                                   mem_saving=mem_saving,
                                                    model_params=model_params,
                                                    bn_decay=bn)
 
@@ -64,7 +80,8 @@ def model_stage1(input_coors,
                                                            dimension_params=dimension_params,
                                                            scope="stage1_rpn_conv",
                                                            is_training=is_training,
-                                                           is_eval=is_eval,
+                                                           trainable=trainable,
+                                                           mem_saving=mem_saving,
                                                            model_params=model_params,
                                                            bn_decay=bn)
 
@@ -74,6 +91,7 @@ def model_stage1(input_coors,
                                      model_params=model_params,
                                      scope='stage1_rpn_fc',
                                      is_training=is_training,
+                                     trainable=trainable,
                                      last_layer=True)
 
         roi_attrs = get_roi_attrs(input_logits=roi_logits,
@@ -85,13 +103,14 @@ def model_stage1(input_coors,
 
         return coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
 
-def model_stage2(coors,
+def stage2_model(coors,
                  features,
                  num_list,
                  roi_attrs,
                  roi_conf_logits,
                  roi_num_list,
                  is_training,
+                 trainable,
                  is_eval,
                  bn):
     with tf.variable_scope("stage2"):
@@ -114,6 +133,7 @@ def model_stage2(coors,
                                   layer_params=config.refine_params,
                                   scope="stage2_refine_conv_{}".format(i),
                                   is_training=is_training,
+                                  trainable=trainable,
                                   model_params=model_params,
                                   bn_decay=bn)
 
@@ -125,6 +145,7 @@ def model_stage2(coors,
                                       model_params=model_params,
                                       scope='stage2_refine_fc',
                                       is_training=is_training,
+                                      trainable=trainable,
                                       last_layer=True)
 
         bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,
@@ -187,7 +208,7 @@ def model_test(coors,
     return bbox_voxels
 
 
-def loss_stage1(roi_coors,
+def stage1_loss(roi_coors,
                 pred_roi_attrs,
                 roi_conf_logits,
                 roi_num_list,
@@ -217,7 +238,7 @@ def loss_stage1(roi_coors,
     return total_loss_collection, roi_ious, averaged_iou
 
 
-def loss_stage2(roi_attrs,
+def stage2_loss(roi_attrs,
                 pred_bbox_attrs,
                 bbox_conf_logits,
                 bbox_num_list,

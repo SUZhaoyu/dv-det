@@ -298,8 +298,8 @@ def voxel_sampling_binary_grad(op, grad, _):
                                                                                   output_features_grad=grad)
     return [None, input_features_grad, None, None, None, None]
 
-# def voxel_sampling_binary_grad_test(input_features, output_idx, output_grad):
-#     input_grad = voxel_sampling_binary_exe.voxel_sampling_binary_grad_op(input_features=input_features,
-#                                                                         output_idx=output_idx,
-#                                                                         output_features_grad=output_grad)
-#     return input_grad
+def voxel_sampling_binary_grad_test(input_features, output_idx, output_grad):
+    input_grad = voxel_sampling_binary_exe.voxel_sampling_binary_grad_op(input_features=input_features,
+                                                                        output_idx=output_idx,
+                                                                        output_features_grad=output_grad)
+    return input_grad

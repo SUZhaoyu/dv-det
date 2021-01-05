@@ -12,7 +12,7 @@ output_home = '/home/tan/tony/dv-det/eval/data'
 
 
 DatasetEval = Dataset(task=task,
-                      batch_size=16,
+                      batch_size=8,
                       validation=validation,
                       evaluation=evaluation)
 
@@ -24,7 +24,7 @@ except:
 if __name__ == '__main__':
 
     input_coors, input_features, input_num_list, input_bboxes = [], [], [], []
-    for _ in tqdm(range(DatasetEval.total_data_length)):
+    for _ in tqdm(range(DatasetEval.batch_sum)):
         if not evaluation:
             coors, features, num_list, bboxes = next(DatasetEval.valid_generator())
         else:
