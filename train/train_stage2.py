@@ -207,7 +207,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
                                 stage1_input_num_list_p: num_list,
                                 is_stage1_training_p: False})
 
-        iou, summary = sess.run([averaged_bbox_iou, tf_summary],
+        iou, summary, iou_g = sess.run([averaged_bbox_iou, tf_summary, bbox_iou],
                           feed_dict={stage2_input_coors_p: stage2_input_coors,
                                      stage2_input_features_p: stage2_input_features,
                                      stage2_input_num_list_p: stage2_input_num_list,
@@ -220,6 +220,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
         iou_sum += (iou * len(features))
         instance_count += len(features)
+        print(len(iou_g))
         if is_hvd_root:
             writer.add_summary(summary, step)
 
@@ -236,8 +237,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        if is_hvd_root:
-            stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
@@ -245,6 +245,7 @@ def main():
         for epoch in range(config.total_epoch):
             if is_hvd_root:
                 print("Epoch: {}".format(epoch))
+            result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
             step = train_one_epoch(mon_sess, step, train_generator, training_writer)
             if epoch % config.valid_interval == 0:  # and EPOCH != 0:
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)

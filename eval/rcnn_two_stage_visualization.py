@@ -28,9 +28,9 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=False,
-                       is_eval=False,
+                       is_eval=True,
                        trainable=False,
-                       mem_saving=True,
+                       mem_saving=False,
                        bn=1.)
 
 # bbox_voxels = model.model_test(coors,

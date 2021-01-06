@@ -82,9 +82,9 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int max_batch_in
                 int grid_coor_y = __float2int_rz(rot_rel_point_y / (grid_length_y + FLT_EPSILON) + 0.5 * fabsf(rot_rel_point_y) / rot_rel_point_y + FLT_EPSILON);
                 int grid_coor_z = __float2int_rz(rel_point_z / (grid_length_z + FLT_EPSILON) + 0.5 * fabsf(rel_point_z) / rel_point_z + FLT_EPSILON);
                 int voxel_coor = roi_id * voxel_num + center_offset + \
-                                 voxel_size * voxel_size * grid_coor_z + \
+                                 voxel_size * voxel_size * grid_coor_x + \
                                  voxel_size * grid_coor_y + \
-                                 grid_coor_x;
+                                 grid_coor_z;
 
                 int pool_count = atomicAdd(&temp_count[voxel_coor], 1);
                 if (pool_count < pooling_size) {
