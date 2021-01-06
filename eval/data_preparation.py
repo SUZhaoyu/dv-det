@@ -1,8 +1,10 @@
-import numpy as np
+import logging
 from os import mkdir
 from os.path import join
+
+import numpy as np
 from tqdm import tqdm
-import logging
+
 from data.kitti_generator import Dataset
 
 task = 'validation'
@@ -12,7 +14,7 @@ output_home = '/home/tan/tony/dv-det/eval/data'
 
 
 DatasetEval = Dataset(task=task,
-                      batch_size=8,
+                      batch_size=1,
                       validation=validation,
                       evaluation=evaluation)
 

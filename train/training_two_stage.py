@@ -9,7 +9,7 @@ from tqdm import tqdm
 from os.path import join, dirname
 import sys
 import argparse
-from shutil import copyfile, rmtree
+from shutil import rmtree
 
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
@@ -17,8 +17,7 @@ sys.path.append(HOME)
 from models import rcnn_model as model
 from train.configs import rcnn_config as config
 from data.kitti_generator import Dataset
-from train.train_utils import get_bn_decay, get_learning_rate, get_train_op, get_config, get_weight_decay, \
-    save_best_sess, set_training_controls
+from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
 
 hvd.init()
 is_hvd_root = hvd.rank() == 0
@@ -62,6 +61,9 @@ decay_batch = training_batch * config.decay_epochs
 input_coors_p, input_features_p, input_num_list_p, input_bbox_p = \
     model.stage1_inputs_placeholder(input_channels=1,
                                     bbox_padding=config.bbox_padding)
+
+
+
 is_stage1_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage1_training")
 is_stage2_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage2_training")
 
@@ -76,9 +78,12 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_stage1_training_p,
-                       is_eval=True,
-                       trainable=False,
+                       is_eval=False,
+                       trainable=True,
+                       mem_saving=True,
                        bn=stage1_bn)
+
+
 
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
@@ -88,7 +93,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
                        roi_conf_logits=roi_conf_logits,
                        roi_num_list=roi_num_list,
                        is_training=is_stage2_training_p,
-                       is_eval=False,
+                       mem_saving=False,
                        trainable=True,
                        bn=stage2_bn)
 
@@ -108,7 +113,7 @@ stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=roi_attrs,
                                                    roi_ious=roi_ious,
                                                    wd=stage2_wd)
 
-# stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
+stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
 stage2_train_op = get_train_op(stage2_loss, stage2_lr, var_keywords=['stage2'], opt='adam', global_step=stage2_step, use_hvd=True)
 
 stage1_summary = tf.summary.merge_all(key='stage1')
@@ -134,7 +139,7 @@ vars = {'stage1_step': stage1_step,
         'validation_batch': validation_batch,
         'roi_iou': averaged_roi_iou,
         'bbox_iou': averaged_bbox_iou,
-        'stage1_train_op': stage2_train_op,
+        'stage1_train_op': stage1_train_op,
         'stage2_train_op': stage2_train_op,
         'stage1_summary': total_summary,
         'stage2_summary': total_summary}
@@ -211,8 +216,8 @@ def valid_one_epoch(sess, step, dataset_generator, vars, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        if is_hvd_root:
-            saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1-fast/test/best_model_0.6429708252924098')
+        # if is_hvd_root:
+        #     saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6361302239890648')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

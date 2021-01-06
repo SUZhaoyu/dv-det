@@ -1,13 +1,12 @@
 import horovod.tensorflow as hvd
-import numpy as np
 import tensorflow as tf
 
+import train.configs.rcnn_config as config
 from models.tf_ops.custom_ops import roi_pooling, get_roi_bbox, roi_filter, get_bbox
 from models.utils.iou_utils import cal_3d_iou
+from models.utils.loss_utils import get_masked_average, focal_loss
 from models.utils.model_layers import point_conv, fully_connected, conv_3d
 from models.utils.ops_wrapper import get_roi_attrs, get_bbox_attrs
-from models.utils.loss_utils import get_masked_average, smooth_l1_loss, focal_loss
-import train.configs.rcnn_config as config
 
 anchor_size = [1.6, 3.9, 1.5]
 eps = tf.constant(1e-6)
@@ -30,11 +29,13 @@ def stage2_inputs_placeholder(input_feature_channels=config.base_params[sorted(c
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage2_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_feature_channels], name='stage2_input_features_p')
     input_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage2_input_num_list_p')
+    input_roi_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage_input_roi_coors_p')
     input_roi_attrs_p = tf.placeholder(tf.float32, shape=[None, 7], name='stage2_input_roi_attrs_p')
     input_roi_conf_p = tf.placeholder(tf.float32, shape=[None], name='stage2_input_roi_conf_p')
     input_roi_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage2_input_roi_num_list_p')
-    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='input_bbox_p')
-    return input_coors_p, input_features_p, input_num_list_p, input_roi_attrs_p, input_roi_conf_p, input_roi_num_list_p, input_bbox_p
+    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='stage2_input_bbox_p')
+    return input_coors_p, input_features_p, input_num_list_p, input_roi_coors_p, \
+           input_roi_attrs_p, input_roi_conf_p, input_roi_num_list_p, input_bbox_p
 
 
 def stage1_model(input_coors,
@@ -112,6 +113,7 @@ def stage2_model(coors,
                  is_training,
                  trainable,
                  is_eval,
+                 mem_saving,
                  bn):
     with tf.variable_scope("stage2"):
         roi_conf = tf.nn.sigmoid(roi_conf_logits)
@@ -135,6 +137,7 @@ def stage2_model(coors,
                                   is_training=is_training,
                                   trainable=trainable,
                                   model_params=model_params,
+                                  mem_saving=mem_saving,
                                   bn_decay=bn)
 
         bbox_features = tf.squeeze(bbox_voxels, axis=[1])
@@ -155,57 +158,6 @@ def stage2_model(coors,
         bbox_conf_logits = bbox_logits[:, 7]
 
     return bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx
-
-
-def model_test(coors,
-                 features,
-                 num_list,
-                 roi_attrs,
-                 roi_conf_logits,
-                 roi_num_list,
-                 is_training,
-                 is_eval,
-                 bn):
-    with tf.variable_scope("stage2"):
-        roi_conf = tf.nn.sigmoid(roi_conf_logits)
-        bbox_roi_attrs, bbox_num_list, bbox_idx = roi_filter(input_roi_attrs=roi_attrs,
-                                                             input_roi_conf=roi_conf,
-                                                             input_num_list=roi_num_list,
-                                                             conf_thres=config.roi_thres)
-
-        bbox_voxels = roi_pooling(input_coors=coors,
-                                  input_features=features,
-                                  roi_attrs=bbox_roi_attrs,
-                                  input_num_list=num_list,
-                                  roi_num_list=bbox_num_list,
-                                  voxel_size=config.roi_voxel_size,
-                                  pooling_size=5.)
-
-        # for i in range(config.roi_voxel_size // 2):
-        #     bbox_voxels = conv_3d(input_voxels=bbox_voxels,
-        #                           layer_params=config.refine_params,
-        #                           scope="stage2_refine_conv_{}".format(i),
-        #                           is_training=is_training,
-        #                           model_params=model_params,
-        #                           bn_decay=bn)
-        #
-        # bbox_features = tf.squeeze(bbox_voxels, axis=[1])
-        #
-        # bbox_logits = fully_connected(input_points=bbox_features,
-        #                               num_output_channels=config.output_attr,
-        #                               drop_rate=0.,
-        #                               model_params=model_params,
-        #                               scope='stage2_refine_fc',
-        #                               is_training=is_training,
-        #                               last_layer=True)
-        #
-        # bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,
-        #                             input_roi_attrs=bbox_roi_attrs,
-        #                             is_eval=is_eval)
-        #
-        # bbox_conf_logits = bbox_logits[:, 7]
-
-    return bbox_voxels
 
 
 def stage1_loss(roi_coors,
@@ -236,6 +188,16 @@ def stage1_loss(roi_coors,
     total_loss_collection = hvd.allreduce(total_loss)
 
     return total_loss_collection, roi_ious, averaged_iou
+
+def get_roi_iou(roi_coors, pred_roi_attrs, roi_num_list, bbox_labels):
+    gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=roi_coors,
+                                                          bboxes=bbox_labels,
+                                                          input_num_list=roi_num_list,
+                                                          anchor_size=anchor_size,
+                                                          expand_ratio=0.1,
+                                                          diff_thres=2)
+    roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
+    return roi_ious
 
 
 def stage2_loss(roi_attrs,
@@ -270,5 +232,5 @@ def stage2_loss(roi_attrs,
     total_loss_collection = hvd.allreduce(total_loss)
     averaged_iou_collection = hvd.allreduce(averaged_iou)
 
-    return total_loss_collection, averaged_iou_collection
+    return total_loss_collection, averaged_iou_collection, bbox_ious
 
