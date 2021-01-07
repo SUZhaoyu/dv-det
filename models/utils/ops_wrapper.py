@@ -106,8 +106,8 @@ def dense_conv_wrapper(inputs,
         l2_loss_collection = scope.split('_')[0] + "_l2"
     with tf.variable_scope(scope):
         num_input_channels = inputs.get_shape()[-1].value
-        kernel_shape = [kernel_size * kernel_size * kernel_size * num_input_channels, num_output_channels]
-        kernel = _variable_with_l2_loss(name='kernel',
+        kernel_shape = [kernel_size, kernel_size, kernel_size, num_input_channels, num_output_channels]
+        kernel = _variable_with_l2_loss(name='weight',
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
                                         stddev=stddev,
@@ -125,6 +125,7 @@ def dense_conv_wrapper(inputs,
             tf.summary.scalar('kernel_L2', tf.nn.l2_loss(kernel))
 
         voxels_to_conv = voxel2col(input_voxels=inputs, kernel_size=kernel_size)
+        kernel = tf.reshape(kernel, shape=[-1, num_output_channels])
         outputs = tf.matmul(voxels_to_conv, kernel)
 
         if bn_decay is None:

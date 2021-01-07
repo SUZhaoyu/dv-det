@@ -32,7 +32,7 @@ model_file_dir = os.path.dirname(os.path.abspath(__file__))
 config_dir = os.path.join(model_file_dir, model_file_name)
 
 bbox_padding = 64
-batch_size = 4
+batch_size = 8
 decay_epochs = 20
 init_lr = 1e-4
 lr_decay = 0.5

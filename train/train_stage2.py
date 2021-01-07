@@ -207,20 +207,19 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
                                 stage1_input_num_list_p: num_list,
                                 is_stage1_training_p: False})
 
-        iou, summary, iou_g = sess.run([averaged_bbox_iou, tf_summary, bbox_iou],
-                          feed_dict={stage2_input_coors_p: stage2_input_coors,
-                                     stage2_input_features_p: stage2_input_features,
-                                     stage2_input_num_list_p: stage2_input_num_list,
-                                     input_roi_coors_p: input_roi_coors,
-                                     input_roi_attrs_p: input_roi_attrs,
-                                     input_roi_conf_logits_p: input_roi_conf_logits,
-                                     input_roi_num_list_p: input_roi_num_list,
-                                     input_bbox_p: bboxes,
-                                     is_stage2_training_p: False})
+        iou, summary = sess.run([averaged_bbox_iou, tf_summary],
+                                   feed_dict={stage2_input_coors_p: stage2_input_coors,
+                                              stage2_input_features_p: stage2_input_features,
+                                              stage2_input_num_list_p: stage2_input_num_list,
+                                              input_roi_coors_p: input_roi_coors,
+                                              input_roi_attrs_p: input_roi_attrs,
+                                              input_roi_conf_logits_p: input_roi_conf_logits,
+                                              input_roi_num_list_p: input_roi_num_list,
+                                              input_bbox_p: bboxes,
+                                              is_stage2_training_p: False})
 
         iou_sum += (iou * len(features))
         instance_count += len(features)
-        print(len(iou_g))
         if is_hvd_root:
             writer.add_summary(summary, step)
 
@@ -245,7 +244,6 @@ def main():
         for epoch in range(config.total_epoch):
             if is_hvd_root:
                 print("Epoch: {}".format(epoch))
-            result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
             step = train_one_epoch(mon_sess, step, train_generator, training_writer)
             if epoch % config.valid_interval == 0:  # and EPOCH != 0:
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)

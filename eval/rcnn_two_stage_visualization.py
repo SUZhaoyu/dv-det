@@ -12,7 +12,8 @@ Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
 from models import rcnn_model as model
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_prob
 
-model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
+# model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage2/test/best_model_0.7282219913617088'
 data_home = '/home/tan/tony/dv-det/eval/data'
 
 input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)
@@ -27,10 +28,23 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
-                       is_training=False,
-                       is_eval=True,
+                       is_training=is_training_p,
+                       is_eval=False,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
+                       bn=1.)
+
+bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
+    model.stage2_model(coors=coors,
+                       features=features,
+                       num_list=num_list,
+                       roi_attrs=roi_attrs,
+                       roi_conf_logits=roi_conf_logits,
+                       roi_num_list=roi_num_list,
+                       is_training=is_training_p,
+                       trainable=False,
+                       is_eval=False,
+                       mem_saving=True,
                        bn=1.)
 
 # bbox_voxels = model.model_test(coors,
@@ -42,7 +56,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
 #                                  is_training=True,
 #                                  is_eval=False,
 #                                  bn=1.)
-roi_conf = tf.nn.sigmoid(roi_conf_logits)
+bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 # grad = tf.gradients(roi_attrs, input_features_p)
 #
 #
@@ -76,7 +90,7 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             output_attrs, output_coors, output_conf = \
-                sess.run([roi_attrs, roi_coors, roi_conf],
+                sess.run([bbox_attrs, roi_coors, bbox_conf],
             # output_attrs = \
             #     sess.run(roi_conf,
                          feed_dict={input_coors_p: batch_input_coors,

@@ -8,11 +8,13 @@ from os.path import join
 import mkl
 import numpy as np
 from numpy.linalg import multi_dot
+from point_viz.converter import PointvizConverter
 from tqdm import tqdm
 
 from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
     get_pasted_point_cloud
-from data.utils.normalization import feature_normalize, bboxes_normalization, range_clip
+from data.utils.normalization import feature_normalize, bboxes_normalization, range_clip, \
+    convert_threejs_coors, convert_threejs_bbox
 
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
@@ -25,7 +27,7 @@ default_config = {'nbbox': 64,
                   'drop_out': 0.,
                   'flip': False,
                   'shuffle': False,
-                  'paste_augmentation': True,
+                  'paste_augmentation': False,
                   'paste_instance_num': 32,
                   'maximum_interior_points': 40,
                   'normalization': None}
@@ -123,16 +125,15 @@ class Dataset(object):
                             bboxes = bboxes[bboxes[:, 0] > 0, :]
 
                         if self.paste_augmentation:
-                            ground = np.array(deepcopy(self.ground_plane[idx]))
-                            trans = np.array(deepcopy(self.trans_matrix[idx]))
                             points, bboxes = get_pasted_point_cloud(scene_points=points,
                                                                     scene_bboxes=bboxes,
-                                                                    ground=ground,
-                                                                    trans_list=trans,
+                                                                    ground=np.array(deepcopy(self.ground_plane[idx])),
+                                                                    trans_list=np.array(deepcopy(self.trans_matrix[idx])),
                                                                     object_collections=self.object_collections,
                                                                     bbox_collections=self.bbox_collections,
                                                                     instance_num=self.paste_instance_num,
                                                                     maximum_interior_points=self.maximum_interior_points)
+                        # print(points.shape, bboxes.shape)
                         if self.shuffle:
                             points = shuffle(points)
                         if self.drop_out > 0:
@@ -251,39 +252,41 @@ if __name__ == '__main__':
                   'normalization': None}
 
     dataset = Dataset(task='training',
-                      config=aug_config,
+                      # config=aug_config,
+                      batch_size=16,
                       validation=False,
-                      num_worker=40,
                       hvd_size=3,
                       hvd_id=1)
     generator = dataset.train_generator()
-    for i in tqdm(range(100000)):
+    for i in tqdm(range(2)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
+        print(num_list)
+        print(coors.shape, features.shape)
 
-        dimension = [100, 160.0, 9.0]
-        offset = [10., 60.0, 5.0]
-
-        coors += offset
-        coors_min = np.min(coors, axis=0)
-        coors_max = np.max(coors, axis=0)
-        for j in range(3):
-            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-                print(coors_min, coors_max)
+        # dimension = [100, 160.0, 9.0]
+        # offset = [10., 60.0, 5.0]
+        #
+        # coors += offset
+        # coors_min = np.min(coors, axis=0)
+        # coors_max = np.max(coors, axis=0)
+        # for j in range(3):
+        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+        #         print(coors_min, coors_max)
         # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()
-    # batch_id = 6
-    # acc_num_list = np.cumsum(num_list)
+    batch_id = 6
+    acc_num_list = np.cumsum(num_list)
     #
-    # coors = coors[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]
-    # features = features[acc_num_list[batch_id-1]:acc_num_list[batch_id], 0]
-    # bboxes = bboxes[batch_id]
-    #
-    # Converter = PointvizConverter(home='/home/tan/tony/threejs')
-    # Converter.compile(task_name="Pc_Generator_valid",
-    #                   coors=convert_threejs_coors(coors),
-    #                   intensity=features,
-    #                   default_rgb=None,
-    #                   bbox_params=convert_threejs_bbox(bboxes))
+    coors = coors[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]
+    features = features[acc_num_list[batch_id-1]:acc_num_list[batch_id], 0]
+    bboxes = bboxes[batch_id]
+
+    Converter = PointvizConverter(home='/home/tan/tony/threejs')
+    Converter.compile(task_name="Pc_Generator_valid",
+                      coors=convert_threejs_coors(coors),
+                      intensity=features,
+                      default_rgb=None,
+                      bbox_params=convert_threejs_bbox(bboxes))
