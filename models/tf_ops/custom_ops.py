@@ -297,3 +297,46 @@ def voxel_sampling_binary_grad(op, grad, _):
                                                                                   output_idx=output_idx,
                                                                                   output_features_grad=grad)
     return [None, input_features_grad, None, None, None, None]
+
+# ============================================= NMS ===============================================
+
+iou3d_kernel_gpu_exe = tf.load_op_library(join(CWD, 'build', 'iou3d_kernel.so'))
+def rotated_nms3d(bbox_attrs, bbox_conf, bbox_cls, nms_overlap_thresh, nms_conf_thres=0.3):
+    '''
+    rotated nms of the output
+    :param boxes: the set of bounding boxes (sorted in decending order based on a score, e.g. confidence)
+                    in [M, 7] := [x, y, z, w, l, h, ry]
+                    where ry = anti-clockwise in Z-up system
+    :param nms_overlap_thresh: The boxes that overlaps with a given box more than the threshold will be remove .
+        threshold range [0,1]
+    Use case:
+    boxes[output_keep_index[:output_num_to_keep]] := gives the list of the valid bounding boxes
+
+    '''
+    valid_idx = tf.where(tf.greater(bbox_conf, nms_conf_thres))[:, 0]
+
+    bbox_attrs = tf.gather(bbox_attrs, valid_idx, axis=0)
+    bbox_conf = tf.gather(bbox_conf, valid_idx, axis=0)
+    bbox_cls = tf.gather(bbox_cls, valid_idx, axis=0)
+
+
+    sorted_idx = tf.argsort(bbox_conf, direction='DESCENDING')
+    sorted_bbox_attrs = tf.gather(bbox_attrs, sorted_idx, axis=0)
+    sorted_bbox_conf = tf.gather(bbox_conf, sorted_idx, axis=0)
+    sorted_bbox_cls = tf.gather(bbox_cls, sorted_idx, axis=0)
+
+    bbox_dimensions = sorted_bbox_attrs[:, :3]
+    bbox_coors = sorted_bbox_attrs[:, 3:6]
+    bbox_rotations = sorted_bbox_attrs[:, 6:]
+    bboxes = tf.concat([bbox_coors, bbox_dimensions, bbox_rotations], axis=-1)
+
+    output_keep_index, output_num_to_keep = iou3d_kernel_gpu_exe.rotated_nms3d(
+        input_boxes=bboxes,
+        nms_overlap_thresh=nms_overlap_thresh)
+
+
+
+    return sorted_bbox_attrs, sorted_bbox_conf, sorted_bbox_cls, output_keep_index, output_num_to_keep
+
+
+ops.NoGradient("RotatedNms3d")

@@ -7,7 +7,7 @@ from tqdm import tqdm
 from os.path import join, dirname
 import sys
 import argparse
-from shutil import rmtree
+from shutil import rmtree, copyfile
 
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
@@ -34,8 +34,8 @@ else:
     args = parser.parse_args()
     log_dir = args.log_dir
 
-# if is_hvd_root:
-#     copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
+if is_hvd_root:
+    copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
 
 DatasetTrain = Dataset(task="training",
                        batch_size=config.batch_size,
@@ -150,8 +150,6 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        # if is_hvd_root:
-        #     saver.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6361302239890648')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
