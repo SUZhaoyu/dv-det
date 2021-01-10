@@ -10,7 +10,6 @@ os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
 
 from models import rcnn_model as model
-from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_prob
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
 model_path = '/home/tan/tony/dv-det/checkpoints/stage2/test/best_model_0.7282219913617088'
@@ -29,9 +28,9 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_training_p,
-                       is_eval=False,
+                       is_eval=True,
                        trainable=False,
-                       mem_saving=True,
+                       mem_saving=False,
                        bn=1.)
 
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
@@ -43,8 +42,8 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
                        roi_num_list=roi_num_list,
                        is_training=is_training_p,
                        trainable=False,
-                       is_eval=False,
-                       mem_saving=True,
+                       is_eval=True,
+                       mem_saving=False,
                        bn=1.)
 
 # bbox_voxels = model.model_test(coors,
@@ -97,35 +96,35 @@ if __name__ == '__main__':
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
-            print(output_attrs[0].shape)
-
-            input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
-            output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
-            plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
-            plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
-
-            mask = output_conf > 0.3
-            output_conf = output_conf[mask]
-            output_bboxes = output_attrs[mask, :]
-            w = np.min(output_bboxes[:, :2], axis=-1)
-            l = np.max(output_bboxes[:, :2], axis=-1)
-            h = output_bboxes[:, 2]
-            x = output_bboxes[:, 3]
-            y = output_bboxes[:, 4]
-            z = output_bboxes[:, 5]
-            r = output_bboxes[:, 6] + np.greater(output_bboxes[:, 0], output_bboxes[:, 1]).astype(
-                np.float32) * np.pi / 2
-            c = np.zeros(len(w))
-            d = np.zeros(len(w))
-            pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
-            pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
-
-
-            pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(
-                pred_bboxes) > 0 else []
-            task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
-
-            Converter.compile(task_name=task_name,
-                              coors=convert_threejs_coors(plot_coors),
-                              default_rgb=plot_rgbs,
-                              bbox_params=pred_bbox_params)
+            # print(output_attrs[0].shape)
+            #
+            # input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
+            # output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
+            # plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
+            # plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
+            #
+            # mask = output_conf > 0.3
+            # output_conf = output_conf[mask]
+            # output_bboxes = output_attrs[mask, :]
+            # w = np.min(output_bboxes[:, :2], axis=-1)
+            # l = np.max(output_bboxes[:, :2], axis=-1)
+            # h = output_bboxes[:, 2]
+            # x = output_bboxes[:, 3]
+            # y = output_bboxes[:, 4]
+            # z = output_bboxes[:, 5]
+            # r = output_bboxes[:, 6] + np.greater(output_bboxes[:, 0], output_bboxes[:, 1]).astype(
+            #     np.float32) * np.pi / 2
+            # c = np.zeros(len(w))
+            # d = np.zeros(len(w))
+            # pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
+            # pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
+            #
+            #
+            # pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(
+            #     pred_bboxes) > 0 else []
+            # task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
+            #
+            # Converter.compile(task_name=task_name,
+            #                   coors=convert_threejs_coors(plot_coors),
+            #                   default_rgb=plot_rgbs,
+            #                   bbox_params=pred_bbox_params)

@@ -13,8 +13,8 @@ from tqdm import tqdm
 
 from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
     get_pasted_point_cloud
-from data.utils.normalization import feature_normalize, bboxes_normalization, range_clip, \
-    convert_threejs_coors, convert_threejs_bbox
+from data.utils.normalization import feature_normalize, bboxes_normalization, convert_threejs_coors, \
+    convert_threejs_bbox
 
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
@@ -258,9 +258,12 @@ if __name__ == '__main__':
                       hvd_size=3,
                       hvd_id=1)
     generator = dataset.train_generator()
-    for i in tqdm(range(2)):
+    for i in tqdm(range(2000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
+
+
+
         print(num_list)
         print(coors.shape, features.shape)
 

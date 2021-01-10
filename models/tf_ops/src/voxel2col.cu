@@ -25,13 +25,13 @@ __global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxe
         int output_voxel_id = thread_id % (output_voxel_num * kernel_num) / kernel_num;
         int kernel_id = thread_id % kernel_num;
 
-        int kernel_z = kernel_id / (kernel_size * kernel_size);
+        int kernel_x = kernel_id / (kernel_size * kernel_size);
         int kernel_y = kernel_id % (kernel_size * kernel_size) / kernel_size;
-        int kernel_x = kernel_id % kernel_size;
+        int kernel_z = kernel_id % kernel_size;
 
-        int output_voxel_coor_z = output_voxel_id / (output_voxel_size * output_voxel_size);
+        int output_voxel_coor_x = output_voxel_id / (output_voxel_size * output_voxel_size);
         int output_voxel_coor_y = output_voxel_id % (output_voxel_size * output_voxel_size) / output_voxel_size;
-        int output_voxel_coor_x = output_voxel_id % output_voxel_size;
+        int output_voxel_coor_z = output_voxel_id % output_voxel_size;
 
         /*
         input_voxel_coor = output_voxel_coor + 1;
@@ -40,13 +40,13 @@ __global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxe
         kernel_coor = output_voxel_coor + [kernel_x/y/z], for kernel_x/y/z in [0, 1, 2];
         */
 
-        int kernel_coor_z = output_voxel_coor_z + kernel_z;
-        int kernel_coor_y = output_voxel_coor_y + kernel_y;
         int kernel_coor_x = output_voxel_coor_x + kernel_x;
+        int kernel_coor_y = output_voxel_coor_y + kernel_y;
+        int kernel_coor_z = output_voxel_coor_z + kernel_z;
         int input_voxel_id = current_id * input_voxel_num + \
-                             kernel_coor_z * input_voxel_size * input_voxel_size + \
+                             kernel_coor_x * input_voxel_size * input_voxel_size + \
                              kernel_coor_y * input_voxel_size + \
-                             kernel_coor_x;
+                             kernel_coor_z;
         output_idx[thread_id] = input_voxel_id;
         for (int c=0; c<channels; c++) {
             output_voxels[thread_id * channels + c] = input_voxels[input_voxel_id * channels + c];

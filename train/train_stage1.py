@@ -1,5 +1,3 @@
-from __future__ import division
-
 import tensorflow as tf
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -86,47 +84,32 @@ stage1_loss, roi_ious, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
 
 stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
 
-summary = tf.summary.merge_all()
+tf_summary = tf.summary.merge_all()
 hooks = [hvd.BroadcastGlobalVariablesHook(0)]
 session_config = get_config(gpu=config.gpu_list[hvd.rank()])
 
 training_writer = tf.summary.FileWriter(os.path.join(log_dir, 'train'))
 validation_writer = tf.summary.FileWriter(os.path.join(log_dir, 'valid'))
-
 saver = tf.train.Saver(max_to_keep=None)
 
-vars = {'stage1_step': stage1_step,
-        'input_coors_p': input_coors_p,
-        'input_features_p': input_features_p,
-        'input_num_list_p': input_num_list_p,
-        'input_bbox_p': input_bbox_p,
-        'is_stage1_training_p': is_stage1_training_p,
-        'training_batch': training_batch,
-        'validation_batch': validation_batch,
-        'roi_iou': averaged_roi_iou,
-        'stage1_train_op': stage1_train_op,
-        'summary': summary}
-
-
-def train_one_epoch(sess, step, dataset_generator, vars, writer):
-    batch_per_epoch = vars['training_batch']
+def train_one_epoch(sess, step, dataset_generator, writer):
     iou_sum = 0
-    iter = tqdm(range(batch_per_epoch)) if is_hvd_root else range(batch_per_epoch)
+    iter = tqdm(range(training_batch)) if is_hvd_root else range(training_batch)
     for _ in iter:
         coors, features, num_list, bboxes = next(dataset_generator)
-        iou, _, summary = sess.run([vars['roi_iou'], vars['stage1_train_op'], vars['summary']],
-                                    feed_dict={vars['input_coors_p']: coors,
-                                               vars['input_features_p']: features,
-                                               vars['input_num_list_p']: num_list,
-                                               vars['input_bbox_p']: bboxes,
-                                               vars['is_stage1_training_p']: True})
+        iou, _, summary = sess.run([averaged_roi_iou, stage1_train_op, tf_summary],
+                                    feed_dict={input_coors_p: coors,
+                                               input_features_p: features,
+                                               input_num_list_p: num_list,
+                                               input_bbox_p: bboxes,
+                                               is_stage1_training_p: True})
 
         iou_sum += iou
         step += 1
         if is_hvd_root:
             writer.add_summary(summary, step)
 
-    iou = iou_sum / batch_per_epoch
+    iou = iou_sum / training_batch
 
     if is_hvd_root:
         summary = tf.Summary()
@@ -136,20 +119,18 @@ def train_one_epoch(sess, step, dataset_generator, vars, writer):
     return step
 
 
-def valid_one_epoch(sess, step, dataset_generator, vars, writer):
-    batch_per_epoch = vars['validation_batch']
+def valid_one_epoch(sess, step, dataset_generator, writer):
     iou_sum = 0
     instance_count = 0
-    iter = tqdm(range(batch_per_epoch)) if is_hvd_root else range(batch_per_epoch)
+    iter = tqdm(range(validation_batch)) if is_hvd_root else range(validation_batch)
     for _, batch_id in enumerate(iter):
         coors, features, num_list, bboxes = next(dataset_generator)
-        iou, summary = \
-            sess.run([vars['roi_iou'], vars['summary']],
-                     feed_dict={vars['input_coors_p']: coors,
-                                vars['input_features_p']: features,
-                                vars['input_num_list_p']: num_list,
-                                vars['input_bbox_p']: bboxes,
-                                vars['is_stage1_training_p']: False})
+        iou, summary = sess.run([averaged_roi_iou, tf_summary],
+                                feed_dict={input_coors_p: coors,
+                                           input_features_p: features,
+                                           input_num_list_p: num_list,
+                                           input_bbox_p: bboxes,
+                                           is_stage1_training_p: False})
 
         iou_sum += (iou * len(features))
         instance_count += len(features)
@@ -178,9 +159,9 @@ def main():
         for epoch in range(config.total_epoch):
             if is_hvd_root:
                 print("Epoch: {}".format(epoch))
-            step = train_one_epoch(mon_sess, step, train_generator, vars, training_writer)
+            step = train_one_epoch(mon_sess, step, train_generator, training_writer)
             if epoch % config.valid_interval == 0:  # and EPOCH != 0:
-                result = valid_one_epoch(mon_sess, step, valid_generator, vars, validation_writer)
+                result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
                                                  log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
