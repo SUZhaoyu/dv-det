@@ -6,11 +6,8 @@ def focal_loss(label, pred, alpha=0.25, gamma=2):
     return part_a + part_b
 
 
-def smooth_l1_loss(predictions, labels, delta=1.0, use_sin=False):
-    if use_sin:
-        residual = tf.abs(tf.sin(predictions - labels))
-    else:
-        residual = tf.abs(predictions - labels)
+def smooth_l1_loss(predictions, labels, delta=1.0):
+    residual = tf.abs(predictions - labels)
     condition = tf.less(residual, delta)
     small_res = 0.5 * tf.square(residual)
     large_res = delta * residual - 0.5 * tf.square(delta)

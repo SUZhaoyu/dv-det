@@ -46,12 +46,12 @@ def stage1_model(input_coors,
                  is_eval,
                  mem_saving,
                  bn):
-    if is_eval:
-        dimension_params = {'dimension': config.dimension_testing,
-                            'offset': config.offset_testing}
-    else:
-        dimension_params = {'dimension': config.dimension_training,
-                            'offset': config.offset_training}
+    # if is_eval:
+    #     dimension_params = {'dimension': config.dimension_testing,
+    #                         'offset': config.offset_testing}
+    # else:
+    dimension_params = {'dimension': config.dimension_training,
+                        'offset': config.offset_training}
 
 
     base_params = config.base_params
@@ -94,7 +94,7 @@ def stage1_model(input_coors,
                                      is_training=is_training,
                                      trainable=trainable,
                                      last_layer=True)
-
+        # FIXME: is_eval tag does not work.
         roi_attrs = get_roi_attrs(input_logits=roi_logits,
                                   base_coors=roi_coors,
                                   anchor_size=anchor_size,
@@ -151,6 +151,7 @@ def stage2_model(coors,
                                       trainable=trainable,
                                       last_layer=True)
 
+        # FIXME: is_eval tag does not work.
         bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,
                                     input_roi_attrs=bbox_roi_attrs,
                                     is_eval=is_eval)

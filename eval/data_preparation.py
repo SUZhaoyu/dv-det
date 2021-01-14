@@ -40,5 +40,5 @@ if __name__ == '__main__':
     np.save(join(output_home, 'input_coors.npy'), np.array(input_coors, dtype=object))
     np.save(join(output_home, 'input_features.npy'), np.array(input_features, dtype=object))
     np.save(join(output_home, 'input_num_list.npy'), np.array(input_num_list, dtype=object))
-    if evaluation:
+    if not evaluation:
         np.save(join(output_home, 'input_bboxes.npy'), np.array(input_bboxes, dtype=object))
