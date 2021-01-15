@@ -4,7 +4,7 @@ import tensorflow as tf
 import train.configs.rcnn_config as config
 from models.tf_ops.custom_ops import roi_pooling, get_roi_bbox, roi_filter, get_bbox
 from models.utils.iou_utils import cal_3d_iou
-from models.utils.loss_utils import get_masked_average, focal_loss
+from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss
 from models.utils.model_layers import point_conv, fully_connected, conv_3d
 from models.utils.ops_wrapper import get_roi_attrs, get_bbox_attrs
 
@@ -174,18 +174,33 @@ def stage1_loss(roi_coors,
                                                           anchor_size=anchor_size,
                                                           expand_ratio=0.1,
                                                           diff_thres=2)
+    # gt_roi_logits = roi_attrs_to_logits(roi_coors, gt_roi_attrs, anchor_size)
+    # pred_roi_logits = roi_attrs_to_logits(roi_coors, pred_roi_attrs, anchor_size)
+    # gt_roi_attrs = roi_logits_to_attrs_tf(roi_coors, gt_roi_logits, anchor_size)
+    # pred_roi_attrs = roi_logits_to_attrs_tf(roi_coors, pred_roi_logits, anchor_size)
+
     roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
     roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
     roi_iou_loss = get_masked_average(1. - roi_ious, roi_iou_masks)
+    tf.summary.scalar('stage1_iou_loss', roi_iou_loss)
     averaged_iou = get_masked_average(roi_ious, roi_iou_masks)
+
+    roi_l1_loss = smooth_l1_loss(predictions=pred_roi_attrs[:, 6], labels=gt_roi_attrs[:, 6])
+    roi_l1_loss = get_masked_average(roi_l1_loss, roi_iou_masks)
+    tf.summary.scalar('stage1_l1_loss', roi_l1_loss)
+    tf.summary.scalar('roi_angle_sin_bias', get_masked_average(tf.abs(tf.sin(gt_roi_attrs[:, 6] - pred_roi_attrs[:, 6])), roi_iou_masks))
+    tf.summary.scalar('roi_angle_bias', get_masked_average(tf.abs(gt_roi_attrs[:, 6] - pred_roi_attrs[:, 6]), roi_iou_masks))
 
     roi_conf_masks = tf.cast(tf.greater(gt_roi_conf, -1), dtype=tf.float32) # [-1, 0, 1] -> [0, 1, 1]
     roi_conf_target = tf.cast(gt_roi_conf, dtype=tf.float32) * roi_conf_masks # [-1, 0, 1] * [0, 1, 1] -> [0, 0, 1]
     roi_conf_loss = get_masked_average(focal_loss(label=roi_conf_target, pred=pred_roi_conf, alpha=0.25), roi_conf_masks)
+    tf.summary.scalar('stage1_conf_loss', roi_conf_loss)
 
     roi_l2_loss = wd * tf.add_n(tf.get_collection("stage1_l2"))
+    tf.summary.scalar('stage1_l2_loss', roi_l2_loss)
 
-    total_loss = roi_iou_loss + roi_conf_loss + roi_l2_loss
+    total_loss = roi_iou_loss + roi_l1_loss + roi_conf_loss + roi_l2_loss
+    # total_loss = roi_iou_loss + roi_conf_loss + roi_l2_loss
     total_loss_collection = hvd.allreduce(total_loss)
 
     return total_loss_collection, roi_ious, averaged_iou

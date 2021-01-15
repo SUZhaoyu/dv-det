@@ -13,10 +13,9 @@ from models import rcnn_model as model
 from models.tf_ops.custom_ops import rotated_nms3d
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
 
-# model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
-model_path = '/home/tan/tony/dv-det/checkpoints/stage2/test/best_model_0.7282219913617088'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage1_iou_only/test/best_model_0.6340967333666301'
 data_home = '/home/tan/tony/dv-det/eval/data'
-visualization = False
+visualization = True
 
 input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)
 input_features_stack = np.load(join(data_home, 'input_features.npy'), allow_pickle=True)
@@ -32,27 +31,14 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_training_p,
-                       is_eval=False,
+                       is_eval=True,
                        trainable=False,
                        mem_saving=False,
                        bn=1.)
 
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
-    model.stage2_model(coors=coors,
-                       features=features,
-                       num_list=num_list,
-                       roi_attrs=roi_attrs,
-                       roi_conf_logits=roi_conf_logits,
-                       roi_num_list=roi_num_list,
-                       is_training=is_training_p,
-                       trainable=False,
-                       is_eval=False,
-                       mem_saving=False,
-                       bn=1.)
-
-bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
+roi_conf = tf.nn.sigmoid(roi_conf_logits)
 bbox_attrs, bbox_conf, nms_idx, nms_count = \
-    rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
+    rotated_nms3d(roi_attrs, roi_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.25)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -88,19 +74,13 @@ if __name__ == '__main__':
             plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
             plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
 
-            w = np.min(output_bboxes[:, :2], axis=-1)
-            l = np.max(output_bboxes[:, :2], axis=-1)
-            r = output_bboxes[:, 6] + np.greater(output_bboxes[:, 0], output_bboxes[:, 1]).astype(
-                np.float32) * np.pi / 2
-
-            # w = output_bboxes[:, 0]
-            # l = output_bboxes[:, 1]
-            # r = output_bboxes[:, 6]
-
+            w = output_bboxes[:, 0]
+            l = output_bboxes[:, 1]
             h = output_bboxes[:, 2]
             x = output_bboxes[:, 3]
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
+            r = output_bboxes[:, 6]
 
             c = np.zeros(len(w))
             d = np.zeros(len(w))

@@ -1,6 +1,3 @@
-import math
-
-import horovod.tensorflow as hvd
 import tensorflow as tf
 
 # Ground Truth Shape: [npoint, 7 (w, l, h, x, y, z, r)]
@@ -21,16 +18,41 @@ eps = tf.constant(1e-6)
 
 
 
+# def roi_logits_to_attrs_tf(base_coors, input_logits, anchor_size):
+#     anchor_diag = tf.sqrt(tf.pow(anchor_size[0], 2.) + tf.pow(anchor_size[1], 2.))
+#     w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * anchor_size[0], 0., 1e5)
+#     l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * anchor_size[1], 0., 1e5)
+#     h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * anchor_size[2], 0., 1e5)
+#     x = tf.clip_by_value(input_logits[:, 3] * anchor_diag + base_coors[:, 0], -1e5, 1e5)
+#     y = tf.clip_by_value(input_logits[:, 4] * anchor_diag + base_coors[:, 1], -1e5, 1e5)
+#     z = tf.clip_by_value(input_logits[:, 5] * anchor_size[2] + base_coors[:, 2], -1e5, 1e5)
+#     r = input_logits[:, 6] * 3.1415927
+#     return tf.stack([w, l, h, x, y, z, r], axis=-1)
+
 def roi_logits_to_attrs_tf(base_coors, input_logits, anchor_size):
     anchor_diag = tf.sqrt(tf.pow(anchor_size[0], 2.) + tf.pow(anchor_size[1], 2.))
-    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * anchor_size[0], 0., 1e5)
-    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * anchor_size[1], 0., 1e5)
-    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * anchor_size[2], 0., 1e5)
-    x = tf.clip_by_value(input_logits[:, 3] * anchor_diag + base_coors[:, 0], -1e5, 1e5)
-    y = tf.clip_by_value(input_logits[:, 4] * anchor_diag + base_coors[:, 1], -1e5, 1e5)
-    z = tf.clip_by_value(input_logits[:, 5] * anchor_size[2] + base_coors[:, 2], -1e5, 1e5)
+    w = tf.exp(input_logits[:, 0]) * anchor_size[0]
+    l = tf.exp(input_logits[:, 1]) * anchor_size[1]
+    h = tf.exp(input_logits[:, 2]) * anchor_size[2]
+    x = input_logits[:, 3] * anchor_diag + base_coors[:, 0]
+    y = input_logits[:, 4] * anchor_diag + base_coors[:, 1]
+    z = input_logits[:, 5] * anchor_size[2] + base_coors[:, 2]
+    # r = input_logits[:, 6] * 3.1415927
     r = input_logits[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
+
+
+def roi_attrs_to_logits(base_coors, input_attrs, anchor_size):
+    anchor_diag = tf.sqrt(tf.pow(anchor_size[0], 2.) + tf.pow(anchor_size[1], 2.))
+    logits_w = tf.log(input_attrs[:, 0] / anchor_size[0])
+    logits_l = tf.log(input_attrs[:, 1] / anchor_size[1])
+    logits_h = tf.log(input_attrs[:, 2] / anchor_size[2])
+    logits_x = (input_attrs[:, 3] - base_coors[:, 0]) / anchor_diag
+    logits_y = (input_attrs[:, 4] - base_coors[:, 1]) / anchor_diag
+    logits_z = (input_attrs[:, 5] - base_coors[:, 2]) / anchor_size[2]
+    logits_r = input_attrs[:, 6] / 3.1415927
+    return tf.stack([logits_w, logits_l, logits_h, logits_x, logits_y, logits_z, logits_r], axis=-1)
+
 
 
 def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
@@ -41,8 +63,11 @@ def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
     x = tf.clip_by_value(input_logits[:, 3] * roi_diag + input_roi_attrs[:, 3], -1e5, 1e5)
     y = tf.clip_by_value(input_logits[:, 4] * roi_diag + input_roi_attrs[:, 4], -1e5, 1e5)
     z = tf.clip_by_value(input_logits[:, 5] * input_roi_attrs[:, 2] + input_roi_attrs[:, 5], -1e5, 1e5)
+    # r = input_logits[:, 6] * 3.1415927 + input_roi_attrs[:, 6]
     r = input_logits[:, 6] + input_roi_attrs[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
+
+
 
 
 def get_rotate_matrix(r):

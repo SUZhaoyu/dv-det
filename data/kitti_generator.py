@@ -252,7 +252,7 @@ if __name__ == '__main__':
                   'normalization': None}
 
     dataset = Dataset(task='training',
-                      # config=aug_config,
+                      config=aug_config,
                       batch_size=16,
                       validation=False,
                       hvd_size=3,
@@ -264,8 +264,8 @@ if __name__ == '__main__':
 
 
 
-        print(num_list)
-        print(coors.shape, features.shape)
+        # print(num_list)
+        # print(coors.shape, features.shape)
 
         # dimension = [100, 160.0, 9.0]
         # offset = [10., 60.0, 5.0]

@@ -14,7 +14,7 @@ __global__ void roi_logits_to_attrs_gpu_kernel(int input_npoint, int channels,
         output_attrs[input_id * 7 + 3] = input_logits[input_id * channels + 3] * anchor_diag + base_coors[input_id * 3 + 0];
         output_attrs[input_id * 7 + 4] = input_logits[input_id * channels + 4] * anchor_diag + base_coors[input_id * 3 + 1];
         output_attrs[input_id * 7 + 5] = input_logits[input_id * channels + 5] * anchor_h + base_coors[input_id * 3 + 2];
-        output_attrs[input_id * 7 + 6] = input_logits[input_id * channels + 6];
+        output_attrs[input_id * 7 + 6] = input_logits[input_id * channels + 6] * 3.1415927;
     }
 }
 

@@ -13,7 +13,7 @@ __global__ void bbox_logits_to_attrs_gpu_kernel(int input_npoint, int channels,
         output_attrs[input_id * 7 + 3] = input_logits[input_id * channels + 3] * roi_diag + input_roi_attrs[input_id * 7 + 3];
         output_attrs[input_id * 7 + 4] = input_logits[input_id * channels + 4] * roi_diag + input_roi_attrs[input_id * 7 + 4];
         output_attrs[input_id * 7 + 5] = input_logits[input_id * channels + 5] * input_roi_attrs[input_id * 7 + 2] + input_roi_attrs[input_id * 7 + 5];
-        output_attrs[input_id * 7 + 6] = input_logits[input_id * channels + 6] + input_roi_attrs[input_id * 7 + 6];
+        output_attrs[input_id * 7 + 6] = input_logits[input_id * channels + 6] * 3.1415927 + input_roi_attrs[input_id * 7 + 6];
     }
 }
 

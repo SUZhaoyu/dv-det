@@ -39,10 +39,12 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         v = np.concatenate([v, np.ones(shape=[8, 1])], axis=-1) # [8, 4]
         proj_v = v.dot(trans_matrix.transpose())
         proj_v /= proj_v[:, 2:3]
-        if np.min(proj_v[:, 0]) < 0. or \
-           np.max(proj_v[:, 0]) > col or \
-           np.min(proj_v[:, 1]) < 0. or \
-           np.max(proj_v[:, 1]) > row:
+        # if np.min(proj_v[:, 0]) < 0. or \
+        #    np.max(proj_v[:, 0]) > col or \
+        #    np.min(proj_v[:, 1]) < 0. or \
+        #    np.max(proj_v[:, 1]) > row:
+        #     continue
+        if np.min(proj_v[:, 2]) < 0.:
             continue
         else:
             left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
