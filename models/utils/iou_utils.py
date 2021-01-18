@@ -54,7 +54,6 @@ def roi_attrs_to_logits(base_coors, input_attrs, anchor_size):
     return tf.stack([logits_w, logits_l, logits_h, logits_x, logits_y, logits_z, logits_r], axis=-1)
 
 
-
 def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
     roi_diag = tf.sqrt(tf.pow(input_roi_attrs[:, 0], 2.) + tf.pow(input_roi_attrs[:, 1], 2.))
     w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * input_roi_attrs[:, 0], 0., 1e5)
@@ -66,8 +65,6 @@ def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
     # r = input_logits[:, 6] * 3.1415927 + input_roi_attrs[:, 6]
     r = input_logits[:, 6] + input_roi_attrs[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
-
-
 
 
 def get_rotate_matrix(r):

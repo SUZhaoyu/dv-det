@@ -6,14 +6,14 @@ import tensorflow as tf
 from point_viz.converter import PointvizConverter
 from tqdm import tqdm
 
-os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
+os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det-stage1'))
+Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det-stage1')
 
 from models import rcnn_model as model
 from models.tf_ops.custom_ops import rotated_nms3d
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
 
-model_path = '/home/tan/tony/dv-det/checkpoints/stage1_iou_only/test/best_model_0.6340967333666301'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.64352574817216'
 data_home = '/home/tan/tony/dv-det/eval/data'
 visualization = True
 
@@ -31,7 +31,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
                        is_training=is_training_p,
-                       is_eval=True,
+                       is_eval=False,
                        trainable=False,
                        mem_saving=False,
                        bn=1.)
@@ -59,16 +59,17 @@ if __name__ == '__main__':
             batch_input_num_list = input_num_list_stack[frame_id]
             batch_input_bboxes = input_bboxes_stack[frame_id]
             output_bboxes, output_coors, output_conf, output_idx, output_count = \
-                sess.run([bbox_attrs, roi_coors, bbox_conf, nms_idx, nms_count],
+                sess.run([roi_attrs, roi_coors, roi_conf, nms_idx, nms_count],
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
 
-            output_idx = output_idx[:output_count[0]]
+            # output_idx = output_idx[:output_count[0]]
+            output_idx = output_conf > 0.3
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
-            #
+
             input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
             plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)

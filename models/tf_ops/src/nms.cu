@@ -258,6 +258,9 @@ __global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const
     float box_a_z_tmp[2];
     float box_b_z_tmp[2];
 
+    // [w, l, h, x, y, z, r]
+    // [x, y, z, w, l ,h, r]
+
     box_a_tmp[0] = cur_box_a[0] - cur_box_a[3] / 2; // x1, 
     box_a_tmp[1] = cur_box_a[1] - cur_box_a[4] / 2; // y1
     box_a_tmp[2] = cur_box_a[0] + cur_box_a[3] / 2; // x2

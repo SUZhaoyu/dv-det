@@ -181,6 +181,7 @@ def convert_threejs_bbox_with_prob(bboxes, color=None):
 
 
 def convert_threejs_bbox_with_colors(bboxes, color="white"):
+    bboxes = deepcopy(bboxes)
     assert len(bboxes) > 0
     for bbox in bboxes:
         w, l, h, x, y, z = bbox[:6]
@@ -191,7 +192,7 @@ def convert_threejs_bbox_with_colors(bboxes, color="white"):
         if box[0] * box[1] * box[2] > 0:
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
-            threejs_bbox[-1] = "%0.1f %0.1f %0.1f %0.1f" % (box[2], box[0], box[1], box[6] / np.pi)
+            threejs_bbox[-1] = "%0.1f %0.1f %0.1f %0.1f %0.1f" % (box[2], box[0], box[1], box[6] / np.pi, box[-1])
             threejs_bbox[-2] = color
             threejs_bboxes.append(threejs_bbox)
     return threejs_bboxes

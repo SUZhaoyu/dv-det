@@ -39,6 +39,7 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         v = np.concatenate([v, np.ones(shape=[8, 1])], axis=-1) # [8, 4]
         proj_v = v.dot(trans_matrix.transpose())
         proj_v /= proj_v[:, 2:3]
+        # TODO: May need change the filtering strategy.
         # if np.min(proj_v[:, 0]) < 0. or \
         #    np.max(proj_v[:, 0]) > col or \
         #    np.min(proj_v[:, 1]) < 0. or \
@@ -74,17 +75,21 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         y1 = ' %.2f'%bbox_2d[i, 1]
         x2 = ' %.2f'%bbox_2d[i, 2]
         y2 = ' %.2f'%bbox_2d[i, 3]
-        w = ' %.2f'%min(input_bbox[i, 0], input_bbox[i, 1])
-        l = ' %.2f'%max(input_bbox[i, 0], input_bbox[i, 1])
+        # w = ' %.2f'%np.min([input_bbox[i, 0], input_bbox[i, 1]])
+        # l = ' %.2f'%np.max([input_bbox[i, 0], input_bbox[i, 1]])
+        w = ' %.2f' % input_bbox[i, 0]
+        l = ' %.2f' % input_bbox[i, 1]
         h = ' %.2f'%input_bbox[i, 2]
         x_c = ' %.2f'%center_coors[i, 0]
         y_c = ' %.2f'%center_coors[i, 1]
         z_c = ' %.2f'%center_coors[i, 2]
         score = ' %.2f\n'%input_bbox[i, -1]
         # score = ' %.2f\n'%0.95
+        # r = input_bbox[i, 6] + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else input_bbox[i, 6]
         r = -input_bbox[i, 6]
-        if np.abs(r) > np.pi:
-            r = (2 * np.pi - np.abs(r)) * ((-1) ** (r // np.pi))
+        # r = r + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else r
+        # if np.abs(r) > np.pi:
+        #     r = (2 * np.pi - np.abs(r)) * ((-1) ** (r // np.pi))
         r = ' %.2f' % r
         bbox_height = float(y2) - float(y1)
         if bbox_height > 25:
@@ -113,8 +118,8 @@ if __name__ == '__main__':
     try: mkdir(output_txt_home)
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
-    input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
-    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_testing.npy'), allow_pickle=True)
+    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
+    input_bbox_predictions = np.load(join(prediction_home, 'bbox_testing.npy'), allow_pickle=True)
     input_trans_matrix = np.load(join(calib_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
     input_image_size = np.load(join(calib_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
 

@@ -10,7 +10,6 @@ Converter = PointvizConverter(home='/home/tan/tony/threejs/test')
 data_home = '/home/tan/tony/dv-det/eval/data'
 input_bboxes_stack = np.load(join(data_home, 'input_bboxes.npy'), allow_pickle=True)
 
-count = 0
 if __name__ == '__main__':
     testing_output = []
     for i in tqdm(range(len(input_bboxes_stack))):
@@ -30,13 +29,11 @@ if __name__ == '__main__':
         x = output_bboxes[:, 3]
         y = output_bboxes[:, 4]
         z = output_bboxes[:, 5]
-        r = output_bboxes[:, 6] + np.pi * choice([-1., 1., 0.])
+        r = output_bboxes[:, 6]
 
-        count += np.sum(w < l)
-
-        # if np.random.rand() > 0.5:
-        #     w, l = l, w
-        #     r -= np.pi / 2
+        if np.random.rand() > 0.5:
+            w, l = l, w
+            r += np.pi * choice([-0.5, 0.5])
 
 
         c = np.zeros(len(w))
@@ -44,9 +41,10 @@ if __name__ == '__main__':
         # p = np.clip(np.random.randn(len(w)) * 0.2 + 0.9, 0., 1.0)
         p = np.random.rand(len(w))
         bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
+        if np.random.rand() < 0.2:
+            bboxes = np.vstack((bboxes, np.array([1.5, 3., 1.6, 10., -10., 5, 0., 0., 0., np.random.rand()])))
         testing_output.append(bboxes)
     np.save('/home/tan/tony/dv-det/eval/data/bbox_testing.npy', testing_output)
-    print(count)
 
 
 

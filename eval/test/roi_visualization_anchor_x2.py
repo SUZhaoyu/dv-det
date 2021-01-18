@@ -7,14 +7,13 @@ from point_viz.converter import PointvizConverter
 from tqdm import tqdm
 
 os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
+Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det-stage1-anchor')
 
-from models import rcnn_model as model
+from models import rcnn_model_anchor_x2 as model
 from models.tf_ops.custom_ops import rotated_nms3d
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
 
-# model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
-model_path = '/home/tan/tony/dv-det/checkpoints/stage2/test/best_model_0.7282219913617088'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage1_anchor/test/best_model_0.5897059413203309'
 data_home = '/home/tan/tony/dv-det/eval/data'
 visualization = True
 
@@ -27,7 +26,7 @@ input_coors_p, input_features_p, input_num_list_p, _ = model.stage1_inputs_place
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_attrs, anchor_cls_logits, roi_conf_logits, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -37,22 +36,10 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        mem_saving=False,
                        bn=1.)
 
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
-    model.stage2_model(coors=coors,
-                       features=features,
-                       num_list=num_list,
-                       roi_attrs=roi_attrs,
-                       roi_conf_logits=roi_conf_logits,
-                       roi_num_list=roi_num_list,
-                       is_training=is_training_p,
-                       trainable=False,
-                       is_eval=False,
-                       mem_saving=False,
-                       bn=1.)
-
-bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
+roi_conf = tf.nn.sigmoid(roi_conf_logits)
+anchor_cls = tf.nn.sigmoid(anchor_cls_logits)
 bbox_attrs, bbox_conf, nms_idx, nms_count = \
-    rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.4)
+    rotated_nms3d(roi_attrs, roi_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -72,29 +59,32 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             batch_input_bboxes = input_bboxes_stack[frame_id]
-            output_bboxes, output_coors, output_conf, output_idx, output_count = \
-                sess.run([bbox_attrs, roi_coors, bbox_conf, nms_idx, nms_count],
+            output_bboxes, output_coors, output_cls, output_conf, output_idx, output_count = \
+                sess.run([roi_attrs, roi_coors, anchor_cls, roi_conf, nms_idx, nms_count],
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
+            output_cls = output_cls < 0.5
 
-            output_idx = output_idx[:output_count[0]]
+            # output_idx = output_idx[:output_count[0]]
+            output_idx = output_conf > 0.5
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
-            #
+            output_cls = output_cls[output_idx]
+
             input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
             plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
             plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
 
-            w = output_bboxes[:, 0]
-            l = output_bboxes[:, 1]
+            w = output_bboxes[:, 0] * output_cls + output_bboxes[:, 1] * np.logical_not(output_cls)
+            l = output_bboxes[:, 1] * output_cls + output_bboxes[:, 0] * np.logical_not(output_cls)
             h = output_bboxes[:, 2]
             x = output_bboxes[:, 3]
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
-            r = output_bboxes[:, 6]
+            r = output_bboxes[:, 6] + np.logical_not(output_cls * np.pi / 2.)
 
             c = np.zeros(len(w))
             d = np.zeros(len(w))
