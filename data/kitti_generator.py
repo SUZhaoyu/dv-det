@@ -251,13 +251,13 @@ if __name__ == '__main__':
                   'maximum_interior_points': 40,
                   'normalization': None}
 
-    dataset = Dataset(task='training',
-                      config=aug_config,
+    dataset = Dataset(task='validation',
+                      # config=aug_config,
                       batch_size=16,
                       validation=False,
                       hvd_size=3,
                       hvd_id=1)
-    generator = dataset.train_generator()
+    generator = dataset.valid_generator()
     for i in tqdm(range(2000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
@@ -267,15 +267,15 @@ if __name__ == '__main__':
         # print(num_list)
         # print(coors.shape, features.shape)
 
-        # dimension = [100, 160.0, 9.0]
-        # offset = [10., 60.0, 5.0]
-        #
-        # coors += offset
-        # coors_min = np.min(coors, axis=0)
-        # coors_max = np.max(coors, axis=0)
-        # for j in range(3):
-        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-        #         print(coors_min, coors_max)
+        dimension = [100, 160.0, 9.0]
+        offset = [10., 60.0, 5.0]
+
+        coors += offset
+        coors_min = np.min(coors, axis=0)
+        coors_max = np.max(coors, axis=0)
+        for j in range(3):
+            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+                print(coors_min, coors_max)
         # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())

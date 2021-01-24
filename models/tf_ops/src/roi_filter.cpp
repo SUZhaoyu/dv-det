@@ -9,6 +9,8 @@
 #include <math.h>
 #include <algorithm>
 #include <vector>
+#include <random>
+#include <chrono>
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
@@ -26,6 +28,8 @@ REGISTER_OP("RoiFilterOp")
     .Output("output_num_list: int32")
     .Output("output_idx: int32")
     .Attr("conf_thres: float")
+    .Attr("max_length: int")
+    .Attr("with_negative: bool")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle input_roi_conf_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 1, &input_roi_conf_shape));
@@ -50,6 +54,8 @@ class RoiFilterOp: public OpKernel {
 public:
     explicit RoiFilterOp(OpKernelConstruction* context): OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("conf_thres", &conf_thres));
+        OP_REQUIRES_OK(context, context->GetAttr("max_length", &max_length));
+        OP_REQUIRES_OK(context, context->GetAttr("with_negative", &with_negative));
     }
     void Compute(OpKernelContext* context) override {
 
@@ -65,6 +71,7 @@ public:
 //
         int input_point_num = input_roi_conf.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
+        max_length = (max_length > 0) ? max_length : 100000;
         std::vector<int> output_idx_list;
 
         int* input_accu_list_ptr = (int*)malloc(batch_size * sizeof(int));
@@ -79,11 +86,38 @@ public:
         memset(output_num_list_ptr, 0, batch_size * sizeof(int));
 
         for (int b=0; b<batch_size; b++) {
+            int positive_count = 0;
+            int negative_count = 0;
+            unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+            std::srand(seed);
+            std::vector<int> id_list(input_num_list_ptr[b]);
+            for (int i=0; i<input_num_list_ptr[b]; i++)
+                id_list[i] = i;
+            std::random_shuffle(id_list.begin(), id_list.end());
+
             for (int i=0; i<input_num_list_ptr[b]; i++) {
-                int id = input_accu_list_ptr[b] + i;
-                if (input_roi_conf_ptr[id] >= conf_thres) {
-                    output_num_list_ptr[b] += 1;
-                    output_idx_list.push_back(id);
+                int id = input_accu_list_ptr[b] + id_list[i];
+                if (with_negative) {
+                    if (input_roi_conf_ptr[id] >= conf_thres && positive_count < max_length / 2) {
+                        if (positive_count >= max_length / 4 && input_roi_conf_ptr[id] > 0.8)
+                            continue;
+                        output_num_list_ptr[b] += 1;
+                        positive_count += 1;
+                        output_idx_list.push_back(id);
+                    }
+                    if (input_roi_conf_ptr[id] < conf_thres && negative_count < max_length / 2) {
+                        if (negative_count >= max_length / 4 && input_roi_conf_ptr[id] < 0.2)
+                            continue;
+                        output_num_list_ptr[b] += 1;
+                        negative_count += 1;
+                        output_idx_list.push_back(id);
+                    }
+                } else {
+                    if (input_roi_conf_ptr[id] >= conf_thres) {
+                        output_num_list_ptr[b] += 1;
+                        positive_count += 1;
+                        output_idx_list.push_back(id);
+                    }
                 }
             }
         }
@@ -100,6 +134,8 @@ public:
     }
 private:
     float conf_thres;
+    int max_length;
+    bool with_negative;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("RoiFilterOp").Device(DEVICE_CPU), RoiFilterOp);
 

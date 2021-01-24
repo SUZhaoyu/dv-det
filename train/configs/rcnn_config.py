@@ -11,7 +11,7 @@ aug_config = {'nbbox': 64,
               'flip': False,
               'shuffle': True,
               'paste_augmentation': True,
-              'paste_instance_num': 32,
+              'paste_instance_num': 16,
               'maximum_interior_points': 40,
               'normalization': None}
 
@@ -39,10 +39,10 @@ lr_decay = 0.5
 lr_scale = True
 lr_warm_up = False
 cls_loss_scale = 1.
-weight_decay = 1e-3
+weight_decay = 5e-4
 valid_interval = 5
 use_trimmed_foreground = False
-paste_augmentation = True
+paste_augmentation = False
 use_la_pooling = False
 norm_angle = False
 xavier = True
@@ -56,12 +56,17 @@ output_attr = 8
 # stage1_training_epoch = 25
 total_epoch = 300
 
-roi_thres = 0.1
+roi_thres = 0.55
+max_length = 128
 roi_voxel_size = 5
-base_params = {'base_0': {'subsample_res': 0.1, 'c_out': 16, 'kernel_res': 0.1, 'padding': -1.},
-               'base_1': {'subsample_res': 0.2, 'c_out': 32, 'kernel_res': 0.2, 'padding': 0.},
-               'base_2': {'subsample_res': 0.4, 'c_out': 64, 'kernel_res': 0.4, 'padding': 0.},
-               'base_3': {'subsample_res': 0.6, 'c_out': 128, 'kernel_res': 0.6, 'padding': 0.}}
+base_params = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding': -1.},
+               'base_1': {'subsample_res': 0.10, 'c_out':  32, 'kernel_res': 0.20, 'padding': 0.},
+               'base_2': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding': 0.},
+               'base_3': {'subsample_res': 0.20, 'c_out':  64, 'kernel_res': 0.40, 'padding': 0.},
+               'base_4': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.40, 'padding': 0.},
+               'base_5': {'subsample_res': 0.40, 'c_out': 128, 'kernel_res': 0.60, 'padding': 0.},
+               'base_6': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding': 0.},
+               'base_7': {'subsample_res': 0.60, 'c_out': 256, 'kernel_res': 0.80, 'padding': 0.}}
 
-rpn_params = {'subsample_res': 0.8, 'c_out': 128, 'kernel_res': 0.8, 'padding': 0.}
+rpn_params = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 0.80, 'padding': 0.}
 refine_params = {'c_out': 256, 'kernel_size': 3, 'padding': 0.}

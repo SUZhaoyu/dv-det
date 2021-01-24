@@ -86,6 +86,7 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         score = ' %.2f\n'%input_bbox[i, -1]
         # score = ' %.2f\n'%0.95
         # r = input_bbox[i, 6] + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else input_bbox[i, 6]
+        # r = -r
         r = -input_bbox[i, 6]
         # r = r + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else r
         # if np.abs(r) > np.pi:
@@ -118,8 +119,8 @@ if __name__ == '__main__':
     try: mkdir(output_txt_home)
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
-    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
-    input_bbox_predictions = np.load(join(prediction_home, 'bbox_testing.npy'), allow_pickle=True)
+    input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
+    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_testing.npy'), allow_pickle=True)
     input_trans_matrix = np.load(join(calib_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
     input_image_size = np.load(join(calib_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
 

@@ -10,8 +10,8 @@ grid_sampling_exe = tf.load_op_library(join(CWD, 'build', 'grid_sampling.so'))
 def grid_sampling(input_coors,
                   input_num_list,
                   resolution,
-                  dimension=[70.4, 80.0, 4.0],
-                  offset=[0., 40.0, 3.0]):
+                  dimension=[100, 160.0, 9.0],
+                  offset=[10., 60.0, 5.0]):
     output_idx, output_num_list = grid_sampling_exe.grid_sampling_op(input_coors=input_coors + offset,
                                                                      input_num_list=input_num_list,
                                                                      dimension=dimension,
@@ -35,8 +35,8 @@ def voxel_sampling(input_coors,
                    center_num_list,
                    resolution,
                    padding=0.,
-                   dimension=[70.4, 80.0, 4.0],
-                   offset=[0., 40.0, 3.0]):
+                   dimension=[100, 160.0, 9.0],
+                   offset=[10., 60.0, 5.0]):
     output_voxels, _ = voxel_sampling_exe.voxel_sampling_op(input_coors=input_coors + offset,
                                                             input_features=input_features,
                                                             input_num_list=input_num_list,
@@ -120,19 +120,68 @@ def roi_pooling(input_coors, input_features, roi_attrs, input_num_list, roi_num_
 def roi_pooling_grad(op, grad, _):
     input_features = op.inputs[1]
     output_idx = op.outputs[1]
-    input_features_grad = roi_pooling_exe.roi_pooling_grad_op(output_idx=output_idx,
-                                                              input_features=input_features,
+    input_features_grad = roi_pooling_exe.roi_pooling_grad_op(input_features=input_features,
+                                                              output_idx=output_idx,
                                                               output_features_grad=grad)
     return [None, input_features_grad, None, None, None]
 
+# =============================================La Roi Pooling===============================================
+
+la_roi_pooling_exe = tf.load_op_library(join(CWD, 'build', 'la_roi_pooling.so'))
+def la_roi_pooling(input_coors, input_features, roi_attrs, input_num_list, roi_num_list,
+                voxel_size=5, padding_value=0., pooling_size=5):
+    output_features, _, _ = la_roi_pooling_exe.la_roi_pooling_op(input_coors=input_coors,
+                                                                 input_features=input_features,
+                                                                 roi_attrs=roi_attrs,
+                                                                 input_num_list=input_num_list,
+                                                                 roi_num_list=roi_num_list,
+                                                                 voxel_size=voxel_size,
+                                                                 padding_value=padding_value,
+                                                                 pooling_size=pooling_size)
+    return output_features
+
+@ops.RegisterGradient("LaRoiPoolingOp")
+def la_roi_pooling_grad(op, grad, _, __):
+    input_features = op.inputs[1]
+    output_idx = op.outputs[1]
+    output_weight = op.outputs[2]
+    input_features_grad = la_roi_pooling_exe.la_roi_pooling_grad_op(input_features=input_features,
+                                                                    output_idx=output_idx,
+                                                                    output_weight=output_weight,
+                                                                    output_features_grad=grad)
+    return [None, input_features_grad, None, None, None]
+
+# =============================================La Roi Pooling Fast===============================================
+
+la_roi_pooling_fast_exe = tf.load_op_library(join(CWD, 'build', 'la_roi_pooling_fast.so'))
+def la_roi_pooling_fast(input_coors, input_features, roi_attrs, input_num_list, roi_num_list,
+                        voxel_size=5, padding_value=0., pooling_size=5,
+                        dimension=[100., 160.0, 9.0], offset=[10., 60.0, 5.0],
+                        grid_buffer_resolution=0.8, grid_buffer_size=3):
+    output_features, _, _ = la_roi_pooling_fast_exe.la_roi_pooling_fast_op(input_coors=input_coors + offset,
+                                                                           input_features=input_features,
+                                                                           roi_attrs=roi_attrs,
+                                                                           input_num_list=input_num_list,
+                                                                           roi_num_list=roi_num_list,
+                                                                           voxel_size=voxel_size,
+                                                                           padding_value=padding_value,
+                                                                           pooling_size=pooling_size,
+                                                                           dimension=dimension,
+                                                                           offset=offset,
+                                                                           grid_buffer_resolution=grid_buffer_resolution,
+                                                                           grid_buffer_size=grid_buffer_size)
+    return output_features
+ops.NoGradient("LaRoiPoolingFastOp")
 
 # =============================================RoI Filter===============================================
 
 roi_filter_exe = tf.load_op_library(join(CWD, 'build', 'roi_filter.so'))
-def roi_filter(input_roi_attrs, input_roi_conf, input_num_list, conf_thres):
+def roi_filter(input_roi_attrs, input_roi_conf, input_num_list, conf_thres, max_length, with_negative):
     output_num_list, output_idx = roi_filter_exe.roi_filter_op(input_roi_conf=input_roi_conf,
                                                                input_num_list=input_num_list,
-                                                               conf_thres=conf_thres)
+                                                               conf_thres=conf_thres,
+                                                               max_length=max_length,
+                                                               with_negative=with_negative)
     output_roi_attrs = tf.gather(input_roi_attrs, output_idx, axis=0)
     return output_roi_attrs, output_num_list, output_idx
 ops.NoGradient("RoiFilterOp")

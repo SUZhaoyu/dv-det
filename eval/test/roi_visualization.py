@@ -13,7 +13,7 @@ from models import rcnn_model as model
 from models.tf_ops.custom_ops import rotated_nms3d
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
 
-model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.64352574817216'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
 data_home = '/home/tan/tony/dv-det/eval/data'
 visualization = True
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
                                     is_training_p: False})
 
             # output_idx = output_idx[:output_count[0]]
-            output_idx = output_conf > 0.3
+            output_idx = output_conf > 0.25
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
 

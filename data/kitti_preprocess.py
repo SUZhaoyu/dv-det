@@ -17,7 +17,7 @@ category_dict = {"car": 0,
 range_x = [0., 70.4]
 range_y = [-40., 40.]
 range_z = [-3., 1.]
-min_object_points = 10
+min_object_points = 15
 expand_ratio = 0.15
 home = dirname(os.getcwd())
 
@@ -138,7 +138,7 @@ def get_objects(points, bboxes):
         valid_idx = (np.abs(rot_rel_point_x) <= w * (1 + expand_ratio) / 2) * \
                     (np.abs(rot_rel_point_y) <= l * (1 + expand_ratio) / 2) * \
                     (np.abs(rel_point_z) <= h * (1 + expand_ratio) / 2)
-        if np.sum(valid_idx) >= min_object_points and cls == 0:
+        if np.sum(valid_idx) > min_object_points and cls == 0:
             output_points.append(points[valid_idx])
             output_diff.append(diff)
             output_bboxes.append(bboxes[i])

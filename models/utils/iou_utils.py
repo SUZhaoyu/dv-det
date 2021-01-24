@@ -37,8 +37,8 @@ def roi_logits_to_attrs_tf(base_coors, input_logits, anchor_size):
     x = input_logits[:, 3] * anchor_diag + base_coors[:, 0]
     y = input_logits[:, 4] * anchor_diag + base_coors[:, 1]
     z = input_logits[:, 5] * anchor_size[2] + base_coors[:, 2]
-    # r = input_logits[:, 6] * 3.1415927
-    r = input_logits[:, 6]
+    r = input_logits[:, 6] * 3.1415927
+    # r = input_logits[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
 
 
@@ -62,8 +62,8 @@ def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
     x = tf.clip_by_value(input_logits[:, 3] * roi_diag + input_roi_attrs[:, 3], -1e5, 1e5)
     y = tf.clip_by_value(input_logits[:, 4] * roi_diag + input_roi_attrs[:, 4], -1e5, 1e5)
     z = tf.clip_by_value(input_logits[:, 5] * input_roi_attrs[:, 2] + input_roi_attrs[:, 5], -1e5, 1e5)
-    # r = input_logits[:, 6] * 3.1415927 + input_roi_attrs[:, 6]
-    r = input_logits[:, 6] + input_roi_attrs[:, 6]
+    r = input_logits[:, 6] * 3.1415927 + input_roi_attrs[:, 6]
+    # r = input_logits[:, 6] + input_roi_attrs[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
 
 

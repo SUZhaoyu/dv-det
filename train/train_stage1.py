@@ -20,6 +20,8 @@ from train.train_utils import get_train_op, get_config, save_best_sess, set_trai
 hvd.init()
 is_hvd_root = hvd.rank() == 0
 
+bn = hvd.SyncBatchNormalization()
+
 if config.local:
     log_dir = '/home/tan/tony/dv-det/checkpoints/local-debug'
     try:
@@ -75,12 +77,12 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        mem_saving=True,
                        bn=stage1_bn)
 
-stage1_loss, roi_ious, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
-                                                            pred_roi_attrs=roi_attrs,
-                                                            roi_conf_logits=roi_conf_logits,
-                                                            roi_num_list=roi_num_list,
-                                                            bbox_labels=input_bbox_p,
-                                                            wd=stage1_wd)
+stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
+                                                  pred_roi_attrs=roi_attrs,
+                                                  roi_conf_logits=roi_conf_logits,
+                                                  roi_num_list=roi_num_list,
+                                                  bbox_labels=input_bbox_p,
+                                                  wd=stage1_wd)
 
 stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
 

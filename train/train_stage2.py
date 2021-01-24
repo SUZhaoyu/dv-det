@@ -108,7 +108,7 @@ roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
                              roi_num_list=input_roi_num_list_p,
                              bbox_labels=input_bbox_p)
 
-stage2_loss, averaged_bbox_iou, bbox_iou = model.stage2_loss(roi_attrs=input_roi_attrs_p,
+stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=input_roi_attrs_p,
                                                    pred_bbox_attrs=bbox_attrs,
                                                    bbox_conf_logits=bbox_conf_logits,
                                                    bbox_num_list=bbox_num_list,
@@ -236,7 +236,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.64352574817216')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1_heavy/test/best_model_0.6853690347640923')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

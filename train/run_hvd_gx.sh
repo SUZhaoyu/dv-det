@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #exe_file="train_stage1_anchor_x2.py"
-exe_file="train_stage1.py"
+exe_file="train_stage2.py"
 pkill -f -9 $exe_file
 
 HOME="dv-det"
@@ -48,12 +48,12 @@ if [ -d "$log_dir" ]; then
 	dir_exists=true
 	while $dir_exists; do
 		echo "The checkpoint dir: $log_dir already exists, choose another name, "
-		echo "or type 'clean' to delete the existing dir and create a new one."
+		echo "or type 'y' to delete the existing dir and create a new one."
 		read task_name
 		if ((${#task_name} == 0)); then
 			echo "ERROR: Task name can not be empty.";
 			exit;
-		elif [ "$task_name" = "clean" ]; then
+		elif [ "$task_name" = "y" ]; then
 			task_name=$actual_task_name
 			log_dir="$home_dir_gx4/checkpoints/$task_name"
 			dir_exists=false

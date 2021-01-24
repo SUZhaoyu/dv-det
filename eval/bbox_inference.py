@@ -14,7 +14,7 @@ from models.tf_ops.custom_ops import rotated_nms3d
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
-model_path = '/home/tan/tony/dv-det/checkpoints/stage2/test/best_model_0.7282219913617088'
+model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
 data_home = '/home/tan/tony/dv-det/eval/data'
 visualization = True
 
@@ -52,7 +52,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
 
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_attrs, bbox_conf, nms_idx, nms_count = \
-    rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.4)
+    rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -73,7 +73,7 @@ if __name__ == '__main__':
             batch_input_num_list = input_num_list_stack[frame_id]
             batch_input_bboxes = input_bboxes_stack[frame_id]
             output_bboxes, output_coors, output_conf, output_idx, output_count = \
-                sess.run([bbox_attrs, roi_coors, bbox_conf, nms_idx, nms_count],
+                sess.run([bbox_attrs, coors, bbox_conf, nms_idx, nms_count],
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
