@@ -17,7 +17,7 @@ def grid_sampling(input_coors,
                                                                      dimension=dimension,
                                                                      resolution=resolution)
     output_coors = tf.gather(input_coors, output_idx, axis=0)
-    return output_coors, output_num_list
+    return output_coors, output_num_list, output_idx
 
 
 ops.NoGradient("GridSamplingOp")
@@ -25,6 +25,7 @@ ops.NoGradient("GridSamplingOp")
 
 
 # =============================================Voxel Sampling===============================================
+
 voxel_sampling_exe = tf.load_op_library(join(CWD, 'build', 'voxel_sampling.so'))
 
 
@@ -37,15 +38,15 @@ def voxel_sampling(input_coors,
                    padding=0.,
                    dimension=[100, 160.0, 9.0],
                    offset=[10., 60.0, 5.0]):
-    output_voxels, _ = voxel_sampling_exe.voxel_sampling_op(input_coors=input_coors + offset,
-                                                            input_features=input_features,
-                                                            input_num_list=input_num_list,
-                                                            center_coors=center_coors + offset,
-                                                            center_num_list=center_num_list,
-                                                            dimension=dimension,
-                                                            resolution=resolution,
-                                                            padding_value=padding)
-    return output_voxels
+    output_voxels, output_idx = voxel_sampling_exe.voxel_sampling_op(input_coors=input_coors + offset,
+                                                                     input_features=input_features,
+                                                                     input_num_list=input_num_list,
+                                                                     center_coors=center_coors + offset,
+                                                                     center_num_list=center_num_list,
+                                                                     dimension=dimension,
+                                                                     resolution=resolution,
+                                                                     padding_value=padding)
+    return output_voxels, output_idx
 
 
 @ops.RegisterGradient("VoxelSamplingOp")

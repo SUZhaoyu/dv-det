@@ -236,7 +236,7 @@ def stage2_loss(roi_attrs,
                                                          expand_ratio=0.1,
                                                          diff_thres=4)
     bbox_ious = cal_3d_iou(gt_attrs=gt_bbox_attrs, pred_attrs=pred_bbox_attrs, clip=False)
-    bbox_iou_masks = tf.cast(tf.logical_and(tf.equal(gt_bbox_conf, 1), tf.greater(filtered_roi_ious, 0.55)), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
+    bbox_iou_masks = tf.cast(tf.logical_and(tf.equal(gt_bbox_conf, 1), tf.greater(filtered_roi_ious, 0.25)), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
     bbox_iou_loss = get_masked_average(1. - bbox_ious, bbox_iou_masks)
     averaged_iou = get_masked_average(bbox_ious, bbox_iou_masks)
     tf.summary.scalar('stage2_iou_loss', bbox_iou_loss)
