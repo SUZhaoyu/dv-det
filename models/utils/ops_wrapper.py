@@ -3,8 +3,8 @@ import logging
 import numpy as np
 import tensorflow as tf
 
-from models.tf_ops.custom_ops import roi_logits_to_attrs, bbox_logits_to_attrs
-from models.tf_ops.custom_ops import voxel2col
+from models.tf_ops.loader.bbox_utils import roi_logits_to_attrs, bbox_logits_to_attrs
+from models.tf_ops.loader.others import voxel2col
 from models.utils.iou_utils import roi_logits_to_attrs_tf, bbox_logits_to_attrs_tf
 from models.utils.var_utils import _variable_with_l2_loss
 

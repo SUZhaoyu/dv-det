@@ -87,7 +87,7 @@ public:
 
         const Tensor& input_boxes = context->input(0);
         auto input_boxes_ptr = input_boxes.template flat<float>().data();
-        OP_REQUIRES(context, input_boxes.dims()==2 && input_boxes.shape().dim_size(1)==7,
+        OP_REQUIRES(context, input_boxes.dims()==2 && input_boxes.dim_size(1)==7,
                     errors::InvalidArgument("RotatedNms3d expects boxes_a in shape: [M, 7]."));
 
         const int num_boxes = input_boxes.dim_size(0);

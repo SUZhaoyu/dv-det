@@ -2,13 +2,15 @@ from __future__ import division
 
 import tensorflow as tf
 
-from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, grid_sampling_thrust, voxel_sampling_binary
+from models.tf_ops.loader.sampling import grid_sampling, grid_sampling_thrust, voxel_sampling_binary, voxel_sampling
 from models.utils.ops_wrapper import kernel_conv_wrapper, fully_connected_wrapper, dense_conv_wrapper, conv_3d_wrapper
 
 
 def point_conv(input_coors,
                input_features,
                input_num_list,
+               voxel_idx,
+               center_idx,
                layer_params,
                dimension_params,
                scope,
@@ -23,27 +25,48 @@ def point_conv(input_coors,
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
     grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    # voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
     voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
+
     if layer_params['subsample_res'] is not None:
-        kernel_center_coors, center_num_list = grid_sampling_method(input_coors=input_coors,
-                                                             input_num_list=input_num_list,
-                                                             resolution=layer_params['subsample_res'],
-                                                             dimension=dimension_params['dimension'],
-                                                             offset=dimension_params['offset'])
+        kernel_center_coors, center_num_list, center_idx = \
+            grid_sampling_method(input_coors=input_coors,
+                                 input_num_list=input_num_list,
+                                 resolution=layer_params['subsample_res'],
+                                 dimension=dimension_params['dimension'],
+                                 offset=dimension_params['offset'])
     else:
         kernel_center_coors = input_coors
         center_num_list = input_num_list
-    voxels = voxel_sampling_method(input_coors=input_coors,
-                            input_features=input_features,
-                            input_num_list=input_num_list,
-                            center_coors=kernel_center_coors,
-                            center_num_list=center_num_list,
-                            resolution=layer_params['kernel_res'],
-                            padding=layer_params['padding'],
-                            dimension=dimension_params['dimension'],
-                            offset=dimension_params['offset'])
+        center_idx = center_idx
 
-    output_features = kernel_conv_wrapper(inputs=voxels,
+    # if layer_params['kernel_res'] is not None:
+    #     voxel_idx = voxel_sampling_idx_method(input_coors=input_coors,
+    #                                           input_num_list=input_num_list,
+    #                                           center_coors=kernel_center_coors,
+    #                                           center_num_list=center_num_list,
+    #                                           resolution=layer_params['kernel_res'],
+    #                                           dimension=dimension_params['dimension'],
+    #                                           offset=dimension_params['offset'])
+    # else:
+    #     voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
+    #
+    # voxel_features = voxel_sampling_feature(input_features=input_features,
+    #                                         output_idx=voxel_idx,
+    #                                         padding=layer_params['padding'])
+
+    voxel_features = voxel_sampling_method(input_coors=input_coors,
+                                           input_features=input_features,
+                                           input_num_list=input_num_list,
+                                           center_coors=kernel_center_coors,
+                                           center_num_list=center_num_list,
+                                           resolution=layer_params['kernel_res'],
+                                           padding=layer_params['padding'],
+                                           dimension=dimension_params['dimension'],
+                                           offset=dimension_params['offset'])
+
+
+    output_features = kernel_conv_wrapper(inputs=voxel_features,
                                           num_output_channels=layer_params['c_out'],
                                           scope=scope,
                                           trainable=trainable,
@@ -54,7 +77,8 @@ def point_conv(input_coors,
                                           is_training=is_training,
                                           histogram=histogram,
                                           summary=summary)
-    return kernel_center_coors, output_features, center_num_list
+
+    return kernel_center_coors, output_features, center_num_list, voxel_idx, center_idx
 
 
 def conv_3d(input_voxels,

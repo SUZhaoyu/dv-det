@@ -195,6 +195,10 @@ public:
                                   center_accu_list_ptr,
                                   output_features_ptr,
                                   output_idx_ptr);
+        free(input_num_list_ptr_host);
+        free(center_num_list_ptr_host);
+        free(input_accu_list_ptr_host);
+        free(center_accu_list_ptr_host);
     }
 private:
     float padding_value, resolution;

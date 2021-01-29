@@ -49,14 +49,14 @@ public:
 
         const Tensor& base_coors = context->input(0);
         auto base_coors_ptr = base_coors.template flat<float>().data();
-        OP_REQUIRES(context, base_coors.dims()==2 && base_coors.shape().dim_size(1)==3,
+        OP_REQUIRES(context, base_coors.dims()==2 && base_coors.dim_size(1)==3,
                     errors::InvalidArgument("RoiLogitsToAttrsOp expects base_coors in shape: [npoints, 3]."));
 
         const Tensor& input_logits = context->input(1);
         auto input_logits_ptr = input_logits.template flat<float>().data();
-        OP_REQUIRES(context, input_logits.dims()==2 && input_logits.shape().dim_size(1)>=7,
+        OP_REQUIRES(context, input_logits.dims()==2 && input_logits.dim_size(1)>=7,
                     errors::InvalidArgument("RoiLogitsToAttrsOp expects input_logits in shape: [npoints, logits(>=7)]."));
-        OP_REQUIRES(context, input_logits.shape().dim_size(0) == base_coors.shape().dim_size(0),
+        OP_REQUIRES(context, input_logits.dim_size(0) == base_coors.dim_size(0),
                     errors::InvalidArgument("RoiLogitsToAttrsOp expects base_coors and input_logits has the same length."));
 
         int input_npoint = base_coors.dim_size(0);

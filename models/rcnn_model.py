@@ -2,7 +2,8 @@ import horovod.tensorflow as hvd
 import tensorflow as tf
 
 import train.configs.rcnn_config as config
-from models.tf_ops.custom_ops import get_roi_bbox, roi_filter, get_bbox, la_roi_pooling
+from models.tf_ops.loader.bbox_utils import get_roi_bbox, roi_filter, get_bbox
+from models.tf_ops.loader.pooling import la_roi_pooling
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss
 from models.utils.model_layers import point_conv, fully_connected, conv_3d
@@ -56,35 +57,42 @@ def stage1_model(input_coors,
 
     base_params = config.base_params
     coors, features, num_list = input_coors, input_features, input_num_list
+    voxel_idx, center_idx = None, None
 
     with tf.variable_scope("stage1"):
         # =============================== STAGE-1 [base] ================================
         for layer_name in sorted(base_params.keys()):
-            coors, features, num_list = point_conv(input_coors=coors,
-                                                   input_features=features,
-                                                   input_num_list=num_list,
-                                                   layer_params=base_params[layer_name],
-                                                   dimension_params=dimension_params,
-                                                   scope="stage1_" + layer_name,
-                                                   is_training=is_training,
-                                                   trainable=trainable,
-                                                   mem_saving=mem_saving,
-                                                   model_params=model_params,
-                                                   bn_decay=bn)
+            coors, features, num_list, voxel_idx, center_idx = \
+                point_conv(input_coors=coors,
+                           input_features=features,
+                           input_num_list=num_list,
+                           voxel_idx=voxel_idx,
+                           center_idx=center_idx,
+                           layer_params=base_params[layer_name],
+                           dimension_params=dimension_params,
+                           scope="stage1_" + layer_name,
+                           is_training=is_training,
+                           trainable=trainable,
+                           mem_saving=mem_saving,
+                           model_params=model_params,
+                           bn_decay=bn)
 
         # =============================== STAGE-1 [rpn] ================================
 
-        roi_coors, roi_features, roi_num_list = point_conv(input_coors=coors,
-                                                           input_features=features,
-                                                           input_num_list=num_list,
-                                                           layer_params=config.rpn_params,
-                                                           dimension_params=dimension_params,
-                                                           scope="stage1_rpn_conv",
-                                                           is_training=is_training,
-                                                           trainable=trainable,
-                                                           mem_saving=mem_saving,
-                                                           model_params=model_params,
-                                                           bn_decay=bn)
+        roi_coors, roi_features, roi_num_list, _, _ = \
+            point_conv(input_coors=coors,
+                       input_features=features,
+                       input_num_list=num_list,
+                       voxel_idx=voxel_idx,
+                       center_idx=center_idx,
+                       layer_params=config.rpn_params,
+                       dimension_params=dimension_params,
+                       scope="stage1_rpn_conv",
+                       is_training=is_training,
+                       trainable=trainable,
+                       mem_saving=mem_saving,
+                       model_params=model_params,
+                       bn_decay=bn)
 
         roi_logits = fully_connected(input_points=roi_features,
                                      num_output_channels=config.output_attr,
