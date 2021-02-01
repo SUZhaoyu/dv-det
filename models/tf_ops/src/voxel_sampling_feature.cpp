@@ -47,7 +47,7 @@ REGISTER_OP("VoxelSamplingFeatureOp")
     }); // InferenceContext
 
 
-void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_size, int channels, float padding,
+void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int channels, float padding,
                                          const float* input_features,
                                          const int* output_idx,
                                          float* output_features);
@@ -83,7 +83,7 @@ public:
         float* output_features_ptr = output_features->template flat<float>().data();
 //        cudaMemset(output_features_ptr, padding_value, center_number*kernel_num*channels*sizeof(float));
 
-        voxel_sampling_feature_gpu_launcher(center_num, kernel_size, channels, padding_value,
+        voxel_sampling_feature_gpu_launcher(center_num, kernel_num, channels, padding_value,
                                             input_features_ptr,
                                             output_idx_ptr,
                                             output_features_ptr);

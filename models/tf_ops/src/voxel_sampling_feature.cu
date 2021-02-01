@@ -18,12 +18,11 @@
 //}
 
 
-__global__ void voxel_sampling_feature_gpu_kernel(int center_num, int channels, int kernel_size, float padding,
+__global__ void voxel_sampling_feature_gpu_kernel(int center_num, int channels, int kernel_num, float padding,
                                                   const float* input_features,
                                                   const int* output_idx,
                                                   float* output_features) {
 
-	const int kernel_num = kernel_size * kernel_size * kernel_size;
     int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (thread_id < center_num * kernel_num) {
 
@@ -57,7 +56,7 @@ __global__ void voxel_sampling_feature_grad_gpu_kernel(int center_num, int kerne
 }
 
 
-void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_size, int channels, float padding,
+void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int channels, float padding,
                                          const float* input_features,
                                          const int* output_idx,
                                          float* output_features) {
@@ -65,7 +64,6 @@ void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_size, int ch
         printf("VoxelSampleFeatureOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
-    int kernel_num = kernel_size * kernel_size * kernel_size;
 
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
@@ -79,7 +77,7 @@ void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_size, int ch
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_feature_gpu_kernel, 0, center_num * kernel_num);
     gridSize = (center_num * kernel_num + blockSize - 1) / blockSize;
-    voxel_sampling_feature_gpu_kernel<<<gridSize, blockSize>>>(center_num, channels, kernel_size, padding,
+    voxel_sampling_feature_gpu_kernel<<<gridSize, blockSize>>>(center_num, channels, kernel_num, padding,
                                                                input_features,
                                                                output_idx,
                                                                output_features);

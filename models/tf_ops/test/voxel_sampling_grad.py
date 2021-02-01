@@ -1,16 +1,13 @@
 import os
-
-import numpy as np
-import tensorflow as tf
-from tensorflow.python.client import timeline
-from tqdm import tqdm
-from data.kitti_generator import Dataset
 from os.path import join
-from copy import deepcopy
+
+import tensorflow as tf
+from tqdm import tqdm
+
+from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, grid_sampling_thrust
-from models.utils.ops_wrapper import kernel_conv_wrapper
-from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points_from_voxels_with_color, plot_points, get_rgbs_from_coors_tf
+from models.tf_ops.loader.sampling import grid_sampling_thrust
+from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points, get_rgbs_from_coors_tf
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
