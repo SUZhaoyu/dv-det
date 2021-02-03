@@ -87,7 +87,7 @@ sampling result. This operation is implemented in stack style, which means the n
     # up_count = tf.reduce_sum(up_masks, axis=-1)
     # output_num_list = tf.cast(bottom_count - up_count, tf.int32)
 
-    return unique_coors, output_num_list
+    return unique_coors, output_num_list#, unique_point_ids
 
 ops.NoGradient("UniqueOp")
 
@@ -131,6 +131,7 @@ voxel_sampling_idx_exe = tf.load_op_library(join(CWD, '../build', 'voxel_samplin
 
 
 def voxel_sampling_idx(input_coors,
+                       input_features,
                        input_num_list,
                        center_coors,
                        center_num_list,
@@ -143,7 +144,7 @@ def voxel_sampling_idx(input_coors,
                                                               center_num_list=center_num_list,
                                                               dimension=dimension,
                                                               resolution=resolution)
-    return output_idx
+    return output_idx, input_features
 
 
 ops.NoGradient("VoxelSamplingIdxOp")
@@ -169,6 +170,12 @@ def voxel_sampling_feature_grad(op, grad):
                                                                                     output_idx=output_idx,
                                                                                     output_features_grad=grad)
     return [input_features_grad, None]
+
+def voxel_sampling_feature_grad_test(input_features, output_idx, grad):
+    input_features_grad = voxel_sampling_feature_exe.voxel_sampling_feature_grad_op(input_features=input_features,
+                                                                                    output_idx=output_idx,
+                                                                                    output_features_grad=grad)
+    return input_features_grad
 
 # =============================================Voxel Sampling Binary===============================================
 
@@ -229,6 +236,7 @@ def voxel_sampling_binary_grad(op, grad, _):
 
 voxel_sampling_idx_binary_exe = tf.load_op_library(join(CWD, '../build', 'voxel_sampling_idx_binary.so'))
 def voxel_sampling_idx_binary(input_coors,
+                              input_features,
                               input_num_list,
                               center_coors,
                               center_num_list,
@@ -256,6 +264,7 @@ def voxel_sampling_idx_binary(input_coors,
     sorted_args = tf.argsort(input_voxel_ids)
     sorted_voxel_ids = tf.gather(input_voxel_ids, sorted_args) - voxel_offset_masks
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
+    sorted_features = tf.gather(input_features, sorted_args, axis=0)
     # XXX: Need to pay attention to the back-propagation implementation.
     output_idx = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
                                                                             input_voxel_idx=sorted_voxel_ids,
@@ -264,6 +273,6 @@ def voxel_sampling_idx_binary(input_coors,
                                                                             center_num_list=center_num_list,
                                                                             dimension=dimension,
                                                                             resolution=resolution)
-    return output_idx
+    return output_idx, sorted_features
 
 ops.NoGradient("VoxelSamplingIdxBinaryOp")

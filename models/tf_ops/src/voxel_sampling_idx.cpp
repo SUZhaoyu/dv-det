@@ -147,7 +147,7 @@ public:
 
         Tensor* output_idx = nullptr;
         auto output_idx_shape = TensorShape({center_num, kernel_num, 1});
-        OP_REQUIRES_OK(context, context->allocate_output(1, output_idx_shape, &output_idx));
+        OP_REQUIRES_OK(context, context->allocate_output(0, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
 
         voxel_sampling_idx_gpu_launcher(batch_size, input_point_num,

@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_idx_binary, voxel_sampling_feature
+from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_feature, voxel_sampling_idx
 # from models.utils.ops_wrapper import kernel_conv_wrapper
 from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points_from_voxels_with_color, \
     get_rgbs_from_coors_tf
@@ -47,15 +47,16 @@ if __name__ == '__main__':
     coors_3, num_list_3 = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     coors_4, num_list_4 = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
 
-    voxel_idx = voxel_sampling_idx_binary(input_coors=coors_1,
-                                            input_num_list=num_list_1,
-                                            center_coors=coors_2,
-                                            center_num_list=num_list_2,
-                                            resolution=0.2,
-                                            dimension=[100, 160.0, 8.0],
-                                            offset=[10., 80.0, 4.0])
+    voxel_idx, features = voxel_sampling_idx(input_coors=coors_1,
+                                                    input_features=get_rgbs_from_coors_tf(coors_1),
+                                                    input_num_list=num_list_1,
+                                                    center_coors=coors_2,
+                                                    center_num_list=num_list_2,
+                                                    resolution=0.2,
+                                                    dimension=[100, 160.0, 8.0],
+                                                    offset=[10., 80.0, 4.0])
 
-    voxels = voxel_sampling_feature(input_features=get_rgbs_from_coors_tf(coors_1),
+    voxels = voxel_sampling_feature(input_features=features,
                                     output_idx=voxel_idx,
                                     padding=-1)
 

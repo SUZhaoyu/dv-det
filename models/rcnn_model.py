@@ -25,7 +25,7 @@ def stage1_inputs_placeholder(input_channels=1,
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
 
-def stage2_inputs_placeholder(input_feature_channels=config.base_params[sorted(config.base_params.keys())[-1]]['c_out'],
+def stage2_inputs_placeholder(input_feature_channels=config.base_params_training[sorted(config.base_params_training.keys())[-1]]['c_out'],
                               bbox_padding=config.aug_config['nbbox']):
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage2_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_feature_channels], name='stage2_input_features_p')
@@ -55,7 +55,8 @@ def stage1_model(input_coors,
                         'offset': config.offset_training}
 
 
-    base_params = config.base_params
+    base_params = config.base_params_training if not is_eval else config.base_params_inference
+    rpn_params = config.rpn_params_training if not is_eval else config.rpn_params_inference
     coors, features, num_list = input_coors, input_features, input_num_list
     voxel_idx, center_idx = None, None
 
@@ -85,7 +86,7 @@ def stage1_model(input_coors,
                        input_num_list=num_list,
                        voxel_idx=voxel_idx,
                        center_idx=center_idx,
-                       layer_params=config.rpn_params,
+                       layer_params=rpn_params,
                        dimension_params=dimension_params,
                        scope="stage1_rpn_conv",
                        is_training=is_training,
@@ -123,6 +124,7 @@ def stage2_model(coors,
                  is_eval,
                  mem_saving,
                  bn):
+
     with tf.variable_scope("stage2"):
         roi_conf = tf.nn.sigmoid(roi_conf_logits)
         bbox_roi_attrs, bbox_num_list, bbox_idx = roi_filter(input_roi_attrs=roi_attrs,
