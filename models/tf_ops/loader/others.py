@@ -25,6 +25,22 @@ def voxel2col_grad(op, grad, _):
                                                               output_voxels_grad=grad)
     return input_voxels_grad
 
+
+# =============================================RoI Filter===============================================
+
+roi_filter_exe = tf.load_op_library(join(CWD, '../build', 'roi_filter.so'))
+def roi_filter(input_roi_attrs, input_roi_conf, input_roi_ious, input_num_list, conf_thres, max_length, with_negative):
+    output_num_list, output_idx = roi_filter_exe.roi_filter_op(input_roi_conf=input_roi_conf,
+                                                               input_roi_ious=input_roi_ious,
+                                                               input_num_list=input_num_list,
+                                                               conf_thres=conf_thres,
+                                                               max_length=max_length,
+                                                               with_negative=with_negative)
+    output_roi_attrs = tf.gather(input_roi_attrs, output_idx, axis=0)
+    return output_roi_attrs, output_num_list, output_idx
+ops.NoGradient("RoiFilterOp")
+
+
 # ============================================= NMS ===============================================
 
 iou3d_kernel_gpu_exe = tf.load_op_library(join(CWD, '../build', 'nms.so'))

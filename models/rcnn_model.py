@@ -118,6 +118,7 @@ def stage2_model(coors,
                  num_list,
                  roi_attrs,
                  roi_conf_logits,
+                 roi_ious,
                  roi_num_list,
                  is_training,
                  trainable,
@@ -126,9 +127,8 @@ def stage2_model(coors,
                  bn):
 
     with tf.variable_scope("stage2"):
-        roi_conf = tf.nn.sigmoid(roi_conf_logits)
         bbox_roi_attrs, bbox_num_list, bbox_idx = roi_filter(input_roi_attrs=roi_attrs,
-                                                             input_roi_conf=roi_conf,
+                                                             input_roi_ious=roi_ious,
                                                              input_num_list=roi_num_list,
                                                              conf_thres=config.roi_thres,
                                                              max_length=0,
@@ -163,7 +163,6 @@ def stage2_model(coors,
                                       trainable=trainable,
                                       last_layer=True)
 
-        # FIXME: is_eval tag does not work.
         bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,
                                     input_roi_attrs=bbox_roi_attrs,
                                     is_eval=is_eval)

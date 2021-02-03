@@ -89,6 +89,11 @@ stage1_output_coors, stage1_output_features, stage1_output_num_list, \
                        mem_saving=True,
                        bn=1.)
 
+roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
+                             pred_roi_attrs=input_roi_attrs_p,
+                             roi_num_list=input_roi_num_list_p,
+                             bbox_labels=input_bbox_p)
+
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=stage2_input_coors_p,
                        features=stage2_input_features_p,
@@ -103,10 +108,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
                        bn=stage2_bn)
 
 
-roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
-                             pred_roi_attrs=input_roi_attrs_p,
-                             roi_num_list=input_roi_num_list_p,
-                             bbox_labels=input_bbox_p)
+
 
 stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=input_roi_attrs_p,
                                                    pred_bbox_attrs=bbox_attrs,

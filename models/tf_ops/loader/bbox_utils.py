@@ -47,19 +47,6 @@ def get_bbox(roi_attrs, bboxes, input_num_list, expand_ratio=0.15, diff_thres=3)
     return bbox_attrs, bbox_conf, bbox_diff
 ops.NoGradient("GetBboxOp")
 
-# =============================================RoI Filter===============================================
-
-roi_filter_exe = tf.load_op_library(join(CWD, '../build', 'roi_filter.so'))
-def roi_filter(input_roi_attrs, input_roi_conf, input_num_list, conf_thres, max_length, with_negative):
-    output_num_list, output_idx = roi_filter_exe.roi_filter_op(input_roi_conf=input_roi_conf,
-                                                               input_num_list=input_num_list,
-                                                               conf_thres=conf_thres,
-                                                               max_length=max_length,
-                                                               with_negative=with_negative)
-    output_roi_attrs = tf.gather(input_roi_attrs, output_idx, axis=0)
-    return output_roi_attrs, output_num_list, output_idx
-ops.NoGradient("RoiFilterOp")
-
 # =============================================Roi Logits To Attrs===============================================
 
 roi_logits_to_attrs_exe = tf.load_op_library(join(CWD, '../build', 'roi_logits_to_attrs.so'))
