@@ -20,7 +20,6 @@ __global__ void voxel2col_gpu_kernel(int input_num, int channels, int input_voxe
         for (int i=0; i<kernel_num; i++)
             output_idx[thread_id*kernel_num + i] = -1;
     }
-    __syncthreads();
 
     if (thread_id < input_num * output_voxel_num) {
         int current_id = thread_id / output_voxel_num;
