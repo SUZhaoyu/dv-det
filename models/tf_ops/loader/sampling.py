@@ -87,7 +87,7 @@ sampling result. This operation is implemented in stack style, which means the n
     # up_count = tf.reduce_sum(up_masks, axis=-1)
     # output_num_list = tf.cast(bottom_count - up_count, tf.int32)
 
-    return unique_coors, output_num_list#, unique_point_ids
+    return unique_coors, output_num_list, unique_point_ids
 
 ops.NoGradient("UniqueOp")
 

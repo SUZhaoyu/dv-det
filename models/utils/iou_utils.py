@@ -248,7 +248,7 @@ def get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersectio
     # tf.summary.scalar('iou_nan_sum',
     #                   hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
     if clip:
-        iou = tf.where(tf.is_nan(iou), tf.ones_like(iou), iou)
+        iou = tf.where(tf.is_nan(iou), tf.zeros_like(iou), iou)
     return iou
 
 

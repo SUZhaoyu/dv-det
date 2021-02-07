@@ -42,9 +42,12 @@ __global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num,
     const int grid_dim_size = grid_dim_w * grid_dim_h * grid_dim_l;
     int point_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (point_id < input_point_num) {
-        int grid_coor_x = (int)floor(input_coors[point_id*3 + 0] / grid_buffer_resolution);
-        int grid_coor_y = (int)floor(input_coors[point_id*3 + 1] / grid_buffer_resolution);
-        int grid_coor_z = (int)floor(input_coors[point_id*3 + 2] / grid_buffer_resolution);
+        int grid_coor_x = __float2int_rz(input_coors[point_id*3 + 0] / grid_buffer_resolution);
+        int grid_coor_y = __float2int_rz(input_coors[point_id*3 + 1] / grid_buffer_resolution);
+        int grid_coor_z = __float2int_rz(input_coors[point_id*3 + 2] / grid_buffer_resolution);
+        grid_coor_x = max(0, min(grid_coor_x, grid_dim_w - 1));
+        grid_coor_y = max(0, min(grid_coor_y, grid_dim_l - 1));
+        grid_coor_z = max(0, min(grid_coor_z, grid_dim_h - 1));
         int batch_id = get_batch_id(input_accu_list, batch_size, point_id);
         int grid_buffer_idx = batch_id * grid_dim_size + grid_coor_x * grid_dim_l * grid_dim_h + grid_coor_y * grid_dim_h + grid_coor_z;
         int count = atomicAdd(&grid_buffer_count[grid_buffer_idx], 1);
@@ -95,7 +98,7 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
         float roi_grid_length_x = roi_w / voxel_size;
         float roi_grid_length_y = roi_l / voxel_size;
         float roi_grid_length_z = roi_h / voxel_size;
-        float radius = max(roi_grid_length_x, roi_grid_length_y);
+        float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z);
 
         int roi_grid_coor_x = voxel_id / (voxel_size * voxel_size);
         int roi_grid_coor_y = (voxel_id - roi_grid_coor_x * voxel_size * voxel_size) / voxel_size;

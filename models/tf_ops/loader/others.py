@@ -29,11 +29,12 @@ def voxel2col_grad(op, grad, _):
 # =============================================RoI Filter===============================================
 
 roi_filter_exe = tf.load_op_library(join(CWD, '../build', 'roi_filter.so'))
-def roi_filter(input_roi_attrs, input_roi_conf, input_roi_ious, input_num_list, conf_thres, max_length, with_negative):
+def roi_filter(input_roi_attrs, input_roi_conf, input_roi_ious, input_num_list, conf_thres, iou_thres, max_length, with_negative):
     output_num_list, output_idx = roi_filter_exe.roi_filter_op(input_roi_conf=input_roi_conf,
                                                                input_roi_ious=input_roi_ious,
                                                                input_num_list=input_num_list,
                                                                conf_thres=conf_thres,
+                                                               iou_thres=iou_thres,
                                                                max_length=max_length,
                                                                with_negative=with_negative)
     output_roi_attrs = tf.gather(input_roi_attrs, output_idx, axis=0)
@@ -75,6 +76,10 @@ def rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres):
         input_boxes=bboxes,
         nms_overlap_thresh=nms_overlap_thresh)
 
+    # output_idx = tf.gather(output_keep_index, tf.range(output_num_to_keep[0]), axis=0)
+    # output_bbox_attrs = tf.gather(sorted_bbox_attrs, output_idx, axis=0)
+    # output_bbox_conf = tf.gather(sorted_bbox_conf, output_idx, axis=0)
+    # output_bbox_coors = tf.gather(sorted_bbox_coors, output_idx, axis=0)
 
 
     return sorted_bbox_attrs, sorted_bbox_conf, output_keep_index, output_num_to_keep

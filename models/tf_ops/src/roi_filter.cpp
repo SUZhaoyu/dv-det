@@ -79,7 +79,7 @@ public:
 //
         int input_point_num = input_roi_conf.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
-        max_length = (max_length > 0) ? max_length : 100000;
+        max_length = (max_length > 0) ? max_length : 500;
         std::vector<int> output_idx_list;
 
         int* input_accu_list_ptr = (int*)malloc(batch_size * sizeof(int));
@@ -106,16 +106,16 @@ public:
             for (int i=0; i<input_num_list_ptr[b]; i++) {
                 int id = input_accu_list_ptr[b] + id_list[i];
                 if (with_negative) {
-                    if (input_roi_conf_ptr[id] >= conf_thres && positive_count < max_length / 2) {
-                        if (positive_count >= max_length / 4 && input_roi_conf_ptr[id] > 0.8)
-                            continue;
+                    if (input_roi_conf_ptr[id] >= conf_thres &&
+                        positive_count < max_length / 2 &&
+                        input_roi_ious_ptr[id] >= iou_thres) {
                         output_num_list_ptr[b] += 1;
                         positive_count += 1;
                         output_idx_list.push_back(id);
                     }
-                    if (input_roi_conf_ptr[id] >= conf_thres && negative_count < max_length / 2) {
-                        if (negative_count >= max_length / 4 && input_roi_conf_ptr[id] < 0.2)
-                            continue;
+                    if (input_roi_conf_ptr[id] >= conf_thres &&
+                        negative_count < max_length / 2 &&
+                        input_roi_ious_ptr[id] < iou_thres) {
                         output_num_list_ptr[b] += 1;
                         negative_count += 1;
                         output_idx_list.push_back(id);

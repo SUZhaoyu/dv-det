@@ -60,7 +60,7 @@ def la_roi_pooling_grad(op, grad, _, __):
 
 la_roi_pooling_fast_exe = tf.load_op_library(join(CWD, '../build', 'la_roi_pooling_fast.so'))
 def la_roi_pooling_fast(input_coors, input_features, roi_attrs, input_num_list, roi_num_list,
-                        dimension, offset, grid_buffer_resolution,
+                        dimension, offset, grid_buffer_resolution=0.8,
                         grid_buffer_size=3, voxel_size=5, padding_value=0., pooling_size=5):
     output_features, _, _ = la_roi_pooling_fast_exe.la_roi_pooling_fast_op(input_coors=input_coors + offset,
                                                                            input_features=input_features,

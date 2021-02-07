@@ -86,7 +86,7 @@ stage1_output_coors, stage1_output_features, stage1_output_num_list, \
                        is_training=is_stage1_training_p,
                        is_eval=False,
                        trainable=False,
-                       mem_saving=True,
+                       mem_saving=False,
                        bn=1.)
 
 roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
@@ -100,6 +100,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
                        num_list=stage2_input_num_list_p,
                        roi_attrs=input_roi_attrs_p,
                        roi_conf_logits=input_roi_conf_logits_p,
+                       roi_ious=roi_ious,
                        roi_num_list=input_roi_num_list_p,
                        is_training=is_stage2_training_p,
                        trainable=True,
@@ -238,7 +239,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6892320410007045')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

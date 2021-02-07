@@ -72,7 +72,8 @@ __global__ void get_roi_bbox_gpu_kernel(int batch_size, int npoint, int nbbox, i
                         roi_bbox[input_accu_list[b]*7 + i*7 + 5] = bbox_z;
                         roi_bbox[input_accu_list[b]*7 + i*7 + 6] = bbox_r;
 
-                        if (bbox_diff <= diff_thres && bbox_cls == 0) {
+//                        if (bbox_diff <= diff_thres && bbox_cls == 0) {
+                        if (bbox_diff <= diff_thres && bbox_cls <= 1) {
                             // Here we only take cars into consideration, while vans are excluded and give the foreground labels as -1 (ignored).
                             // TODO: need to change the category class accordingly to the expected detection target.
                             roi_conf[input_accu_list[b] + i] = 1;

@@ -40,7 +40,7 @@ if __name__ == '__main__':
     #                                 input_num_list=num_list,
     #                                 resolution=0.2)
 
-    center_coors, center_num_list = grid_sampling(input_coors=coors,
+    center_coors, center_num_list, _ = grid_sampling(input_coors=coors,
                                                   input_num_list=num_list,
                                                   resolution=0.4)
 
