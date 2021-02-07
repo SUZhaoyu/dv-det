@@ -58,7 +58,7 @@ output_attr = 8
 # stage1_training_epoch = 25
 total_epoch = 300
 
-roi_thres = 0.3
+roi_thres = 0.5
 iou_thres = 0.55
 max_length = 128
 roi_voxel_size = 5

@@ -26,7 +26,6 @@ __global__ void voxel_sampling_feature_gpu_kernel(int center_num, int channels, 
     int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
     int c = thread_id % channels;
     if (thread_id < center_num * kernel_num * channels) {
-
         int point_id = output_idx[thread_id / channels];
         if (point_id >= 0) {
             output_features[thread_id] = input_features[point_id * channels + c];
