@@ -74,7 +74,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_training=is_stage1_training_p,
                        is_eval=False,
                        trainable=True,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=stage1_bn)
 
 stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,

@@ -258,10 +258,10 @@ __global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const
     float box_a_z_tmp[2];
     float box_b_z_tmp[2];
 
-    // [w, l, h, x, y, z, r]
+
     // [x, y, z, w, l ,h, r]
 
-    box_a_tmp[0] = cur_box_a[0] - cur_box_a[3] / 2; // x1, 
+    box_a_tmp[0] = cur_box_a[0] - cur_box_a[3] / 2; // x1,
     box_a_tmp[1] = cur_box_a[1] - cur_box_a[4] / 2; // y1
     box_a_tmp[2] = cur_box_a[0] + cur_box_a[3] / 2; // x2
     box_a_tmp[3] = cur_box_a[1] + cur_box_a[4] / 2; // y2
@@ -271,7 +271,7 @@ __global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const
     box_a_z_tmp[1] = cur_box_a[2] + cur_box_a[5] / 2; // z1max
 
 
-    box_b_tmp[0] = cur_box_b[0] - cur_box_b[3] / 2; // x1, 
+    box_b_tmp[0] = cur_box_b[0] - cur_box_b[3] / 2; // x1,
     box_b_tmp[1] = cur_box_b[1] - cur_box_b[4] / 2; // y1
     box_b_tmp[2] = cur_box_b[0] + cur_box_b[3] / 2; // x2
     box_b_tmp[3] = cur_box_b[1] + cur_box_b[4] / 2; // y2
@@ -279,6 +279,7 @@ __global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const
 
     box_b_z_tmp[0] = cur_box_b[2] - cur_box_b[5] / 2; // z1min
     box_b_z_tmp[1] = cur_box_b[2] + cur_box_b[5] / 2; // z1max
+
 
     float cur_iou_3d = iou3d(&box_a_tmp[0], &box_b_tmp[0], &box_a_z_tmp[0], &box_b_z_tmp[0]);
     ans_iou[a_idx * num_b + b_idx] = cur_iou_3d;
@@ -317,14 +318,14 @@ __global__ void nms3d_kernel(const int boxes_num, const float nms_overlap_thresh
         float cur_box_tmp[5];
         float cur_box_z_tmp[2];
 
-        cur_box_tmp[0] = cur_box[0] - cur_box[3] / 2; // x1, 
-        cur_box_tmp[1] = cur_box[1] - cur_box[4] / 2; // y1
-        cur_box_tmp[2] = cur_box[0] + cur_box[3] / 2; // x2
-        cur_box_tmp[3] = cur_box[1] + cur_box[4] / 2; // y2
+        cur_box_tmp[0] = cur_box[3] - cur_box[0] / 2; // x1,
+        cur_box_tmp[1] = cur_box[4] - cur_box[1] / 2; // y1
+        cur_box_tmp[2] = cur_box[3] + cur_box[0] / 2; // x2
+        cur_box_tmp[3] = cur_box[4] + cur_box[1] / 2; // y2
         cur_box_tmp[4] = cur_box[6]; // ry
 
-        cur_box_z_tmp[0] = cur_box[2] - cur_box[5] / 2; // z1min
-        cur_box_z_tmp[1] = cur_box[2] + cur_box[5] / 2; // z1max
+        cur_box_z_tmp[0] = cur_box[5] - cur_box[2] / 2; // z1min
+        cur_box_z_tmp[1] = cur_box[5] + cur_box[2] / 2; // z1max
 
 
         int i = 0;
@@ -339,14 +340,14 @@ __global__ void nms3d_kernel(const int boxes_num, const float nms_overlap_thresh
             float block_box_tmp[5];
             float block_box_z_tmp[2];
     
-            block_box_tmp[0] = block_box_ptr[0] - block_box_ptr[3] / 2; // x1, 
-            block_box_tmp[1] = block_box_ptr[1] - block_box_ptr[4] / 2; // y1
-            block_box_tmp[2] = block_box_ptr[0] + block_box_ptr[3] / 2; // x2
-            block_box_tmp[3] = block_box_ptr[1] + block_box_ptr[4] / 2; // y2
+            block_box_tmp[0] = block_box_ptr[3] - block_box_ptr[0] / 2; // x1,
+            block_box_tmp[1] = block_box_ptr[4] - block_box_ptr[1] / 2; // y1
+            block_box_tmp[2] = block_box_ptr[3] + block_box_ptr[0] / 2; // x2
+            block_box_tmp[3] = block_box_ptr[4] + block_box_ptr[1] / 2; // y2
             block_box_tmp[4] = block_box_ptr[6]; // ry
     
-            block_box_z_tmp[0] = block_box_ptr[2] - block_box_ptr[5] / 2; // z1min
-            block_box_z_tmp[1] = block_box_ptr[2] + block_box_ptr[5] / 2; // z1max
+            block_box_z_tmp[0] = block_box_ptr[5] - block_box_ptr[2] / 2; // z1min
+            block_box_z_tmp[1] = block_box_ptr[5] + block_box_ptr[2] / 2; // z1max
 
             float cur_iou_3d = iou3d(&cur_box_tmp[0], &block_box_tmp[0], &cur_box_z_tmp[0], &block_box_z_tmp[0]);
 

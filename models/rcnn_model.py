@@ -52,8 +52,8 @@ def stage1_model(input_coors,
     #     dimension_params = {'dimension': config.dimension_testing,
     #                         'offset': config.offset_testing}
     # else:
-    dimension_params = {'dimension': config.dimension_inference,
-                        'offset': config.offset_inference}
+    dimension_params = {'dimension': config.dimension_training,
+                        'offset': config.offset_training}
 
 
     # base_params = config.base_params_inference if not is_eval else config.base_params_inference

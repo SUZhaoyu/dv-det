@@ -45,7 +45,7 @@ ops.NoGradient("RoiFilterOp")
 # ============================================= NMS ===============================================
 
 iou3d_kernel_gpu_exe = tf.load_op_library(join(CWD, '../build', 'nms.so'))
-def rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres):
+def rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres):
     '''
     rotated nms of the output
     :param boxes: the set of bounding boxes (sorted in decending order based on a score, e.g. confidence)
@@ -57,32 +57,35 @@ def rotated_nms3d(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres):
     boxes[output_keep_index[:output_num_to_keep]] := gives the list of the valid bounding boxes
 
     '''
-    valid_idx = tf.where(tf.greater(bbox_conf, nms_conf_thres))[:, 0]
 
-    bbox_attrs = tf.gather(bbox_attrs, valid_idx, axis=0)
-    bbox_conf = tf.gather(bbox_conf, valid_idx, axis=0)
+    valid_count = tf.reduce_sum(tf.cast(tf.greater(bbox_conf, nms_conf_thres), dtype=tf.int32))
+    # valid_idx = tf.where(tf.greater(bbox_conf, nms_conf_thres))[:, 0]
+    #
+    # bbox_attrs = tf.gather(bbox_attrs, valid_idx, axis=0)
+    # bbox_conf = tf.gather(bbox_conf, valid_idx, axis=0)
 
 
     sorted_idx = tf.argsort(bbox_conf, direction='DESCENDING')
-    sorted_bbox_attrs = tf.gather(bbox_attrs, sorted_idx, axis=0)
-    sorted_bbox_conf = tf.gather(bbox_conf, sorted_idx, axis=0)
+    sorted_bbox_attrs = tf.gather(bbox_attrs, sorted_idx, axis=0)[:valid_count, :]
 
-    bbox_dimensions = sorted_bbox_attrs[:, :3]
-    bbox_coors = sorted_bbox_attrs[:, 3:6]
-    bbox_rotations = sorted_bbox_attrs[:, 6:]
-    bboxes = tf.concat([bbox_coors, bbox_dimensions, bbox_rotations], axis=-1)
+    # bbox_dimensions = sorted_bbox_attrs[:, :3]
+    # bbox_coors = sorted_bbox_attrs[:, 3:6]
+    # bbox_rotations = sorted_bbox_attrs[:, 6:]
+    # bboxes = tf.concat([bbox_coors, bbox_dimensions, bbox_rotations], axis=-1)
 
     output_keep_index, output_num_to_keep = iou3d_kernel_gpu_exe.rotated_nms3d(
-        input_boxes=bboxes,
+        input_boxes=sorted_bbox_attrs,
         nms_overlap_thresh=nms_overlap_thresh)
+
 
     # output_idx = tf.gather(output_keep_index, tf.range(output_num_to_keep[0]), axis=0)
     # output_bbox_attrs = tf.gather(sorted_bbox_attrs, output_idx, axis=0)
     # output_bbox_conf = tf.gather(sorted_bbox_conf, output_idx, axis=0)
     # output_bbox_coors = tf.gather(sorted_bbox_coors, output_idx, axis=0)
 
+    output_idx = tf.gather(sorted_idx, output_keep_index[:output_num_to_keep[0]])
 
-    return sorted_bbox_attrs, sorted_bbox_conf, output_keep_index, output_num_to_keep
+    return output_idx
 
 
 ops.NoGradient("RotatedNms3d")
