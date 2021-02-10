@@ -65,7 +65,7 @@ is_stage1_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage1_trai
 
 stage1_step = tf.Variable(0, name='stage1_step')
 stage1_lr, stage1_bn, stage1_wd = set_training_controls(config, decay_batch, stage1_step, hvd.size(), prefix='stage1')
-
+stage1_loader = tf.train.Saver()
 
 coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
@@ -156,6 +156,8 @@ def main():
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
         step = 0
+        valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
+
         for epoch in range(config.total_epoch):
             if is_hvd_root:
                 print("Epoch: {}".format(epoch))
