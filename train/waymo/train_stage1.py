@@ -13,8 +13,8 @@ HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
 from models import rcnn_model as model
-from train.configs import rcnn_config as config
-from data.kitti_generator import Dataset
+from train.configs import waymo_config as config
+from data.waymo_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
 
 hvd.init()
@@ -39,7 +39,7 @@ else:
 if is_hvd_root:
     copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
 
-DatasetTrain = Dataset(task="training",
+DatasetTrain = Dataset(task="train",
                        batch_size=config.batch_size,
                        config=config.aug_config,
                        num_worker=config.num_worker,
@@ -47,7 +47,7 @@ DatasetTrain = Dataset(task="training",
                        hvd_id=hvd.rank())
 # DatasetTrain.stop()
 
-DatasetValid = Dataset(task="validation",
+DatasetValid = Dataset(task="val",
                        validation=True,
                        batch_size=config.batch_size,
                        hvd_size=hvd.size(),
@@ -59,8 +59,8 @@ validation_batch = DatasetValid.batch_sum
 decay_batch = training_batch * config.decay_epochs
 
 input_coors_p, input_features_p, input_num_list_p, input_bbox_p = \
-    model.stage1_inputs_placeholder(input_channels=1,
-                                    bbox_padding=config.bbox_padding)
+    model.stage1_inputs_placeholder(input_channels=2,
+                                    bbox_padding=config.aug_config['nbbox'])
 is_stage1_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage1_training")
 
 stage1_step = tf.Variable(0, name='stage1_step')

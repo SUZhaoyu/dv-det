@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #exe_file="train_stage1_anchor_x2.py"
-exe_file="train_stage1.py"
+exe_file="waymo/train_stage1.py"
+#exe_file="train_stage1.py"
 pkill -f -9 $exe_file
 
 HOME="dv-det"
@@ -17,6 +18,7 @@ ip_gx6="192.168.66.56"
 #                      --exclude='ckpt_archive' \
 #                      --exclude='eval' \
 #                      --exclude='ckpt_arxiv' \
+#                      --exclude='img_*.npy' \
 #                      $root_gx4/$HOME tan@$ip_gx6:$root_gx6
 
 echo "Pushing Completed!"
@@ -87,6 +89,7 @@ mkdir $log_dir
 #        $conda_env_gx6 $exe_dir_gx6
 
 
+#horovodrun -np 16 -H $ip_gx4:8,$ip_gx6:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
 horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
 
 # /usr/mpi/gcc/openmpi-4.0.3rc4/bin/

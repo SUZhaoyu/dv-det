@@ -6,24 +6,6 @@
 #include <iostream>
 #include <float.h>
 
-__device__ int binary_search(const long long* input_voxel_idx,
-                             int start_id,
-                             int stop_id,
-                             long long target_voxel_id) {
-
-    if (input_voxel_idx[start_id] > target_voxel_id || input_voxel_idx[stop_id] < target_voxel_id)
-        return -1;
-    while (start_id <= stop_id) {
-        int m = start_id + (stop_id - start_id) / 2;
-        if (input_voxel_idx[m] == target_voxel_id)
-            return m;
-        if (input_voxel_idx[m] < target_voxel_id)
-            start_id = m + 1;
-        else
-            stop_id = m - 1;
-    }
-    return -1;
-}
 
 __device__ int get_batch_id(int* accu_list, int batch_size, int id) {
     for (int b=0; b<batch_size-1; b++) {

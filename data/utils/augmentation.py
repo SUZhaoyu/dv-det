@@ -2,7 +2,7 @@ from __future__ import division
 
 from copy import deepcopy
 
-import cv2
+# import cv2
 import numpy as np
 from numpy.linalg import multi_dot
 from shapely.geometry import Polygon
@@ -133,34 +133,34 @@ def ones_padding(raw_input):
     return features
 
 
-def perspective_transformation(map, scale, padding_list=None, mode='g'):
-    assert len(map.shape) == 3
-    height = map.shape[0]
-    width = map.shape[1]
-    channels = map.shape[-1]
-    if padding_list is None:
-        padding_list = np.zeros(channels)
-    else:
-        assert len(padding_list) == channels
-    if mode == 'g':
-        rand_method = gauss_dist
-    elif mode == 'u':
-        rand_method = uni_dist
-    else:
-        raise NameError("Unsupported random mode: {}".format(mode))
-    original_corners = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
-    new_corners = np.float32([[rand_method(0, scale * width), rand_method(0, scale * height)],
-                              [rand_method(width, scale * width), rand_method(0, scale * height)],
-                              [rand_method(0, scale * width), rand_method(height, scale * height)],
-                              [rand_method(width, scale * width), rand_method(height, scale * height)]])
-    M = cv2.getPerspectiveTransform(new_corners, original_corners)
-    for c in range(channels):
-        map[:, :, c] = cv2.warpPerspective(map[:, :, c], M, (width, height),
-                                           flags=cv2.INTER_NEAREST,
-                                           borderMode=cv2.BORDER_CONSTANT,
-                                           borderValue=padding_list[c])
-
-    return map
+# def perspective_transformation(map, scale, padding_list=None, mode='g'):
+#     assert len(map.shape) == 3
+#     height = map.shape[0]
+#     width = map.shape[1]
+#     channels = map.shape[-1]
+#     if padding_list is None:
+#         padding_list = np.zeros(channels)
+#     else:
+#         assert len(padding_list) == channels
+#     if mode == 'g':
+#         rand_method = gauss_dist
+#     elif mode == 'u':
+#         rand_method = uni_dist
+#     else:
+#         raise NameError("Unsupported random mode: {}".format(mode))
+#     original_corners = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+#     new_corners = np.float32([[rand_method(0, scale * width), rand_method(0, scale * height)],
+#                               [rand_method(width, scale * width), rand_method(0, scale * height)],
+#                               [rand_method(0, scale * width), rand_method(height, scale * height)],
+#                               [rand_method(width, scale * width), rand_method(height, scale * height)]])
+#     M = cv2.getPerspectiveTransform(new_corners, original_corners)
+#     for c in range(channels):
+#         map[:, :, c] = cv2.warpPerspective(map[:, :, c], M, (width, height),
+#                                            flags=cv2.INTER_NEAREST,
+#                                            borderMode=cv2.BORDER_CONSTANT,
+#                                            borderValue=padding_list[c])
+#
+#     return map
 
 
 def horizontal_flip(map):

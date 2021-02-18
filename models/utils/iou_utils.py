@@ -1,4 +1,5 @@
 import tensorflow as tf
+import horovod.tensorflow as hvd
 
 # Ground Truth Shape: [npoint, 7 (w, l, h, x, y, z, r)]
 # Prediction Shape: [npoint, 7 (w, l, h, x, y, z, r)]
@@ -31,13 +32,13 @@ eps = tf.constant(1e-6)
 
 def roi_logits_to_attrs_tf(base_coors, input_logits, anchor_size):
     anchor_diag = tf.sqrt(tf.pow(anchor_size[0], 2.) + tf.pow(anchor_size[1], 2.))
-    w = tf.exp(input_logits[:, 0]) * anchor_size[0]
-    l = tf.exp(input_logits[:, 1]) * anchor_size[1]
-    h = tf.exp(input_logits[:, 2]) * anchor_size[2]
-    x = input_logits[:, 3] * anchor_diag + base_coors[:, 0]
-    y = input_logits[:, 4] * anchor_diag + base_coors[:, 1]
-    z = input_logits[:, 5] * anchor_size[2] + base_coors[:, 2]
-    r = input_logits[:, 6] * 3.1415927
+    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * anchor_size[0], 0., 1e7)
+    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * anchor_size[1], 0., 1e7)
+    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * anchor_size[2], 0., 1e7)
+    x = tf.clip_by_value(input_logits[:, 3] * anchor_diag + base_coors[:, 0], -1e7, 1e7)
+    y = tf.clip_by_value(input_logits[:, 4] * anchor_diag + base_coors[:, 1], -1e7, 1e7)
+    z = tf.clip_by_value(input_logits[:, 5] * anchor_size[2] + base_coors[:, 2], -1e7, 1e7)
+    r = tf.clip_by_value(input_logits[:, 6] * 3.1415927, -1e7, 1e7)
     # r = input_logits[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
 
@@ -56,13 +57,13 @@ def roi_attrs_to_logits(base_coors, input_attrs, anchor_size):
 
 def bbox_logits_to_attrs_tf(input_roi_attrs, input_logits):
     roi_diag = tf.sqrt(tf.pow(input_roi_attrs[:, 0], 2.) + tf.pow(input_roi_attrs[:, 1], 2.))
-    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * input_roi_attrs[:, 0], 0., 1e5)
-    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * input_roi_attrs[:, 1], 0., 1e5)
-    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * input_roi_attrs[:, 2], 0., 1e5)
-    x = tf.clip_by_value(input_logits[:, 3] * roi_diag + input_roi_attrs[:, 3], -1e5, 1e5)
-    y = tf.clip_by_value(input_logits[:, 4] * roi_diag + input_roi_attrs[:, 4], -1e5, 1e5)
-    z = tf.clip_by_value(input_logits[:, 5] * input_roi_attrs[:, 2] + input_roi_attrs[:, 5], -1e5, 1e5)
-    r = input_logits[:, 6] * 3.1415927 + input_roi_attrs[:, 6]
+    w = tf.clip_by_value(tf.exp(input_logits[:, 0]) * input_roi_attrs[:, 0], 0., 1e7)
+    l = tf.clip_by_value(tf.exp(input_logits[:, 1]) * input_roi_attrs[:, 1], 0., 1e7)
+    h = tf.clip_by_value(tf.exp(input_logits[:, 2]) * input_roi_attrs[:, 2], 0., 1e7)
+    x = tf.clip_by_value(input_logits[:, 3] * roi_diag + input_roi_attrs[:, 3], -1e7, 1e7)
+    y = tf.clip_by_value(input_logits[:, 4] * roi_diag + input_roi_attrs[:, 4], -1e7, 1e7)
+    z = tf.clip_by_value(input_logits[:, 5] * input_roi_attrs[:, 2] + input_roi_attrs[:, 5], -1e7, 1e7)
+    r = tf.clip_by_value(input_logits[:, 6] * 3.1415927 + input_roi_attrs[:, 6], -1e7, 1e7)
     # r = input_logits[:, 6] + input_roi_attrs[:, 6]
     return tf.stack([w, l, h, x, y, z, r], axis=-1)
 
@@ -245,8 +246,8 @@ def get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersectio
     gt_volume = gt_attrs[:, 0] * gt_attrs[:, 1] * gt_attrs[:, 2]
     pred_volume = pred_attrs[:, 0] * pred_attrs[:, 1] * pred_attrs[:, 2]
     iou = tf.math.divide_no_nan(intersection_volume, gt_volume + pred_volume - intersection_volume)
-    # tf.summary.scalar('iou_nan_sum',
-    #                   hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
+    tf.summary.scalar('iou_nan_sum',
+                      hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
     if clip:
         iou = tf.where(tf.is_nan(iou), tf.zeros_like(iou), iou)
     return iou

@@ -5,9 +5,9 @@ from os.path import join
 import numpy as np
 from tqdm import tqdm
 
-from data.kitti_generator import Dataset
+from data.waymo_generator import Dataset
 
-task = 'validation'
+task = 'val'
 validation = False
 evaluation = False
 output_home = '/home/tan/tony/dv-det/eval/data'

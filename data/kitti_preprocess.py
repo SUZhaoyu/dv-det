@@ -3,11 +3,13 @@ import os
 from copy import deepcopy
 from os import mkdir
 from os.path import join, dirname
-
+logging.basicConfig(level=logging.INFO)
 import numpy as np
 from PIL import Image
 from point_viz.converter import PointvizConverter
 from tqdm import tqdm
+
+from data.utils.normalization import get_union_sets
 
 Converter = PointvizConverter(home='/home/tan/tony/threejs')
 logging.basicConfig(level=logging.INFO)
@@ -20,13 +22,6 @@ range_z = [-3., 1.]
 min_object_points = 15
 expand_ratio = 0.15
 home = dirname(os.getcwd())
-
-
-def get_union_sets(conditions):
-    output = conditions[0]
-    for i in np.arange(1, len(conditions)):
-        output = np.logical_and(output, conditions[i])
-    return output
 
 
 def load_calib(calib_dir):

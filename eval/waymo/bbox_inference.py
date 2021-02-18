@@ -1,52 +1,44 @@
-from __future__ import division
-
-import tensorflow as tf
-
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import os
-from tqdm import tqdm
-from os.path import join, dirname
-import sys
+from os.path import join
+
 import numpy as np
+import tensorflow as tf
 from point_viz.converter import PointvizConverter
-HOME = join(dirname(os.getcwd()))
-sys.path.append(HOME)
+from tqdm import tqdm
 
-from models import rcnn_model as model
+os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-stage2'))
+Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-stage2')
+
+from models import waymo_model as model
 from models.tf_ops.loader.others import rotated_nms3d_idx
-from train.configs import rcnn_config as config
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
+from train.configs import waymo_config as config
+import horovod.tensorflow as hvd
 
+hvd.init()
 
-data_home = '/home/tan/tony/dv-det/eval/data'
-model_path = '/home/tan/tony/dv-det/checkpoints/stage2_van/test/best_model_0.7802847970985773'
-# model_path = '/home/tan/tony/dv-det/checkpoints/stage2_l1/test/best_model_0.7438543078426844'
-os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det')
+# model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
+# model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
+model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2/test/best_model_0.7549459306562629'
+data_home = '/home/tan/tony/dv-det/eval/waymo/data'
 visualization = True
+
 
 input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)
 input_features_stack = np.load(join(data_home, 'input_features.npy'), allow_pickle=True)
 input_num_list_stack = np.load(join(data_home, 'input_num_list.npy'), allow_pickle=True)
 input_bboxes_stack = np.load(join(data_home, 'input_bboxes.npy'), allow_pickle=True)
 
-input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_inputs_placeholder()
+input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_inputs_placeholder(
+    input_channels=2,
+    bbox_padding=config.bbox_padding)
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-stage1_input_coors_p, stage1_input_features_p, stage1_input_num_list_p, _ = \
-    model.stage1_inputs_placeholder(input_channels=1,
-                                    bbox_padding=config.bbox_padding)
-
-# stage2_input_coors_p, stage2_input_features_p, stage2_input_num_list_p, \
-#     input_roi_coors_p, input_roi_attrs_p, input_roi_conf_logits_p, input_roi_num_list_p, input_bbox_p = \
-#     model.stage2_inputs_placeholder()
-
-coors, features, num_list, \
-    roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
-    model.stage1_model(input_coors=stage1_input_coors_p,
-                       input_features=stage1_input_features_p,
-                       input_num_list=stage1_input_num_list_p,
+coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+    model.stage1_model(input_coors=input_coors_p,
+                       input_features=input_features_p,
+                       input_num_list=input_num_list_p,
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
@@ -54,18 +46,17 @@ coors, features, num_list, \
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
+roi_ious = model.get_roi_iou(roi_coors=roi_coors,
+                             pred_roi_attrs=roi_attrs,
+                             roi_num_list=roi_num_list,
+                             bbox_labels=input_bbox_p)
 
-# roi_ious = model.get_roi_iou(roi_coors=output_roi_coors,
-#                              pred_roi_attrs=output_roi_attrs,
-#                              roi_num_list=output_roi_num_list,
-#                              bbox_labels=input_bbox_p)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.4)
+# roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+# roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
+# roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
 
-# nms_idx = rotated_nms3d_idx(output_roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.5)
-# output_roi_attrs = tf.gather(output_roi_attrs, nms_idx, axis=0)
-# output_roi_conf_logits = tf.gather(output_roi_conf_logits, nms_idx, axis=0)
-# output_roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
-
-bbox_attrs, bbox_conf_logits, bbox_num_list, _ = \
+bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
                        features=features,
                        num_list=num_list,
@@ -78,12 +69,11 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, _ = \
                        is_eval=True,
                        mem_saving=False,
                        bn=1.)
+
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
+bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
 nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
-
-stage1_loader = tf.train.Saver()
-saver = tf.train.Saver(max_to_keep=None)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -93,10 +83,9 @@ tf_config.gpu_options.allow_growth = True
 tf_config.allow_soft_placement = False
 tf_config.log_device_placement = False
 
+
 if __name__ == '__main__':
     with tf.Session(config=tf_config) as sess:
-        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata()
         saver.restore(sess, model_path)
         prediction_output = []
         for frame_id in tqdm(range(len(input_coors_stack))):
@@ -104,35 +93,20 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             batch_input_bboxes = input_bboxes_stack[frame_id]
-
-            # stage2_input_coors, stage2_input_features, stage2_input_num_list, \
-            # input_roi_coors, input_roi_attrs, input_roi_conf_logits, input_roi_num_list = \
-            #     sess.run([stage1_output_coors, stage1_output_features, stage1_output_num_list,
-            #               output_roi_coors, output_roi_attrs, output_roi_conf_logits, output_roi_num_list],
-            #              feed_dict={stage1_input_coors_p: batch_input_coors,
-            #                         stage1_input_features_p: batch_input_features,
-            #                         stage1_input_num_list_p: batch_input_num_list,
-            #                         is_stage1_training_p: False})
-
-            output_bboxes, output_coors, output_conf, output_idx = \
-                sess.run([bbox_attrs, coors, bbox_conf, nms_idx],
-                         feed_dict={stage1_input_coors_p: batch_input_coors,
-                                    stage1_input_features_p: batch_input_features,
-                                    stage1_input_num_list_p: batch_input_num_list,
+            output_bboxes, output_coors, output_conf, output_dir, output_idx = \
+                sess.run([bbox_attrs, coors, bbox_conf, bbox_dir, nms_idx],
+            # output_bboxes, output_coors, output_conf = \
+            #     sess.run([bbox_attrs, coors, bbox_conf],
+                         feed_dict={input_coors_p: batch_input_coors,
+                                    input_features_p: batch_input_features,
+                                    input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
-                         # options=run_options,
-                         # run_metadata=run_metadata)
-    #         if frame_id == 71:
-    #             tl = timeline.Timeline(run_metadata.step_stats)
-    #             ctf = tl.generate_chrome_trace_format()
-    #             with open('timeline.json', 'w') as f:
-    #                 f.write(ctf)
-    #             break
-    #
-            # output_idx = output_conf > 0.7
-            # output_idx = output_idx[:output_count[0]]
+
+            output_idx = output_conf > 0.3
+    #         output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
+            output_dir = output_dir[output_idx]
             #
             input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
@@ -145,7 +119,7 @@ if __name__ == '__main__':
             x = output_bboxes[:, 3]
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
-            r = output_bboxes[:, 6]
+            r = output_bboxes[:, 6] + np.pi * output_dir
 
             c = np.zeros(len(w))
             d = np.zeros(len(w))

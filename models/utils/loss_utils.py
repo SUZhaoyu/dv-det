@@ -28,3 +28,10 @@ def get_90_rotated_attrs(input_attrs):
                               input_attrs[:, 5],
                               input_attrs[:, 6] + np.pi / 2], axis=-1)
     return rotated_attrs
+
+def get_dir_cls(label, pred):
+    remainder = tf.math.floormod(tf.abs(label - pred), 2 * np.pi)
+    cls = tf.cast(tf.less(tf.cos(remainder), 0.), dtype=tf.float32)
+    return cls
+
+

@@ -13,7 +13,8 @@ Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det-stage1')
 from models import rcnn_model as model
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_eval/test/best_model_0.6925084921062944' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817' # 68.8%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/checkpoints/waymo-test/test/best_model_0.5305907412012659' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_focal=0.75/test/best_model_0.6906541874676403' # 68.5%@non-mem-saving
 data_home = '/home/tan/tony/dv-det/eval/data'
 visualization = True
@@ -23,7 +24,7 @@ input_features_stack = np.load(join(data_home, 'input_features.npy'), allow_pick
 input_num_list_stack = np.load(join(data_home, 'input_num_list.npy'), allow_pickle=True)
 input_bboxes_stack = np.load(join(data_home, 'input_bboxes.npy'), allow_pickle=True)
 
-input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_inputs_placeholder()
+input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_inputs_placeholder(input_channels=2)
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 

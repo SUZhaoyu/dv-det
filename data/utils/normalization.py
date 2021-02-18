@@ -113,7 +113,7 @@ def convert_threejs_bbox(bboxes):
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
             # threejs_bbox[-1] = category_dict[int(box[-2])] + ', ' + difficulty_dict[int(box[-1])]
-            threejs_bbox[-1] = "%.2f" % box[6]
+            threejs_bbox[-1] = "%.2fpi,%d" % (box[6]/np.pi, box[-1])
             threejs_bbox[-2] = "Magenta"
             threejs_bboxes.append(threejs_bbox)
 
@@ -192,7 +192,7 @@ def convert_threejs_bbox_with_colors(bboxes, color="white"):
         if box[0] * box[1] * box[2] > 0:
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
-            threejs_bbox[-1] = "%0.1f %0.1f %0.1f %0.1f %0.2f" % (box[2], box[0], box[1], box[6] / np.pi, box[-1])
+            threejs_bbox[-1] = "%0.2f, %0.2f" % (box[6] / np.pi, box[-1])
             # threejs_bbox[-1] = "conf=%0.2f, iou=%0.2f" % (box[-2], box[-1])
             threejs_bbox[-2] = color
             # if (box[-1] == 0):

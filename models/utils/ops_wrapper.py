@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import tensorflow as tf
+from horovod.tensorflow.sync_batch_norm import SyncBatchNormalization
 
 from models.tf_ops.loader.bbox_utils import roi_logits_to_attrs, bbox_logits_to_attrs
 from models.tf_ops.loader.others import voxel2col
@@ -20,12 +21,23 @@ def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
 
     :return: batch-normalized maps
     '''
-    return tf.layers.batch_normalization(inputs=inputs,
-                                         axis=-1,
+
+    hvd_sync_bn = SyncBatchNormalization(axis=-1,
                                          momentum=bn_decay,
-                                         training=is_training,
                                          trainable=trainable,
                                          name=name)
+    ret = hvd_sync_bn(inputs, training=is_training)  # 调用后updates属性才会有内容。
+    # print(hvd_sync_bn.updates)
+    for op in hvd_sync_bn.updates:
+        tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
+
+    return ret
+    # return tf.layers.batch_normalization(inputs=inputs,
+    #                                      axis=-1,
+    #                                      momentum=bn_decay,
+    #                                      training=is_training,
+    #                                      trainable=trainable,
+    #                                      name=name)
 
 
 def kernel_conv_wrapper(inputs,
