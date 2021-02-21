@@ -47,7 +47,8 @@ if __name__ == '__main__':
     coors_3, num_list_3, _ = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     coors_4, num_list_4, _ = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
 
-    voxel_idx, features = voxel_sampling_idx(input_coors=coors_1,
+
+    voxel_idx, features = voxel_sampling_idx_binary(input_coors=coors_1,
                                              input_features=get_rgbs_from_coors_tf(coors_1),
                                              input_num_list=num_list_1,
                                              center_coors=coors_2,
@@ -88,17 +89,17 @@ if __name__ == '__main__':
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: get_rgbs_from_coors(input_coors[i]),
-                                                                                   num_list_p: input_num_list[i]},
-                                                                        options=run_options,
-                                                                        run_metadata=run_metadata)
+                                                                                   num_list_p: input_num_list[i]})
+                                                                        # options=run_options,
+                                                                        # run_metadata=run_metadata)
 
             # print(output_centers.shape)
             ## time.sleep(0.1)
             #
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format(show_memory=True)
-            with open('timeline_{}.json'.format(i), 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format(show_memory=True)
+            # with open('timeline_{}.json'.format(i), 'w') as f:
+            #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
     # for i in tqdm(range(output_idx.shape[0])):

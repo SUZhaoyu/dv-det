@@ -163,7 +163,7 @@ public:
                                                        &output_idx_count));
         int* output_idx_count_ptr = output_idx_count.template flat<int>().data();
         cudaMemset(output_idx_count_ptr, 0, center_num*kernel_num*sizeof(int));
-
+//        printf("Host: here\n");
         voxel_sampling_idx_binary_gpu_launcher(batch_size, input_npoint,
                                                center_num, kernel_size,
                                                dimension[0], dimension[1], dimension[2],

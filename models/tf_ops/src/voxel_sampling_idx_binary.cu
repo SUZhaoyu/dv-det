@@ -27,39 +27,39 @@ __device__ int binary_search(const long long* input_voxel_idx,
     return -1;
 }
 
-__device__ int start_loc_search(const long long* input_voxel_idx,
-                                int grid_buffer_size,
-                                int start_id, int loc) {
-    long long input_idx = input_voxel_idx[loc];
-    long long query_idx = input_idx;
-    int start_loc = loc;
-    int count = 0;
-    while(query_idx == input_idx && start_loc > start_id && count < grid_buffer_size) {
-        query_idx = input_voxel_idx[start_loc];
-        start_loc -= 1;
-        count += 1;
-    }
-    if (query_idx == input_idx)
-        start_loc += 1;
-    return start_loc;
-}
-
-__device__ int stop_loc_search(const long long* input_voxel_idx,
-                               int grid_buffer_size,
-                               int stop_id, int loc) {
-    long long input_idx = input_voxel_idx[loc];
-    long long query_idx = input_idx;
-    int stop_loc = loc;
-    int count = 0;
-    while(query_idx == input_idx && stop_loc < stop_id && count < grid_buffer_size) {
-        query_idx = input_voxel_idx[stop_loc];
-        stop_loc += 1;
-        count += 1;
-    }
-    if (query_idx == input_idx)
-        stop_loc -= 1;
-    return stop_loc;
-}
+//__device__ int start_loc_search(const long long* input_voxel_idx,
+//                                int grid_buffer_size,
+//                                int start_id, int loc) {
+//    long long input_idx = input_voxel_idx[loc];
+//    long long query_idx = input_idx;
+//    int start_loc = loc;
+//    int count = 0;
+//    while(query_idx == input_idx && start_loc > start_id && count < grid_buffer_size) {
+//        query_idx = input_voxel_idx[start_loc];
+//        start_loc -= 1;
+//        count += 1;
+//    }
+//    if (query_idx == input_idx)
+//        start_loc += 1;
+//    return start_loc;
+//}
+//
+//__device__ int stop_loc_search(const long long* input_voxel_idx,
+//                               int grid_buffer_size,
+//                               int stop_id, int loc) {
+//    long long input_idx = input_voxel_idx[loc];
+//    long long query_idx = input_idx;
+//    int stop_loc = loc;
+//    int count = 0;
+//    while(query_idx == input_idx && stop_loc < stop_id && count < grid_buffer_size) {
+//        query_idx = input_voxel_idx[stop_loc];
+//        stop_loc += 1;
+//        count += 1;
+//    }
+//    if (query_idx == input_idx)
+//        stop_loc -= 1;
+//    return stop_loc;
+//}
 
 
 __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_npoint,
@@ -81,6 +81,7 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 //        printf("Voxel sample Op exited unexpectedly.\n");
         return;
     }
+    printf("here\n");
 	const int half_kernel_size = (kernel_size - 1) / 2;
 	const float radius = 1.5 * resolution;
 	const float r2 = radius * radius;
@@ -101,6 +102,7 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 	        }
 	    }
 	    __syncthreads();
+
 
 
 	    for (int i=threadIdx.x; i<center_num_list[b]; i+=blockDim.x) {
@@ -149,32 +151,35 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 //                        if (id > 100000)
 //                            printf("************VoxelSamplingBinaryOpId: %d\n", id);
                         if (id>=0) {
-                            int start_id = start_loc_search(input_voxel_idx, grid_buffer_size, batch_start_id, id);
-                            int stop_id = stop_loc_search(input_voxel_idx, grid_buffer_size, batch_stop_id, id);
-                            for (int i=start_id; i<stop_id && i<grid_buffer_size; i++) {
-                                float x_i = input_coors[i*3 + 0];
-                                float y_i = input_coors[i*3 + 1];
-                                float z_i = input_coors[i*3 + 2];
-                                float dx = x_i - x_c + EPS;
-                                float dy = y_i - y_c + EPS;
-                                float dz = z_i - z_c + EPS;
-                                float dx2 = dx * dx;
-                                float dy2 = dy * dy;
-                                float dz2 = dz * dz;
-                                if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
-                                    int x_coor = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
-                                    int y_coor = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
-                                    int z_coor = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
-                                    int voxel_coor = center_accu_list[b] * kernel_num + i * kernel_num + center_offset + \
-                                                     kernel_size * kernel_size * x_coor + \
-                                                     kernel_size * y_coor + \
-                                                     z_coor;
-                                    int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
-                                    if (pooling_count < output_pooling_size) {
-                                        output_idx[voxel_coor*output_pooling_size + pooling_count] = i;
-                                    }
+                            printf("%d, %d\n", batch_start_id, batch_stop_id);
+                            int i = id;
+//                            int start_id = start_loc_search(input_voxel_idx, grid_buffer_size, batch_start_id, id);
+//                            int stop_id = stop_loc_search(input_voxel_idx, grid_buffer_size, batch_stop_id, id);
+//                            printf("%d, %d\n", start_id, stop_id);
+//                            for (int i=start_id; i<stop_id && i<grid_buffer_size; i++) {
+                            float x_i = input_coors[i*3 + 0];
+                            float y_i = input_coors[i*3 + 1];
+                            float z_i = input_coors[i*3 + 2];
+                            float dx = x_i - x_c + EPS;
+                            float dy = y_i - y_c + EPS;
+                            float dz = z_i - z_c + EPS;
+                            float dx2 = dx * dx;
+                            float dy2 = dy * dy;
+                            float dz2 = dz * dz;
+                            if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
+                                int x_coor = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
+                                int y_coor = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
+                                int z_coor = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
+                                int voxel_coor = center_accu_list[b] * kernel_num + i * kernel_num + center_offset + \
+                                                 kernel_size * kernel_size * x_coor + \
+                                                 kernel_size * y_coor + \
+                                                 z_coor;
+                                int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
+                                if (pooling_count < output_pooling_size) {
+                                    output_idx[voxel_coor*output_pooling_size + pooling_count] = i;
                                 }
                             }
+//                            }
                         }
 	                }
 	            }
