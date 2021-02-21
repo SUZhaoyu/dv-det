@@ -29,6 +29,8 @@ REGISTER_OP("VoxelSamplingIdxOp")
     .Output("output_idx: int32") // [center_coors.shape[0], kernel_size ** 3, channels]
     .Attr("dimension: list(float)")
     .Attr("resolution: float")
+    .Attr("grid_buffer_size: int")
+    .Attr("output_pooling_size: int")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle center_coors_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(2), 2, &center_coors_shape));
@@ -36,9 +38,11 @@ REGISTER_OP("VoxelSamplingIdxOp")
         int kernel_size = 3;
 
         DimensionHandle center_num = c->Dim(center_coors_shape, 0);
+        int output_pooling_size;
+        TF_RETURN_IF_ERROR(c->GetAttr("output_pooling_size", &output_pooling_size));
 
         // The output shape during the shape inference stage is pseudo.
-        ShapeHandle output_idx_shape = c->MakeShape({center_num, kernel_size * kernel_size * kernel_size, 1});
+        ShapeHandle output_idx_shape = c->MakeShape({center_num, kernel_size * kernel_size * kernel_size, output_pooling_size});
 
         c->set_output(0, output_idx_shape); // output_idx
 
@@ -51,6 +55,7 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int center_num, int kernel_size,
                                      int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                      float resolution,
+                                     int grid_buffer_size, int output_pooling_size,
                                      const float* input_coors,
                                      const int* input_num_list,
                                      const float* center_coors,
@@ -58,13 +63,17 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int* input_accu_list,
                                      int* center_accu_list,
                                      int* grid_buffer,
-                                     int* output_idx);
+                                     int* grid_buffer_count,
+                                     int* output_idx,
+                                     int* output_idx_count);
 
 class VoxelSamplingIdxOp: public OpKernel {
 public:
     explicit VoxelSamplingIdxOp(OpKernelConstruction* context): OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("resolution", &resolution));
         OP_REQUIRES_OK(context, context->GetAttr("dimension", &dimension));
+        OP_REQUIRES_OK(context, context->GetAttr("grid_buffer_size", &grid_buffer_size));
+        OP_REQUIRES_OK(context, context->GetAttr("output_pooling_size", &output_pooling_size));
         OP_REQUIRES(context, resolution > 0,
                     errors::InvalidArgument("Resolution has to be greater than 0"));
         OP_REQUIRES(context, dimension.size() == 3,
@@ -140,20 +149,35 @@ public:
 
         Tensor grid_buffer;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
-                                                       TensorShape{batch_size, grid_dim_w, grid_dim_l, grid_dim_h},
+                                                       TensorShape{batch_size, grid_dim_w, grid_dim_l, grid_dim_h, grid_buffer_size},
                                                        &grid_buffer));
         int* grid_buffer_ptr = grid_buffer.template flat<int>().data();
-        cudaMemset(grid_buffer_ptr, 0xEF, batch_size*grid_dim_w*grid_dim_l*grid_dim_h*sizeof(int));
+        cudaMemset(grid_buffer_ptr, 0xEF, batch_size*grid_dim_w*grid_dim_l*grid_dim_h*grid_buffer_size*sizeof(int));
+
+        Tensor grid_buffer_count;
+        OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
+                                                       TensorShape{batch_size, grid_dim_w, grid_dim_l, grid_dim_h},
+                                                       &grid_buffer_count));
+        int* grid_buffer_count_ptr = grid_buffer_count.template flat<int>().data();
+        cudaMemset(grid_buffer_count_ptr, 0, batch_size*grid_dim_w*grid_dim_l*grid_dim_h*sizeof(int));
 
         Tensor* output_idx = nullptr;
-        auto output_idx_shape = TensorShape({center_num, kernel_num, 1});
+        auto output_idx_shape = TensorShape({center_num, kernel_num, output_pooling_size});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_idx_shape, &output_idx));
         int* output_idx_ptr = output_idx->template flat<int>().data();
+
+        Tensor output_idx_count;
+        OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
+                                                       TensorShape{center_num, kernel_num},
+                                                       &output_idx_count));
+        int* output_idx_count_ptr = output_idx_count.template flat<int>().data();
+        cudaMemset(output_idx_count_ptr, 0, center_num*kernel_num*sizeof(int));
 
         voxel_sampling_idx_gpu_launcher(batch_size, input_point_num,
                                         center_num, kernel_size,
                                         grid_dim_w, grid_dim_l, grid_dim_h,
                                         resolution,
+                                        grid_buffer_size, output_pooling_size,
                                         input_coors_ptr,
                                         input_num_list_ptr,
                                         center_coors_ptr,
@@ -161,7 +185,9 @@ public:
                                         input_accu_list_ptr,
                                         center_accu_list_ptr,
                                         grid_buffer_ptr,
-                                        output_idx_ptr);
+                                        grid_buffer_count_ptr,
+                                        output_idx_ptr,
+                                        output_idx_count_ptr);
 
         free(input_num_list_ptr_host);
         free(center_num_list_ptr_host);
@@ -171,6 +197,7 @@ public:
     }
 private:
     float resolution;
+    int output_pooling_size, grid_buffer_size;
     std::vector<float> dimension;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("VoxelSamplingIdxOp").Device(DEVICE_GPU), VoxelSamplingIdxOp);

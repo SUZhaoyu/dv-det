@@ -48,6 +48,7 @@ REGISTER_OP("VoxelSamplingFeatureOp")
 
 
 void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int channels, float padding,
+                                         int output_pooling_size,
                                          const float* input_features,
                                          const int* output_idx,
                                          float* output_features);
@@ -66,11 +67,12 @@ public:
 
         const Tensor& output_idx = context->input(1);
         auto output_idx_ptr = output_idx.template flat<int>().data();
-        OP_REQUIRES(context, output_idx.dims()==3 && output_idx.dim_size(1)==27 && output_idx.dim_size(2)==1,
+        OP_REQUIRES(context, output_idx.dims()==3 && output_idx.dim_size(1)==27,
                     errors::InvalidArgument("VoxelSamplingFeatureOp expects output_idx in shape: [center_num, 3x3x3, 1]."));
 
         int kernel_size = 3;
         int channels = input_features.dim_size(1);
+        int output_pooling_size = output_idx.dim_size(2);
         int kernel_num = kernel_size * kernel_size * kernel_size;
         int center_num = output_idx.dim_size(0);
 
@@ -81,9 +83,10 @@ public:
         auto output_features_shape = TensorShape({center_num, kernel_num, channels});
         OP_REQUIRES_OK(context, context->allocate_output(0, output_features_shape, &output_features));
         float* output_features_ptr = output_features->template flat<float>().data();
-//        cudaMemset(output_features_ptr, padding_value, center_number*kernel_num*channels*sizeof(float));
+        cudaMemset(output_features_ptr, 0, center_num*kernel_num*channels*sizeof(float));
 
         voxel_sampling_feature_gpu_launcher(center_num, kernel_num, channels, padding_value,
+                                            output_pooling_size,
                                             input_features_ptr,
                                             output_idx_ptr,
                                             output_features_ptr);
@@ -108,6 +111,7 @@ REGISTER_OP("VoxelSamplingFeatureGradOp")
 
 
 void voxel_sampling_feature_grad_gpu_launcher(int center_num, int kernel_num, int channels,
+                                              int output_pooling_size,
                                               const int* output_idx,
                                               const float* output_features_grad,
                                               float* input_features_grad);
@@ -137,6 +141,7 @@ public:
 
         int input_point_num = input_features.dim_size(0);
         int channels = input_features.dim_size(1);
+        int output_pooling_size = output_idx.dim_size(2);
         int center_num = output_idx.dim_size(0);
         int kernel_num = output_idx.dim_size(1);
 
@@ -146,6 +151,7 @@ public:
         cudaMemset(input_features_grad_ptr, 0.f, input_point_num*channels*sizeof(float));
 
         voxel_sampling_feature_grad_gpu_launcher(center_num, kernel_num, channels,
+                                                 output_pooling_size,
                                                  output_idx_ptr,
                                                  output_features_grad_ptr,
                                                  input_features_grad_ptr);

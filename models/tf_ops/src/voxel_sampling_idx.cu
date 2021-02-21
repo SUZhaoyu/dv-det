@@ -18,18 +18,23 @@ __device__ int get_batch_id(int* accu_list, int batch_size, int id) {
 }
 
 __global__ void output_init_gpu_kernel(int batch_size, int center_num, int kernel_num,
+                                       int output_pooling_size,
                                        int* output_idx) {
     int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (thread_id < center_num * kernel_num) {
-        output_idx[thread_id] = -1;
+        for (int p=0; p<output_pooling_size; p++) {
+            output_idx[thread_id*output_pooling_size + p] = -1;
+        }
     }
 }
 
 __global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num, float resolution,
                                             int grid_dim_w, int grid_dim_l, int grid_dim_h,
+                                            int grid_buffer_size,
                                             const float* input_coors,
                                             int* input_accu_list,
-                                            int* grid_buffer) {
+                                            int* grid_buffer,
+                                            int* grid_buffer_count) {
     const int grid_dim_size = grid_dim_w * grid_dim_h * grid_dim_l;
     int point_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (point_id < input_point_num) {
@@ -38,7 +43,12 @@ __global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num,
         int center_grid_coor_z = (int)floor(input_coors[point_id*3 + 2] / resolution);
         int batch_id = get_batch_id(input_accu_list, batch_size, point_id);
         int grid_buffer_idx = batch_id * grid_dim_size + center_grid_coor_x * grid_dim_l * grid_dim_h + center_grid_coor_y * grid_dim_h + center_grid_coor_z;
-        atomicExch(&grid_buffer[grid_buffer_idx], point_id);
+        int count = atomicAdd(&grid_buffer_count[grid_buffer_idx], 1);
+//        printf("%d\n", count);
+        if (count < grid_buffer_size) {
+            grid_buffer[grid_buffer_idx*grid_buffer_size + count] = point_id;
+        }
+//        atomicExch(&grid_buffer[grid_buffer_idx], point_id);
     }
 }
 
@@ -47,11 +57,14 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
                                               int kernel_size,
                                               int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                               float resolution,
+                                              int grid_buffer_size, int output_pooling_size,
                                               const float* input_coors,
                                               const float* center_coors,
                                               int* center_accu_list,
                                               int* grid_buffer,
-                                              int* output_idx) {
+                                              int* grid_buffer_count,
+                                              int* output_idx,
+                                              int* output_idx_count) {
 
 	const int kernel_num = kernel_size * kernel_size * kernel_size;
 	const int half_kernel_size = (kernel_size - 1) / 2;
@@ -91,28 +104,31 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
         int target_grid_y = max(0, min(center_grid_coor_y + search_offset_y, grid_dim_l - 1));
         int target_grid_z = max(0, min(center_grid_coor_z + search_offset_z, grid_dim_h - 1));
         int target_grid_id = batch_id * grid_dim_size + target_grid_x * grid_dim_l * grid_dim_h + target_grid_y * grid_dim_h + target_grid_z;
-        int point_id = grid_buffer[target_grid_id];
 
-        if (point_id>=0) {
-            float coor_x = input_coors[point_id*3 +0];
-            float coor_y = input_coors[point_id*3 +1];
-            float coor_z = input_coors[point_id*3 +2];
-            float dx = coor_x - center_coor_x + FLT_EPSILON;
-            float dy = coor_y - center_coor_y + FLT_EPSILON;
-            float dz = coor_z - center_coor_z + FLT_EPSILON;
-            float dx2 = dx * dx;
-            float dy2 = dy * dy;
-            float dz2 = dz * dz;
-            if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
-                int kernel_coor_x = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
-                int kernel_coor_y = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
-                int kernel_coor_z = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
-                int voxel_coor = center_id * kernel_num + half_kernel_num + \
-                                 kernel_size * kernel_size * kernel_coor_x + \
-                                 kernel_size * kernel_coor_y + \
-                                 kernel_coor_z;
-                if (output_idx[voxel_coor] < 0) {
-                    output_idx[voxel_coor] = point_id;
+        for (int p=0; p<grid_buffer_size; p++) {
+            int point_id = grid_buffer[target_grid_id*grid_buffer_size + p];
+            if (point_id>=0) {
+                float coor_x = input_coors[point_id*3 +0];
+                float coor_y = input_coors[point_id*3 +1];
+                float coor_z = input_coors[point_id*3 +2];
+                float dx = coor_x - center_coor_x + FLT_EPSILON;
+                float dy = coor_y - center_coor_y + FLT_EPSILON;
+                float dz = coor_z - center_coor_z + FLT_EPSILON;
+                float dx2 = dx * dx;
+                float dy2 = dy * dy;
+                float dz2 = dz * dz;
+                if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
+                    int kernel_coor_x = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
+                    int kernel_coor_y = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
+                    int kernel_coor_z = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
+                    int voxel_coor = center_id * kernel_num + half_kernel_num + \
+                                     kernel_size * kernel_size * kernel_coor_x + \
+                                     kernel_size * kernel_coor_y + \
+                                     kernel_coor_z;
+                    int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
+                    if (pooling_count < output_pooling_size) {
+                        output_idx[voxel_coor*output_pooling_size + pooling_count] = point_id;
+                    }
                 }
             }
         }
@@ -124,6 +140,7 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int center_num, int kernel_size,
                                      int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                      float resolution,
+                                     int grid_buffer_size, int output_pooling_size,
                                      const float* input_coors,
                                      const int* input_num_list,
                                      const float* center_coors,
@@ -131,7 +148,9 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int* input_accu_list,
                                      int* center_accu_list,
                                      int* grid_buffer,
-                                     int* output_idx) {
+                                     int* grid_buffer_count,
+                                     int* output_idx,
+                                     int* output_idx_count) {
     if (batch_size*input_point_num <=0 || center_num <= 0) {
         printf("VoxelSampleOp ERROR: Invalid CUDA input dimensions.\n");
         return;
@@ -146,24 +165,30 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, output_init_gpu_kernel, 0, center_num * kernel_num);
     gridSize = (center_num * kernel_num + blockSize - 1) / blockSize;
     output_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num, kernel_num,
+                                                    output_pooling_size,
                                                     output_idx);
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_buffer_init_gpu_kernel, 0, input_point_num);
     gridSize = (input_point_num + blockSize - 1) / blockSize;
     grid_buffer_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num, resolution,
                                                          grid_dim_w, grid_dim_l, grid_dim_h,
+                                                         grid_buffer_size,
                                                          input_coors,
                                                          input_accu_list,
-                                                         grid_buffer);
+                                                         grid_buffer,
+                                                         grid_buffer_count);
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_idx_gpu_kernel, 0, center_num * search_kernel_num);
     gridSize = (center_num * search_kernel_num + blockSize - 1) / blockSize;
     voxel_sampling_idx_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num,
                                                            kernel_size,
                                                            grid_dim_w, grid_dim_l, grid_dim_h, resolution,
+                                                           grid_buffer_size, output_pooling_size,
                                                            input_coors,
                                                            center_coors,
                                                            center_accu_list,
                                                            grid_buffer,
-                                                           output_idx);
+                                                           grid_buffer_count,
+                                                           output_idx,
+                                                           output_idx_count);
 }

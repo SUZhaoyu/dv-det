@@ -137,13 +137,17 @@ def voxel_sampling_idx(input_coors,
                        center_num_list,
                        resolution,
                        dimension,
-                       offset):
+                       offset,
+                       grid_buffer_size,
+                       output_pooling_size):
     output_idx = voxel_sampling_idx_exe.voxel_sampling_idx_op(input_coors=input_coors + offset,
                                                               input_num_list=input_num_list,
                                                               center_coors=center_coors + offset,
                                                               center_num_list=center_num_list,
                                                               dimension=dimension,
-                                                              resolution=resolution)
+                                                              resolution=resolution,
+                                                              grid_buffer_size=grid_buffer_size,
+                                                              output_pooling_size=output_pooling_size)
     return output_idx, input_features
 
 
@@ -242,7 +246,9 @@ def voxel_sampling_idx_binary(input_coors,
                               center_num_list,
                               resolution,
                               dimension,
-                              offset):
+                              offset,
+                              grid_buffer_size,
+                              output_pooling_size):
 
     npoint = tf.shape(input_coors)[0]
     batch_size = tf.shape(input_num_list)[0]
@@ -272,7 +278,9 @@ def voxel_sampling_idx_binary(input_coors,
                                                                             center_coors=center_coors + offset,
                                                                             center_num_list=center_num_list,
                                                                             dimension=dimension,
-                                                                            resolution=resolution)
+                                                                            resolution=resolution,
+                                                                            grid_buffer_size=grid_buffer_size,
+                                                                            output_pooling_size=output_pooling_size)
     return output_idx, sorted_features
 
 ops.NoGradient("VoxelSamplingIdxBinaryOp")

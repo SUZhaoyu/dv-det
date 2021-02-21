@@ -2,10 +2,10 @@ import os
 
 import tensorflow as tf
 from tqdm import tqdm
-
+from tensorflow.python.client import timeline
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_feature, voxel_sampling_idx
+from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_feature, voxel_sampling_idx, voxel_sampling_idx_binary
 # from models.utils.ops_wrapper import kernel_conv_wrapper
 from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points_from_voxels_with_color, \
     get_rgbs_from_coors_tf
@@ -41,20 +41,22 @@ if __name__ == '__main__':
     # coors, num_list = coors_p, num_list_p
 
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list, 16,0.8, 'layer_0')
-    coors_0, num_list_0 = grid_sampling_thrust(coors_p, num_list_p, 0.1, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    coors_1, num_list_1 = grid_sampling_thrust(coors_0, num_list_0, 0.2, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    coors_2, num_list_2 = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    coors_3, num_list_3 = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    coors_4, num_list_4 = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_0, num_list_0, _ = grid_sampling_thrust(coors_p, num_list_p, 0.1, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_1, num_list_1, _ = grid_sampling_thrust(coors_0, num_list_0, 0.2, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_2, num_list_2, _ = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_3, num_list_3, _ = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_4, num_list_4, _ = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
 
     voxel_idx, features = voxel_sampling_idx(input_coors=coors_1,
-                                                    input_features=get_rgbs_from_coors_tf(coors_1),
-                                                    input_num_list=num_list_1,
-                                                    center_coors=coors_2,
-                                                    center_num_list=num_list_2,
-                                                    resolution=0.2,
-                                                    dimension=[100, 160.0, 8.0],
-                                                    offset=[10., 80.0, 4.0])
+                                             input_features=get_rgbs_from_coors_tf(coors_1),
+                                             input_num_list=num_list_1,
+                                             center_coors=coors_2,
+                                             center_num_list=num_list_2,
+                                             resolution=0.2,
+                                             dimension=[100, 160.0, 8.0],
+                                             offset=[10., 80.0, 4.0],
+                                             grid_buffer_size=3,
+                                             output_pooling_size=5)
 
     voxels = voxel_sampling_feature(input_features=features,
                                     output_idx=voxel_idx,
@@ -77,26 +79,26 @@ if __name__ == '__main__':
     config.log_device_placement = False
     config.gpu_options.visible_device_list = '0'
     with tf.Session(config=config) as sess:
-        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        # run_metadata = tf.RunMetadata()
+        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            output_centers, output_num_list, output_features = sess.run([coors_2, num_list_2, voxels,],
+            output_centers, output_num_list, output_features, output_idx = sess.run([coors_2, num_list_2, voxels, voxel_idx],
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: get_rgbs_from_coors(input_coors[i]),
-                                                                                   num_list_p: input_num_list[i]})
-                                                                        # options=run_options,
-                                                                        # run_metadata=run_metadata)
+                                                                                   num_list_p: input_num_list[i]},
+                                                                        options=run_options,
+                                                                        run_metadata=run_metadata)
 
             # print(output_centers.shape)
             ## time.sleep(0.1)
             #
-            # tl = timeline.Timeline(run_metadata.step_stats)
-            # ctf = tl.generate_chrome_trace_format(show_memory=True)
-            # with open('timeline_{}.json'.format(i), 'w') as f:
-            #     f.write(ctf)
+            tl = timeline.Timeline(run_metadata.step_stats)
+            ctf = tl.generate_chrome_trace_format(show_memory=True)
+            with open('timeline_{}.json'.format(i), 'w') as f:
+                f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
     # for i in tqdm(range(output_idx.shape[0])):
