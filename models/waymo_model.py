@@ -256,14 +256,14 @@ def stage1_loss(roi_coors,
 
     return total_loss_collection, averaged_iou_collection
 
-def get_roi_iou(roi_coors, pred_roi_attrs, roi_num_list, bbox_labels):
+def get_roi_iou(roi_coors, pred_roi_attrs, roi_num_list, bbox_labels, clip=False):
     gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=roi_coors,
                                                           bboxes=bbox_labels,
                                                           input_num_list=roi_num_list,
                                                           anchor_size=anchor_size,
                                                           expand_ratio=0.2,
                                                           diff_thres=4)
-    roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
+    roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=clip)
     return roi_ious
 
 

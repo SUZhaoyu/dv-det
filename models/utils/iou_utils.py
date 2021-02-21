@@ -246,8 +246,8 @@ def get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersectio
     gt_volume = gt_attrs[:, 0] * gt_attrs[:, 1] * gt_attrs[:, 2]
     pred_volume = pred_attrs[:, 0] * pred_attrs[:, 1] * pred_attrs[:, 2]
     iou = tf.math.divide_no_nan(intersection_volume, gt_volume + pred_volume - intersection_volume)
-    tf.summary.scalar('iou_nan_sum',
-                      hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
+    # tf.summary.scalar('iou_nan_sum',
+    #                   hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
     if clip:
         iou = tf.where(tf.is_nan(iou), tf.zeros_like(iou), iou)
     return iou
@@ -292,4 +292,4 @@ def cal_3d_iou_debug(gt_attrs, pred_attrs, clip=False):
     intersection_height = get_intersection_height(gt_attrs, pred_attrs)
     ious = get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersection_height, clip)
 
-    return ious
+    return ious, intersection_2d_area

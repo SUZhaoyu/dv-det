@@ -27,36 +27,61 @@ __device__ int binary_search(const long long* input_voxel_idx,
     return -1;
 }
 
+//__device__ int start_loc_search(const long long* input_voxel_idx,
+//                                int grid_buffer_size,
+//                                int start_id, int loc) {
+//    long long input_idx = input_voxel_idx[loc];
+//    long long query_idx = input_idx;
+//    int start_loc = loc;
+//    int count = 0;
+//    while(query_idx == input_idx && start_loc > start_id && count < grid_buffer_size) {
+//        query_idx = input_voxel_idx[--start_loc];
+//        count += 1;
+//    }
+//    if (query_idx != input_idx)
+//        start_loc += 1;
+//    return start_loc;
+//}
+
 __device__ int start_loc_search(const long long* input_voxel_idx,
-                                int grid_buffer_size,
-                                int start_id, int loc) {
+                                   int grid_buffer_size,
+                                   int start_loc, int loc) {
     long long input_idx = input_voxel_idx[loc];
-    long long query_idx = input_idx;
-    int start_loc = loc;
     int count = 0;
-    while(query_idx == input_idx && start_loc > start_id && count < grid_buffer_size) {
-        query_idx = input_voxel_idx[--start_loc];
-        count += 1;
+//    printf("%d, %d\n", ret_loc, loc);
+    int ret_loc = loc;
+    for (ret_loc = loc; ret_loc > start_loc && count < grid_buffer_size; --ret_loc) {
+//    while(query_idx == input_idx && ret_loc < stop_loc && count < grid_buffer_size) {
+        if (input_voxel_idx[ret_loc] != input_idx) {
+            ret_loc++;
+            break;
+        }
+//        printf("%lld@%d, %lld@%d\n", input_idx, loc, query_idx, ret_loc);
+        count++;
     }
-    if (query_idx != input_idx)
-        start_loc += 1;
-    return start_loc;
+//    if (query_idx != input_idx)
+//        ret_loc -= 1;
+    return ret_loc;
 }
 
 __device__ int stop_loc_search(const long long* input_voxel_idx,
                                int grid_buffer_size,
                                int stop_loc, int loc) {
     long long input_idx = input_voxel_idx[loc];
-    long long query_idx = input_idx;
-    int ret_loc = loc;
     int count = 0;
-    while(query_idx == input_idx && ret_loc < stop_loc && count < grid_buffer_size) {
-        query_idx = input_voxel_idx[++ret_loc];
-        printf("%d, %d@%d\n", input_idx, query_idx, ret_loc);
+    int ret_loc = loc;
+//    printf("%d, %d\n", ret_loc, loc);
+    for (ret_loc = loc; ret_loc < stop_loc && count < grid_buffer_size; ++ret_loc) {
+//    while(query_idx == input_idx && ret_loc < stop_loc && count < grid_buffer_size) {
+        if (input_voxel_idx[ret_loc] != input_idx) {
+            ret_loc--;
+            break;
+        }
+//        printf("%d@%d, %d@%d\n", input_idx, loc, query_idx, ret_loc);
         count += 1;
     }
-    if (query_idx != input_idx)
-        ret_loc -= 1;
+//    if (query_idx != input_idx)
+//        ret_loc -= 1;
     return ret_loc;
 }
 
@@ -75,7 +100,6 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                                      int* center_accu_list,
                                                      int* output_idx,
                                                      int* output_idx_count) {
-    printf("here\n");
 
     if (batch_size*input_npoint <=0 || center_num <= 0) {
 //        printf("Voxel sample Op exited unexpectedly.\n");
@@ -98,7 +122,9 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 	for (int b=blockIdx.x; b<batch_size; b+=gridDim.x) {
 	    for (int i=threadIdx.x; i<center_num_list[b]; i+=blockDim.x) {
 	        for (int j=0; j<kernel_num; j++) {
-	            output_idx[center_accu_list[b]*kernel_num + i*kernel_num + j] = -1;
+	            int voxel_coor = center_accu_list[b]*kernel_num + i*kernel_num + j;
+	            for (int p=0; p<output_pooling_size; p++)
+	                output_idx[voxel_coor*output_pooling_size + p] = -1;
 	        }
 	    }
 	    __syncthreads();
@@ -144,22 +170,23 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                         long long target_grid_id = h * grid_w * grid_l + l * grid_w + w;
                         int batch_start_id = input_accu_list[b];
                         int batch_stop_id = input_accu_list[b] + input_num_list[b] - 1;
-                        int id = binary_search(input_voxel_idx,
-                                               batch_start_id,
-                                               batch_stop_id,
-                                               target_grid_id);
+                        int target_id = binary_search(input_voxel_idx,
+                                                      batch_start_id,
+                                                      batch_stop_id,
+                                                      target_grid_id);
 //                        if (id > 100000)
 //                            printf("************VoxelSamplingBinaryOpId: %d\n", id);
-                        if (id>=0) {
+                        if (target_id>=0) {
 //                            printf("%d, %d\n", batch_start_id, batch_stop_id);
 //                            int i = id;
-                            int start_id = start_loc_search(input_voxel_idx, grid_buffer_size, batch_start_id, id);
-                            int stop_id = stop_loc_search(input_voxel_idx, grid_buffer_size, batch_stop_id, id);
-//                            printf("%d, %d, %d\n", start_id, id, stop_id);
-                            for (int i=start_id; i<=stop_id && i<grid_buffer_size; i++) {
-                                float x_i = input_coors[i*3 + 0];
-                                float y_i = input_coors[i*3 + 1];
-                                float z_i = input_coors[i*3 + 2];
+                            int target_start_id = start_loc_search(input_voxel_idx, grid_buffer_size, batch_start_id, target_id);
+                            int target_stop_id = stop_loc_search(input_voxel_idx, grid_buffer_size, batch_stop_id, target_id);
+//                            if (stop_id > start_id)
+//                                printf("%d\n", stop_id - start_id);
+                            for (int id=target_start_id; id<=target_stop_id; id++) {
+                                float x_i = input_coors[id*3 + 0];
+                                float y_i = input_coors[id*3 + 1];
+                                float z_i = input_coors[id*3 + 2];
                                 float dx = x_i - x_c + EPS;
                                 float dy = y_i - y_c + EPS;
                                 float dz = z_i - z_c + EPS;
@@ -176,7 +203,7 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                                      z_coor;
                                     int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
                                     if (pooling_count < output_pooling_size) {
-                                        output_idx[voxel_coor*output_pooling_size + pooling_count] = i;
+                                        output_idx[voxel_coor*output_pooling_size + pooling_count] = id;
                                     }
                                 }
                             }

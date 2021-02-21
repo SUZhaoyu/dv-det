@@ -157,6 +157,9 @@ def main():
         best_result = 0.
         step = 0
         # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
+        save_best_sess(mon_sess, best_result, 1,
+                       log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
+                       save_anyway=False)
 
         for epoch in range(config.total_epoch):
             if is_hvd_root:

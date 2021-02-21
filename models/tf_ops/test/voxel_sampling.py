@@ -59,9 +59,9 @@ if __name__ == '__main__':
                                              grid_buffer_size=3,
                                              output_pooling_size=5)
 
-    # voxels = voxel_sampling_feature(input_features=features,
-    #                                 output_idx=voxel_idx,
-    #                                 padding=-1)
+    voxels = voxel_sampling_feature(input_features=features,
+                                    output_idx=voxel_idx,
+                                    padding=-1)
 
     # voxels = voxel_sampling_binary(input_coors=coors_1,
     #                                     input_features=get_rgbs_from_coors_tf(coors_1),
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         for i in tqdm(range(epoch)):
             # coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
             # output_features, output_centers, output_num_list, output_voxels = sess.run([features, coors, num_list, voxels],
-            output_centers, output_num_list, output_idx = sess.run([coors_2, num_list_2, voxel_idx],
+            output_centers, output_num_list, output_features, output_idx = sess.run([coors_2, num_list_2, voxels, voxel_idx],
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: get_rgbs_from_coors(input_coors[i]),
@@ -107,13 +107,13 @@ if __name__ == '__main__':
     #         if output_idx[i, j, 0] > 1e6:
     #             print(i, j, output_idx[i, j, 0])
 
-    # id = 6
-    # output_voxels = fetch_instance(output_features, output_num_list, id=id)
-    # output_centers = fetch_instance(output_centers, output_num_list, id=id)
-    #
-    # plot_points_from_voxels_with_color(voxels=output_voxels,
-    #                                    center_coors=output_centers,
-    #                                    resolution=0.2,
-    #                                    self_rgbs=True,
-    #                                    name='voxel_sampling_binary')
+    id = 6
+    output_voxels = fetch_instance(output_features, output_num_list, id=id)
+    output_centers = fetch_instance(output_centers, output_num_list, id=id)
+
+    plot_points_from_voxels_with_color(voxels=output_voxels,
+                                       center_coors=output_centers,
+                                       resolution=0.2,
+                                       self_rgbs=True,
+                                       name='voxel_sampling_binary')
     #
