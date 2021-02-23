@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #exe_file="train_stage1_anchor_x2.py"
-exe_file="waymo/train_stage1.py"
+exe_file="waymo/train_stage2.py"
 #exe_file="train_stage1.py"
 pkill -f -9 $exe_file
 

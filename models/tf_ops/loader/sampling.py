@@ -236,6 +236,7 @@ def voxel_sampling_binary_grad(op, grad, _):
                                                                                   output_features_grad=grad)
     return [None, input_features_grad, None, None, None, None]
 
+
 # =============================================Voxel Sampling Idx Binary===============================================
 
 voxel_sampling_idx_binary_exe = tf.load_op_library(join(CWD, '../build', 'voxel_sampling_idx_binary.so'))

@@ -44,8 +44,8 @@ __device__ int binary_search(const long long* input_voxel_idx,
 //}
 
 __device__ int start_loc_search(const long long* input_voxel_idx,
-                                   int grid_buffer_size,
-                                   int start_loc, int loc) {
+                               int grid_buffer_size,
+                               int start_loc, int loc) {
     long long input_idx = input_voxel_idx[loc];
     int count = 0;
 //    printf("%d, %d\n", ret_loc, loc);
@@ -182,7 +182,7 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                             int target_start_id = start_loc_search(input_voxel_idx, grid_buffer_size, batch_start_id, target_id);
                             int target_stop_id = stop_loc_search(input_voxel_idx, grid_buffer_size, batch_stop_id, target_id);
 //                            if (stop_id > start_id)
-//                                printf("%d\n", stop_id - start_id);
+//                            printf("%lld, %lld, %lld\n", input_voxel_idx[target_start_id-1], input_voxel_idx[target_id], input_voxel_idx[target_stop_id+1]);
                             for (int id=target_start_id; id<=target_stop_id; id++) {
                                 float x_i = input_coors[id*3 + 0];
                                 float y_i = input_coors[id*3 + 1];

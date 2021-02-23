@@ -14,6 +14,8 @@ def point_conv(input_coors,
                center_idx,
                layer_params,
                dimension_params,
+               grid_buffer_size,
+               output_pooling_size,
                scope,
                is_training,
                mem_saving,
@@ -49,7 +51,9 @@ def point_conv(input_coors,
                                                         center_num_list=center_num_list,
                                                         resolution=layer_params['kernel_res'],
                                                         dimension=dimension_params['dimension'],
-                                                        offset=dimension_params['offset'])
+                                                        offset=dimension_params['offset'],
+                                                        grid_buffer_size=grid_buffer_size,
+                                                        output_pooling_size=output_pooling_size)
     else:
         voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
         features = input_features

@@ -10,6 +10,13 @@
             </list>
           </settings>
         </remote-mappings>
+        <remote-mappings server-id="python@sshConfig://tan@gx4:22 agent/home/tan/anaconda3/envs/detection/bin/python">
+          <settings>
+            <list>
+              <mapping local-root="$PROJECT_DIR$" remote-root="/home/tan/tony/dv-det" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>

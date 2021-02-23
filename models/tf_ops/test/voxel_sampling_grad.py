@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_idx_binary, voxel_sampling_feature
+from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_idx_binary, voxel_sampling_feature, voxel_sampling_feature_grad_test, voxel_sampling_idx
 from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points, get_rgbs_from_coors_tf
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -15,54 +15,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 batch_size = 16
 epoch = 10
 CWD = '/home/tan/tony/dv-det/models/tf_ops'
-voxel_sampling_binary_exe = tf.load_op_library(join(CWD, 'build', 'voxel_sampling_binary.so'))
-def voxel_sampling_binary(input_coors,
-                         input_features,
-                         input_num_list,
-                         center_coors,
-                         center_num_list,
-                         resolution,
-                         padding=0.,
-                         dimension=[120, 160.0, 8.0],
-                         offset=[20., 80.0, 5.0]):
-
-    npoint = tf.shape(input_coors)[0]
-    batch_size = tf.shape(input_num_list)[0]
-    dim_w = tf.cast(tf.floor(dimension[0] / resolution), dtype=tf.int64)
-    dim_l = tf.cast(tf.floor(dimension[1] / resolution), dtype=tf.int64)
-    dim_h = tf.cast(tf.floor(dimension[2] / resolution), dtype=tf.int64)
-    dim_offset = dim_w * dim_l * dim_h
-
-    point_ids = tf.range(npoint) + 1
-    point_ids_array = tf.cast(tf.tile(tf.expand_dims(point_ids, axis=0), [batch_size, 1]), dtype=tf.float32)
-    accu_num_list = tf.cast(tf.cumsum(input_num_list), dtype=tf.float32)
-    masks = tf.cast(tf.greater(point_ids_array / tf.expand_dims(accu_num_list, axis=-1), 1.0), dtype=tf.int64)
-    voxel_offset_masks = tf.reduce_sum(masks, axis=0) * dim_offset
-
-    input_voxel_coors = tf.cast(tf.floor((input_coors + offset) / resolution), dtype=tf.int64)
-    input_voxel_ids = input_voxel_coors[:, 2] * dim_l * dim_w + input_voxel_coors[:, 1] * dim_w + input_voxel_coors[:, 0]
-    input_voxel_ids += voxel_offset_masks
-    sorted_args = tf.argsort(input_voxel_ids)
-    sorted_voxel_ids = tf.gather(input_voxel_ids, sorted_args) - voxel_offset_masks
-    sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
-    sorted_features = tf.gather(input_features, sorted_args, axis=0)
-    # XXX: Need to pay attention to the back-propagation implementation.
-    output_voxels, output_idx = voxel_sampling_binary_exe.voxel_sampling_binary_op(input_coors=sorted_coors + offset,
-                                                                          input_features=sorted_features,
-                                                                          input_voxel_idx=sorted_voxel_ids,
-                                                                          input_num_list=input_num_list,
-                                                                          center_coors=center_coors + offset,
-                                                                          center_num_list=center_num_list,
-                                                                          dimension=dimension,
-                                                                          resolution=resolution,
-                                                                          padding_value=padding)
-    return output_voxels, output_idx, sorted_coors, sorted_features
-
-def voxel_sampling_binary_grad(input_features, output_idx, output_grad):
-    input_grad = voxel_sampling_binary_exe.voxel_sampling_binary_grad_op(input_features=input_features,
-                                                                        output_idx=output_idx,
-                                                                        output_features_grad=output_grad)
-    return input_grad
 
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
@@ -89,27 +41,31 @@ if __name__ == '__main__':
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
 
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list, 16,0.8, 'layer_0')
-    coors_0, num_list_0 = grid_sampling_thrust(coors_p, num_list_p, 0.2, dimension=[120, 160.0, 8.0], offset=[20., 80.0, 5.0])
-    coors_1, num_list_1 = grid_sampling_thrust(coors_0, num_list_0, 0.4, dimension=[120, 160.0, 8.0], offset=[20., 80.0, 5.0])
-    coors_2, num_list_2 = grid_sampling_thrust(coors_1, num_list_1, 0.6, dimension=[120, 160.0, 8.0], offset=[20., 80.0, 5.0])
+    coors_0, num_list_0, _ = grid_sampling_thrust(coors_p, num_list_p, 0.2, dimension=[120, 160.0, 8.0], offset=[20., 80.0, 5.0])
+    coors_1, num_list_1, _ = grid_sampling_thrust(coors_0, num_list_0, 0.4, dimension=[120, 160.0, 8.0], offset=[20., 80.0, 5.0])
+    coors_2, num_list_2, _ = grid_sampling_thrust(coors_1, num_list_1, 0.6, dimension=[120, 160.0, 8.0], offset=[20., 80.0, 5.0])
 
-    voxel_idx = voxel_sampling_idx_binary(input_coors=coors_1,
-                                            input_num_list=num_list_1,
-                                            center_coors=coors_2,
-                                            center_num_list=num_list_2,
-                                            resolution=0.2,
-                                            dimension=[100, 160.0, 8.0],
-                                            offset=[10., 80.0, 4.0])
+    voxel_idx, features, sorted_coors = voxel_sampling_idx_binary(input_coors=coors_1,
+                                                                    input_features=get_rgbs_from_coors_tf(coors_1),
+                                                                    input_num_list=num_list_1,
+                                                                    center_coors=coors_2,
+                                                                    center_num_list=num_list_2,
+                                                                    resolution=0.2,
+                                                                    dimension=[100, 160.0, 8.0],
+                                                                    offset=[10., 80.0, 4.0],
+                                                                    grid_buffer_size=3,
+                                                                    output_pooling_size=5)
 
-    voxels = voxel_sampling_feature(input_features=get_rgbs_from_coors_tf(coors_1),
+    voxels = voxel_sampling_feature(input_features=features,
                                     output_idx=voxel_idx,
                                     padding=0)
 
-    # input_grad = voxel_sampling_feature_grad_test(input_features=)
+
+
     #
-    # input_grad = voxel_sampling_binary_grad(input_features=sorted_features,
-    #                                           output_idx=idx,
-    #                                           output_grad=voxels)
+    input_grad = voxel_sampling_feature_grad_test(input_features=features,
+                                                output_idx=voxel_idx,
+                                                grad=voxels)
 
     init_op = tf.initialize_all_variables()
     config = tf.ConfigProto()

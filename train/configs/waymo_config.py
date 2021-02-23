@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-batch_size = 8
+batch_size = 4
 bbox_padding = 256
 aug_config = {'nbbox': bbox_padding,
               'train': 798 * 200 * 0.2 / 8 / batch_size,
@@ -22,10 +22,15 @@ aug_config = {'nbbox': bbox_padding,
 dimension_training = [180., 180., 8.]
 offset_training = [90., 90., 3.0]
 
+# dimension_training = [152., 152., 6.5]
+# offset_training = [76., 76., 2.5]
+
 # dimension_inference = [70.4, 80.0, 4.0]
 # offset_inference = [0., 40.0, 3.0]
 
 anchor_size = [2.1, 4.8, 1.75]
+grid_buffer_size = 3
+output_pooling_size = 5
 
 
 local = False
@@ -62,8 +67,8 @@ output_attr = 8
 total_epoch = 300
 
 roi_thres = 0.4
-iou_thres = 0.6
-max_length = 768
+iou_thres = 0.55
+max_length = 512
 roi_voxel_size = 5
 
 # base_params_training = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding': -1.},

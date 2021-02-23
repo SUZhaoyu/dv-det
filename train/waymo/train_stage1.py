@@ -12,7 +12,7 @@ from shutil import rmtree, copyfile
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import rcnn_model as model
+from models import waymo_model as model
 from train.configs import waymo_config as config
 from data.waymo_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
@@ -157,9 +157,9 @@ def main():
         best_result = 0.
         step = 0
         # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
-        save_best_sess(mon_sess, best_result, 1,
-                       log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
-                       save_anyway=False)
+        # save_best_sess(mon_sess, best_result, 1,
+        #                log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
+        #                save_anyway=False)
 
         for epoch in range(config.total_epoch):
             if is_hvd_root:

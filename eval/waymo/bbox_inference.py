@@ -19,7 +19,7 @@ hvd.init()
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
-model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2/test/best_model_0.7549459306562629'
+model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2-avg_pool-2/test/best_model_0.7565488711153127'
 data_home = '/home/tan/tony/dv-det/eval/waymo/data'
 visualization = True
 
@@ -73,7 +73,7 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.4)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
 
-            output_idx = output_conf > 0.3
+            output_idx = output_conf > 0.4
     #         output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]

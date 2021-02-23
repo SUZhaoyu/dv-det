@@ -44,11 +44,10 @@ if __name__ == '__main__':
     coors_0, num_list_0, _ = grid_sampling_thrust(coors_p, num_list_p, 0.1, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     coors_1, num_list_1, _ = grid_sampling_thrust(coors_0, num_list_0, 0.2, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     coors_2, num_list_2, _ = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    coors_3, num_list_3, _ = grid_sampling_thrust(coors_2, num_list_2, 0.6, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
-    coors_4, num_list_4, _ = grid_sampling_thrust(coors_3, num_list_3, 0.8, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
 
 
-    voxel_idx, features = voxel_sampling_idx_binary(input_coors=coors_1,
+
+    voxel_idx, features, _ = voxel_sampling_idx_binary(input_coors=coors_1,
                                              input_features=get_rgbs_from_coors_tf(coors_1),
                                              input_num_list=num_list_1,
                                              center_coors=coors_2,
@@ -56,8 +55,8 @@ if __name__ == '__main__':
                                              resolution=0.2,
                                              dimension=[100, 160.0, 8.0],
                                              offset=[10., 80.0, 4.0],
-                                             grid_buffer_size=3,
-                                             output_pooling_size=5)
+                                             grid_buffer_size=1,
+                                             output_pooling_size=1)
 
     voxels = voxel_sampling_feature(input_features=features,
                                     output_idx=voxel_idx,
