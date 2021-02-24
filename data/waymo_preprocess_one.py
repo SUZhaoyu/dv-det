@@ -9,16 +9,16 @@ logging.basicConfig(level=logging.INFO)
 from data.utils.normalization import get_union_sets, convert_threejs_coors, convert_threejs_bbox
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
-task = 'val'
-node_num = 16
-keep_ratio = 0.2
+task = 'val-full'
+keep_ratio = 1.0
 scene_num_dict = {'train': 798,
-                  'val': 202}
+                  'val': 202,
+                  'val-full': 202}
 range_x = [-75.2, 75.2]
 range_y = [-75.2, 75.2]
 range_z = [-2., 4.]
 
-raw_home = join('/media/data1/waymo', task)
+raw_home = join('/media/data1/waymo/val')
 lidar_output_home = join('/media/data1/waymo/segments', '{}/lidar'.format(task))
 label_output_home = join('/media/data1/waymo/segments', '{}/label'.format(task))
 
@@ -66,8 +66,8 @@ if __name__ == '__main__':
     frame_count = 0
     logging.info("Loading raw dataset...")
     for scene_id in tqdm(scene_id_list):
-        scene_lidar = np.load(join(raw_home, '{}_lidars_{}.npy'.format(task, scene_id)), allow_pickle=True)
-        scene_label = np.load(join(raw_home, '{}_output_labels_{}.npy'.format(task, scene_id)), allow_pickle=True)
+        scene_lidar = np.load(join(raw_home, '{}_lidars_{}.npy'.format('val', scene_id)), allow_pickle=True)
+        scene_label = np.load(join(raw_home, '{}_output_labels_{}.npy'.format('val', scene_id)), allow_pickle=True)
         assert len(scene_lidar) == len(scene_label)
         scene_frame_num = len(scene_label)
         selected_scene_frame_num = int(np.floor(scene_frame_num * keep_ratio))

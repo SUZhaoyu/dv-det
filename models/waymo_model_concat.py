@@ -7,7 +7,7 @@ from models.tf_ops.loader.others import roi_filter
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss, get_dir_cls
-from models.utils.model_layers import point_conv, fully_connected, conv_3d
+from models.utils.model_layers import point_conv_concat, fully_connected, conv_3d
 from models.utils.ops_wrapper import get_roi_attrs, get_bbox_attrs
 
 anchor_size = config.anchor_size
@@ -26,7 +26,7 @@ def stage1_inputs_placeholder(input_channels=1,
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
 
-def stage2_inputs_placeholder(input_feature_channels=config.base_params_inference[sorted(config.base_params_inference.keys())[-1]]['c_out'],
+def stage2_inputs_placeholder(input_feature_channels=config.stage2_input_channels,
                               bbox_padding=config.aug_config['nbbox']):
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage2_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_feature_channels], name='stage2_input_features_p')
@@ -63,14 +63,16 @@ def stage1_model(input_coors,
     rpn_params = config.rpn_params_inference
 
     coors, features, num_list = input_coors, input_features, input_num_list
+    concat_features = features
     voxel_idx, center_idx = None, None
 
     with tf.variable_scope("stage1"):
         # =============================== STAGE-1 [base] ================================
         for layer_name in sorted(base_params.keys()):
-            coors, features, num_list, voxel_idx, center_idx = \
-                point_conv(input_coors=coors,
+            coors, features, num_list, voxel_idx, center_idx, concat_features = \
+                point_conv_concat(input_coors=coors,
                            input_features=features,
+                           concat_features=concat_features,
                            input_num_list=num_list,
                            voxel_idx=voxel_idx,
                            center_idx=center_idx,
@@ -87,9 +89,10 @@ def stage1_model(input_coors,
 
         # =============================== STAGE-1 [rpn] ================================
 
-        roi_coors, roi_features, roi_num_list, _, _ = \
-            point_conv(input_coors=coors,
+        roi_coors, roi_features, roi_num_list, _, _, _ = \
+            point_conv_concat(input_coors=coors,
                        input_features=features,
+                       concat_features=None,
                        input_num_list=num_list,
                        voxel_idx=voxel_idx,
                        center_idx=center_idx,
@@ -120,7 +123,7 @@ def stage1_model(input_coors,
 
         roi_conf_logits = roi_logits[:, 7]
 
-        return coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
+        return coors, concat_features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
 
 def stage2_model(coors,
                  features,
@@ -320,3 +323,4 @@ def stage2_loss(roi_attrs,
     averaged_iou_collection = hvd.allreduce(averaged_iou)
 
     return total_loss_collection, averaged_iou_collection
+

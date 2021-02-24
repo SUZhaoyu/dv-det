@@ -161,7 +161,6 @@ class Dataset(object):
                         features = feature_normalize(features, method=self.normalization)
                         ret_bboxes = []
                         for box in bboxes:
-
                             w, l, h, x, y, z, r = box[:7]
                             x, y, z = transform(np.array([x, y, z]), T_coors)
                             w, l, h = transform(np.array([w, l, h]), T_scale)
@@ -264,14 +263,14 @@ if __name__ == '__main__':
                   'maximum_interior_points': 40,
                   'normalization': None}
 
-    dataset = Dataset(task='train',
-                      config=aug_config,
-                      batch_size=2,
-                      validation=False,
+    dataset = Dataset(task='val',
+                      # config=aug_config,
+                      batch_size=4,
+                      validation=True,
                       num_worker=1,
-                      hvd_size=8,
+                      hvd_size=1,
                       hvd_id=0)
-    generator = dataset.train_generator()
+    generator = dataset.valid_generator()
     for i in tqdm(range(200000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
@@ -279,18 +278,18 @@ if __name__ == '__main__':
 
 
         # print(num_list)
-        print(coors.shape, features.shape, num_list)
+        # print(coors.shape, features.shape, num_list)
 
-        # dimension = [180., 180., 8.]
-        # offset = [90., 90., 3.0]
-        #
-        # coors += offset
-        # coors_min = np.min(coors, axis=0)
-        # coors_max = np.max(coors, axis=0)
+        dimension = [180., 180., 8.]
+        offset = [90., 90., 3.0]
+
+        coors += offset
+        coors_min = np.min(coors, axis=0)
+        coors_max = np.max(coors, axis=0)
         # print(coors_min, coors_max)
-        # for j in range(3):
-        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-        #         print("***", coors_min, coors_max)
+        for j in range(3):
+            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+                print("***", coors_min, coors_max)
         # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())

@@ -49,7 +49,7 @@ if __name__ == '__main__':
         input_num_list.append(num_list)
         if not evaluation:
             input_bboxes.append(bboxes)
-        if i > 200:
+        if i > 1000:
             break
 
     np.save(join(output_home, 'input_coors.npy'), np.array(input_coors, dtype=object))

@@ -12,7 +12,7 @@ from shutil import rmtree, copyfile
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import waymo_model as model
+from models import waymo_model_concat as model
 from train.configs import waymo_config as config
 from data.waymo_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls

@@ -42,7 +42,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
@@ -67,13 +67,13 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
                        is_training=is_training_p,
                        trainable=False,
                        is_eval=True,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.4)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.3)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -88,6 +88,7 @@ if __name__ == '__main__':
     with tf.Session(config=tf_config) as sess:
         saver.restore(sess, model_path)
         prediction_output = []
+        label_output = []
         for frame_id in tqdm(range(len(input_coors_stack))):
             batch_input_coors = input_coors_stack[frame_id]
             batch_input_features = input_features_stack[frame_id]
@@ -102,8 +103,8 @@ if __name__ == '__main__':
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
 
-            output_idx = output_conf > 0.4
-    #         output_idx = output_idx[:output_count[0]]
+            output_idx = output_conf > 0.1
+            # output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
             output_dir = output_dir[output_idx]
@@ -121,7 +122,7 @@ if __name__ == '__main__':
             z = output_bboxes[:, 5]
             r = output_bboxes[:, 6] + np.pi * output_dir
 
-            c = np.zeros(len(w))
+            c = np.ones(len(w))
             d = np.zeros(len(w))
             pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
             pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
@@ -136,10 +137,11 @@ if __name__ == '__main__':
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
             r = output_bboxes[:, 6]
-            c = np.zeros(len(w))
-            d = np.zeros(len(w))
+            c = np.ones(len(w))
+            d = output_bboxes[:, 8]
             p = np.ones(len(w))
             label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
+            label_output.append(label_bboxes)
 
 
 
@@ -153,4 +155,5 @@ if __name__ == '__main__':
                                   coors=convert_threejs_coors(plot_coors),
                                   default_rgb=plot_rgbs,
                                   bbox_params=pred_bbox_params + label_bbox_params)
-    np.save(join(data_home, 'bbox_predictions.npy'), prediction_output)
+    np.save(join(data_home, 'bbox_predictions.npy'), np.array(prediction_output, dtype=object))
+    np.save(join(data_home, 'bbox_labels.npy'), np.array(label_output, dtype=object))

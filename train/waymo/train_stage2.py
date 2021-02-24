@@ -225,6 +225,7 @@ def main():
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
         step = 0
+        valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
         for epoch in range(config.total_epoch):
             if is_hvd_root:
                 print("Epoch: {}".format(epoch))

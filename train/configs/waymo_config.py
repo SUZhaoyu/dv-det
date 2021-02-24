@@ -122,4 +122,9 @@ rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 0.80,
 #                          'base_3': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.}}
 # rpn_params_inference = {'subsample_res': 0.80, 'c_out': 128, 'kernel_res': 0.80, 'padding': 0.}
 
+stage2_input_channels = 2
+for layer_name in base_params_inference.keys():
+    stage2_input_channels += base_params_inference[layer_name]['c_out']
+
+stage2_input_channels = 256
 refine_params = {'c_out': 256, 'kernel_size': 3, 'padding': 0.}

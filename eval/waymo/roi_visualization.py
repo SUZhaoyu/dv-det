@@ -59,7 +59,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)

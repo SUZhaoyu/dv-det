@@ -3,71 +3,50 @@
 # Written by Shaoshuai Shi, Chaoxu Guo
 # All Rights Reserved 2019-2020.
 
-
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import numpy as np
-import pickle
 import tensorflow as tf
+from os.path import join
 from google.protobuf import text_format
 from waymo_open_dataset.metrics.python import detection_metrics
 from waymo_open_dataset.protos import metrics_pb2
-import argparse
+from copy import deepcopy
 
-
-tf.get_logger().setLevel('INFO')
+input_home = '/home/tan/tony/dv-det/eval/waymo/data'
+tf.get_logger().setLevel('WARNING')
 
 
 def limit_period(val, offset=0.5, period=np.pi):
-    return val - np.floor(val / period + offset) * period
+    ret = val - np.floor(val / period + offset) * period
+    return ret
 
 
 class OpenPCDetWaymoDetectionMetricsEstimator(tf.test.TestCase):
-    WAYMO_CLASSES = ['unknown', 'Vehicle', 'Pedestrian', 'Truck', 'Cyclist']
 
-    def generate_waymo_type_results(self, infos, class_names, is_gt=False, fake_gt_infos=True):
-        def boxes3d_kitti_fakelidar_to_lidar(boxes3d_lidar):
+    def generate_waymo_type_results(self, input_bbox_data):
+        def bbox_format_trans(boxes3d_lidar):
             """
             Args:
-                boxes3d_fakelidar: (N, 7) [x, y, z, w, l, h, r] in old LiDAR coordinates, z is bottom center
+                (N, 7) [w, l, h, x, y, z, r, cls, diff, conf]
             Returns:
-                boxes3d_lidar: [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
+                boxes3d_lidar: [x, y, z, dx, dy, dz, heading, cls, diff, conf]
+            x, y, z, l, w, h, r = bbox[2:9]
+            diff = bbox[11]
+            output_bboxes.append([w, l, h, x, y, z, r + np.pi / 2, 0, diff])
             """
-            w, l, h, r = boxes3d_lidar[:, 3:4], boxes3d_lidar[:, 4:5], boxes3d_lidar[:, 5:6], boxes3d_lidar[:, 6:7]
-            boxes3d_lidar[:, 2] += h[:, 0] / 2
-            return np.concatenate([boxes3d_lidar[:, 0:3], l, w, h, -(r + np.pi / 2)], axis=-1)
+            w, l, h, r = boxes3d_lidar[:, 0:1], boxes3d_lidar[:, 1:2], boxes3d_lidar[:, 2:3], boxes3d_lidar[:, 6:7]
+            return np.concatenate([boxes3d_lidar[:, 3:6], l, w, h, r - np.pi / 2, boxes3d_lidar[:, 7:]], axis=-1)
 
         frame_id, boxes3d, obj_type, score, overlap_nlz, difficulty = [], [], [], [], [], []
-        for frame_index, info in enumerate(infos):
-            if is_gt:
-                box_mask = np.array([n in class_names for n in info['name']], dtype=np.bool_)
-                if 'num_points_in_gt' in info:
-                    zero_difficulty_mask = info['difficulty'] == 0
-                    info['difficulty'][(info['num_points_in_gt'] > 5) & zero_difficulty_mask] = 1
-                    info['difficulty'][(info['num_points_in_gt'] <= 5) & zero_difficulty_mask] = 2
-                    nonzero_mask = info['num_points_in_gt'] > 0
-                    box_mask = box_mask & nonzero_mask
-                else:
-                    print('Please provide the num_points_in_gt for evaluating on Waymo Dataset '
-                          '(If you create Waymo Infos before 20201126, please re-create the validation infos '
-                          'with version 1.2 Waymo dataset to get this attribute). SSS of OpenPCDet')
-                    raise NotImplementedError
-
-                num_boxes = box_mask.sum()
-                box_name = info['name'][box_mask]
-
-                difficulty.append(info['difficulty'][box_mask])
-                score.append(np.ones(num_boxes))
-                if fake_gt_infos:
-                    info['gt_boxes_lidar'] = boxes3d_kitti_fakelidar_to_lidar(info['gt_boxes_lidar'])
-
-                boxes3d.append(info['gt_boxes_lidar'][box_mask])
-            else:
-                num_boxes = len(info['boxes_lidar'])
-                difficulty.append([0] * num_boxes)
-                score.append(info['score'])
-                boxes3d.append(np.array(info['boxes_lidar']))
-                box_name = info['name']
-
-            obj_type += [self.WAYMO_CLASSES.index(name) for i, name in enumerate(box_name)]
+        for frame_index, frame_bboxes in enumerate(input_bbox_data):
+            trans_bboxes = bbox_format_trans(deepcopy(frame_bboxes))
+            num_boxes = len(trans_bboxes)
+            difficulty.append(trans_bboxes[:, 8])
+            score.append(trans_bboxes[:, 9])
+            boxes3d.append(trans_bboxes[:, :7])
+            obj_type += trans_bboxes[:, 7].tolist()
             frame_id.append(np.array([frame_index] * num_boxes))
             overlap_nlz.append(np.zeros(num_boxes))  # set zero currently
 
@@ -174,24 +153,20 @@ class OpenPCDetWaymoDetectionMetricsEstimator(tf.test.TestCase):
 
         return tuple(ret_ans)
 
-    def waymo_evaluation(self, prediction_infos, gt_infos, class_name, distance_thresh=100, fake_gt_infos=True):
+    def waymo_evaluation(self, prediction_infos, gt_infos, distance_thresh=100):
         print('Start the waymo evaluation...')
         assert len(prediction_infos) == len(gt_infos), '%d vs %d' % (prediction_infos.__len__(), gt_infos.__len__())
 
         tf.compat.v1.disable_eager_execution()
-        pd_frameid, pd_boxes3d, pd_type, pd_score, pd_overlap_nlz, _ = self.generate_waymo_type_results(
-            prediction_infos, class_name, is_gt=False
-        )
-        gt_frameid, gt_boxes3d, gt_type, gt_score, gt_overlap_nlz, gt_difficulty = self.generate_waymo_type_results(
-            gt_infos, class_name, is_gt=True, fake_gt_infos=fake_gt_infos
-        )
+        pd_frameid, pd_boxes3d, pd_type, pd_score, pd_overlap_nlz, _ = self.generate_waymo_type_results(prediction_infos)
+        gt_frameid, gt_boxes3d, gt_type, gt_score, gt_overlap_nlz, gt_difficulty = self.generate_waymo_type_results(gt_infos)
 
-        pd_boxes3d, pd_frameid, pd_type, pd_score, pd_overlap_nlz = self.mask_by_distance(
-            distance_thresh, pd_boxes3d, pd_frameid, pd_type, pd_score, pd_overlap_nlz
-        )
-        gt_boxes3d, gt_frameid, gt_type, gt_score, gt_difficulty = self.mask_by_distance(
-            distance_thresh, gt_boxes3d, gt_frameid, gt_type, gt_score, gt_difficulty
-        )
+        # pd_boxes3d, pd_frameid, pd_type, pd_score, pd_overlap_nlz = self.mask_by_distance(
+        #     distance_thresh, pd_boxes3d, pd_frameid, pd_type, pd_score, pd_overlap_nlz
+        # )
+        # gt_boxes3d, gt_frameid, gt_type, gt_score, gt_difficulty = self.mask_by_distance(
+        #     distance_thresh, gt_boxes3d, gt_frameid, gt_type, gt_score, gt_difficulty
+        # )
 
         print('Number: (pd, %d) VS. (gt, %d)' % (len(pd_boxes3d), len(gt_boxes3d)))
         print('Level 1: %d, Level2: %d)' % ((gt_difficulty == 1).sum(), (gt_difficulty == 2).sum()))
@@ -215,28 +190,15 @@ class OpenPCDetWaymoDetectionMetricsEstimator(tf.test.TestCase):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--pred_infos', type=str, default=None, help='pickle file')
-    parser.add_argument('--gt_infos', type=str, default=None, help='pickle file')
-    parser.add_argument('--class_names', type=str, nargs='+', default=['Vehicle', 'Pedestrian', 'Cyclist'], help='')
-    parser.add_argument('--sampled_interval', type=int, default=5, help='sampled interval for GT sequences')
-    args = parser.parse_args()
 
-    pred_infos = pickle.load(open(args.pred_infos, 'rb'))
-    gt_infos = pickle.load(open(args.gt_infos, 'rb'))
+    pred_data = np.load(join(input_home, 'bbox_predictions.npy'), allow_pickle=True)
+    gt_data = np.load(join(input_home, 'bbox_labels.npy'), allow_pickle=True)
 
     print('Start to evaluate the waymo format results...')
     eval = OpenPCDetWaymoDetectionMetricsEstimator()
 
-    gt_infos_dst = []
-    for idx in range(0, len(gt_infos), args.sampled_interval):
-        cur_info = gt_infos[idx]['annos']
-        cur_info['frame_id'] = gt_infos[idx]['frame_id']
-        gt_infos_dst.append(cur_info)
-
     waymo_AP = eval.waymo_evaluation(
-        pred_infos, gt_infos_dst, class_name=args.class_names, distance_thresh=1000, fake_gt_infos=True
-    )
+        pred_data, gt_data, distance_thresh=1000)
 
     print(waymo_AP)
 
