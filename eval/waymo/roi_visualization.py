@@ -1,6 +1,7 @@
 import os
 from os.path import join
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import numpy as np
 import tensorflow as tf
 from point_viz.converter import PointvizConverter
@@ -12,6 +13,7 @@ import horovod.tensorflow as hvd
 from models.tf_ops.loader.bbox_utils import get_roi_bbox
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_masked_average
+from models.tf_ops.loader.others import rotated_nms3d_idx
 hvd.init()
 
 os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-stage1'))
@@ -64,6 +66,8 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
+nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.6)
+
 # gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=roi_coors,
 #                                                       bboxes=input_bbox_p,
 #                                                       input_num_list=roi_num_list,
@@ -101,7 +105,7 @@ if __name__ == '__main__':
     with tf.Session(config=config) as sess:
         saver.restore(sess, model_path)
         prediction_output = []
-        overall_iou = []
+        label_output = []
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         run_metadata = tf.RunMetadata()
         for frame_id in tqdm(range(len(input_coors_stack))):
@@ -114,8 +118,8 @@ if __name__ == '__main__':
             batch_input_bboxes = input_bboxes_stack[frame_id]
             # output_bboxes, output_coors, output_conf, output_ious, output_diff, output_idx, output_count = \
             #     sess.run([roi_attrs, roi_coors, roi_conf, roi_ious, gt_roi_diff, nms_idx, nms_count],
-            output_bboxes, output_coors, output_conf = \
-                sess.run([roi_attrs, roi_coors, roi_conf],
+            output_bboxes, output_coors, output_conf, output_idx = \
+                sess.run([roi_attrs, roi_coors, roi_conf, nms_idx],
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
@@ -139,7 +143,7 @@ if __name__ == '__main__':
         #     #     f.write(ctf)
         #
         #     # output_idx = output_idx[:output_count[0]]
-            output_idx = output_conf >= 0.4
+        #     output_idx = output_conf >= 0.6
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
 
@@ -161,7 +165,7 @@ if __name__ == '__main__':
             z = output_bboxes[:, 5]
             r = output_bboxes[:, 6]
 
-            c = np.zeros(len(w))
+            c = np.ones(len(w))
             d = np.zeros(len(w))
             pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
             pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
@@ -176,10 +180,11 @@ if __name__ == '__main__':
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
             r = output_bboxes[:, 6]
-            c = np.zeros(len(w))
-            d = np.zeros(len(w))
+            c = np.ones(len(w))
+            d = output_bboxes[:, 8]
             p = np.ones(len(w))
             label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
+            label_output.append(label_bboxes)
 
 
 
@@ -194,4 +199,5 @@ if __name__ == '__main__':
                                   default_rgb=plot_rgbs,
                                   bbox_params=pred_bbox_params + label_bbox_params)
 
-        # print("Overall IoU={}".format(np.mean(overall_iou)))
+        np.save(join(data_home, 'bbox_predictions.npy'), np.array(prediction_output, dtype=object))
+        np.save(join(data_home, 'bbox_labels.npy'), np.array(label_output, dtype=object))

@@ -79,16 +79,16 @@ def bbox_clean(label_dir, calib_dir, category_dict):
                 truncation = float(line[1])
                 occluded = int(line[2])
                 # TODO: the difficulty split strategy can be enhanced.
+                difficulty = 4
                 if occluded == 0 and truncation <= 0.15 and bbox_height_2d >= 40:
                     difficulty = 0
-                elif occluded <= 1 and truncation <= 0.30 and bbox_height_2d >= 25:
+                if occluded <= 1 and truncation <= 0.30 and bbox_height_2d >= 25:
                     difficulty = 1
-                elif occluded <= 2 and truncation <= 0.50 and bbox_height_2d >= 25:
+                if occluded <= 2 and truncation <= 0.50 and bbox_height_2d >= 25:
                     difficulty = 2
-                elif bbox_height_2d >= 25:
+                if bbox_height_2d >= 25:
                     difficulty = 3
-                else:
-                    difficulty = 4
+
                 category = category_dict[label]
 
                 x, y, z, _ = inv_trans_matrix.dot(np.array([float(line[11]),

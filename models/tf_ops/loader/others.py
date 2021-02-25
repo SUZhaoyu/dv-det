@@ -89,3 +89,32 @@ def rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres)
 
 
 ops.NoGradient("RotatedNms3d")
+
+def iou_filtering(attrs, coors, conf_logits, num_list, nms_overlap_thresh, nms_conf_thres, offset):
+    conf = tf.nn.sigmoid(conf_logits)
+    nattrs = tf.shape(attrs)[0]
+    batch_size = tf.shape(num_list)[0]
+    attr_offset = offset[2] * 4.
+    attr_ids = tf.range(nattrs) + 1
+    attr_ids_array = tf.cast(tf.tile(tf.expand_dims(attr_ids, axis=0), [batch_size, 1]), dtype=tf.float32)
+    accu_num_list = tf.cast(tf.cumsum(num_list), dtype=tf.float32)
+    masks = tf.cast(tf.greater(attr_ids_array / tf.expand_dims(accu_num_list, axis=-1), 1.0), dtype=tf.float32)
+    attr_offset_masks = tf.reduce_sum(masks, axis=0) * attr_offset
+
+    offset_z = attrs[:, 5] + offset[2]
+    offset_z += attr_offset_masks
+    offset_attrs = tf.stack([attrs[:, 0], attrs[:, 1], attrs[:, 2], attrs[:, 3], attrs[:, 4], offset_z, attrs[:, 6]], axis=-1)
+
+    nms_idx = rotated_nms3d_idx(offset_attrs, conf, nms_overlap_thresh, nms_conf_thres)
+
+    offset_z = tf.gather(offset_z, nms_idx, axis=0)
+    attr_batch_id = tf.cast(tf.floor(offset_z / attr_offset), dtype=tf.int32)
+    batch_array = tf.cast(tf.tile(tf.expand_dims(tf.range(batch_size), 1), [1, tf.shape(offset_z)[0]]),
+                          dtype=tf.int32)
+    output_num_list = tf.reduce_sum(tf.cast(tf.equal(attr_batch_id, batch_array), dtype=tf.int32), axis=-1)
+
+    output_attrs = tf.gather(attrs, nms_idx, axis=0)
+    output_conf_logits = tf.gather(conf_logits, nms_idx, axis=0)
+    output_coors = tf.gather(coors, nms_idx, axis=0)
+
+    return output_attrs, output_coors, output_conf_logits, output_num_list

@@ -23,8 +23,9 @@ REGISTER_OP("GetBboxOp")
     .Output("bbox: float32")
     .Output("bbox_conf: int32")
     .Output("bbox_diff: int32")
-    .Attr("diff_thres: int")
     .Attr("expand_ratio: float")
+    .Attr("diff_thres: int")
+    .Attr("cls_thres: int")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle roi_base_coors_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &roi_base_coors_shape));
@@ -41,7 +42,7 @@ REGISTER_OP("GetBboxOp")
 
     }); // InferenceContext
 
-void get_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, float expand_ratio,
+void get_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, int cls_thres, float expand_ratio,
                            const float* roi_attrs,
                            const float* gt_bbox,
                            const int* input_num_list,
@@ -55,6 +56,7 @@ public:
     explicit GetBboxOp(OpKernelConstruction* context): OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("diff_thres", &diff_thres));
+        OP_REQUIRES_OK(context, context->GetAttr("cls_thres", &cls_thres));
         OP_REQUIRES_OK(context, context->GetAttr("expand_ratio", &expand_ratio));
     }
     void Compute(OpKernelContext* context) override {
@@ -104,7 +106,7 @@ public:
         int* bbox_diff_ptr = bbox_diff->template flat<int>().data();
         cudaMemset(bbox_diff_ptr, 0, npoint * sizeof(int));
 
-        get_bbox_gpu_launcher(batch_size, npoint, nbbox, bbox_attr, diff_thres, expand_ratio,
+        get_bbox_gpu_launcher(batch_size, npoint, nbbox, bbox_attr, diff_thres, cls_thres, expand_ratio,
                                      roi_attrs_ptr,
                                      gt_bbox_ptr,
                                      input_num_list_ptr,
@@ -114,7 +116,7 @@ public:
                                      bbox_diff_ptr);
     }
 private:
-    int diff_thres;
+    int diff_thres, cls_thres;
     float expand_ratio;
 };
 REGISTER_KERNEL_BUILDER(Name("GetBboxOp").Device(DEVICE_GPU), GetBboxOp);

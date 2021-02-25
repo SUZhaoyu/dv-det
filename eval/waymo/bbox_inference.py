@@ -19,7 +19,8 @@ hvd.init()
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
-model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2-avg_pool-2/test/best_model_0.7565488711153127'
+# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2-avg_pool-2/test/best_model_0.7565488711153127'
+model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2-roi_pooling-2/test/best_model_0.75342001161424'
 data_home = '/home/tan/tony/dv-det/eval/waymo/data'
 visualization = True
 
@@ -88,6 +89,7 @@ if __name__ == '__main__':
     with tf.Session(config=tf_config) as sess:
         saver.restore(sess, model_path)
         prediction_output = []
+        label_output = []
         for frame_id in tqdm(range(len(input_coors_stack))):
             batch_input_coors = input_coors_stack[frame_id]
             batch_input_features = input_features_stack[frame_id]
@@ -121,7 +123,7 @@ if __name__ == '__main__':
             z = output_bboxes[:, 5]
             r = output_bboxes[:, 6] + np.pi * output_dir
 
-            c = np.zeros(len(w))
+            c = np.ones(len(w))
             d = np.zeros(len(w))
             pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
             pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
@@ -136,10 +138,11 @@ if __name__ == '__main__':
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
             r = output_bboxes[:, 6]
-            c = np.zeros(len(w))
-            d = np.zeros(len(w))
+            c = np.ones(len(w))
+            d = output_bboxes[:, 8]
             p = np.ones(len(w))
             label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
+            label_output.append(label_bboxes)
 
 
 
@@ -153,4 +156,5 @@ if __name__ == '__main__':
                                   coors=convert_threejs_coors(plot_coors),
                                   default_rgb=plot_rgbs,
                                   bbox_params=pred_bbox_params + label_bbox_params)
-    np.save(join(data_home, 'bbox_predictions.npy'), prediction_output)
+    np.save(join(data_home, 'bbox_predictions.npy'), np.array(prediction_output, dtype=object))
+    np.save(join(data_home, 'bbox_labels.npy'), np.array(label_output, dtype=object))

@@ -9,7 +9,7 @@
 #include <iostream>
 #define USECPSEC 1000000ULL
 
-__global__ void get_bbox_gpu_kernel(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, float expand_ratio,
+__global__ void get_bbox_gpu_kernel(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, int cls_thres, float expand_ratio,
                                    const float* roi_attrs,
                                    const float* gt_bbox,
                                    const int* input_num_list,
@@ -69,7 +69,7 @@ __global__ void get_bbox_gpu_kernel(int batch_size, int npoint, int nbbox, int b
                         bbox[input_accu_list[b]*7 + i*7 + 6] = bbox_r;
 
 //                        if (diff <= diff_thres && bbox_cls == 0) {
-                        if (diff <= diff_thres && bbox_cls <= 1) {
+                        if (diff <= diff_thres && bbox_cls <= cls_thres) {
                             // Here we only take cars into consideration, while vans are excluded and give the foreground labels as -1 (ignored).
                             bbox_conf[input_accu_list[b] + i] = 1;
                             bbox_diff[input_accu_list[b] + i] = diff;
@@ -93,7 +93,7 @@ long long dtime_usec(unsigned long long start){
 }
 
 
-void get_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, float expand_ratio,
+void get_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbox_attr, int diff_thres, int cls_thres, float expand_ratio,
                           const float* roi_attrs,
                           const float* gt_bbox,
                           const int* input_num_list,
@@ -102,7 +102,7 @@ void get_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbox_attr,
                           int* bbox_conf,
                           int* bbox_diff) {
 //    long long dt = dtime_usec(0);
-    get_bbox_gpu_kernel<<<32,512>>>(batch_size, npoint, nbbox, bbox_attr, diff_thres, expand_ratio,
+    get_bbox_gpu_kernel<<<32,512>>>(batch_size, npoint, nbbox, bbox_attr, diff_thres, cls_thres, expand_ratio,
                                            roi_attrs,
                                            gt_bbox,
                                            input_num_list,

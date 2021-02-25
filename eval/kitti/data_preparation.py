@@ -5,12 +5,12 @@ from os.path import join
 import numpy as np
 from tqdm import tqdm
 
-from data.waymo_generator import Dataset
+from data.kitti_generator import Dataset
 
-task = 'val'
+task = 'validation'
 validation = False
 evaluation = False
-output_home = '/home/tan/tony/dv-det/eval/data'
+output_home = '/home/tan/tony/dv-det/eval/kitti/data'
 
 aug_config = {'nbbox': 64,
               'rotate_range': np.pi / 4,

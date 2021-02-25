@@ -10,8 +10,8 @@ TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.ge
 #nvcc src/get_roi_bbox.cu -o build/get_roi_bbox.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
 #g++ -std=c++11 src/get_roi_bbox.cpp build/get_roi_bbox.cu.o -o build/get_roi_bbox.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 #
-#nvcc src/get_bbox.cu -o build/get_bbox.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
-#g++ -std=c++11 src/get_bbox.cpp build/get_bbox.cu.o -o build/get_bbox.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+nvcc src/get_bbox.cu -o build/get_bbox.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
+g++ -std=c++11 src/get_bbox.cpp build/get_bbox.cu.o -o build/get_bbox.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 #
 #nvcc src/grid_sampling.cu -o build/grid_sampling.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
 #g++ -std=c++11 src/grid_sampling.cpp build/grid_sampling.cu.o -o build/grid_sampling.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
@@ -53,6 +53,6 @@ TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.ge
 #
 #nvcc src/voxel_sampling_feature.cu -o build/voxel_sampling_feature.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
 #g++ -std=c++11 src/voxel_sampling_feature.cpp build/voxel_sampling_feature.cu.o -o build/voxel_sampling_feature.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
-#
-nvcc src/voxel_sampling_idx_binary.cu -o build/voxel_sampling_idx_binary.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
-g++ -std=c++11 src/voxel_sampling_idx_binary.cpp build/voxel_sampling_idx_binary.cu.o -o build/voxel_sampling_idx_binary.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+##
+#nvcc src/voxel_sampling_idx_binary.cu -o build/voxel_sampling_idx_binary.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
+#g++ -std=c++11 src/voxel_sampling_idx_binary.cpp build/voxel_sampling_idx_binary.cu.o -o build/voxel_sampling_idx_binary.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #exe_file="train_stage1_anchor_x2.py"
-exe_file="waymo/train_stage2.py"
+exe_file="kitti/train_stage1.py"
 #exe_file="train_stage1.py"
 pkill -f -9 $exe_file
 
 HOME="dv-det"
+checkpoints="ckpt-kitti"
 
 root_gx4="/home/tan/tony"
 root_gx6="/home/tan/tony"
@@ -32,8 +33,8 @@ conda_env_gx6="/home/tan/anaconda3/envs/detection/bin/python"
 home_dir_gx6="$root_gx6/$HOME"
 exe_dir_gx6="$home_dir_gx6/train/$exe_file"
 
-if [ ! -d "$home_dir_gx4/checkpoints" ]; then
-  mkdir -p "$home_dir_gx4/checkpoints"
+if [ ! -d "$home_dir_gx4/$checkpoints" ]; then
+  mkdir -p "$home_dir_gx4/$checkpoints"
 fi
 
 echo "Input the task name:"
@@ -43,7 +44,7 @@ if ((${#task_name} == 0)); then
 	exit;
 fi
 
-log_dir="$home_dir_gx4/checkpoints/$task_name"
+log_dir="$home_dir_gx4/$checkpoints/$task_name"
 actual_task_name=$task_name
 
 if [ -d "$log_dir" ]; then
@@ -57,12 +58,12 @@ if [ -d "$log_dir" ]; then
 			exit;
 		elif [ "$task_name" = "y" ]; then
 			task_name=$actual_task_name
-			log_dir="$home_dir_gx4/checkpoints/$task_name"
+			log_dir="$home_dir_gx4/$checkpoints/$task_name"
 			dir_exists=false
 			rm -rf $log_dir
 			echo "WARNINIG: $log_dir has been cleaned."
 		else
-			log_dir="$home_dir_gx4/checkpoints/$task_name"
+			log_dir="$home_dir_gx4/$checkpoints/$task_name"
 			if [ -d "$log_dir" ]; then
 				dir_exists=true;
 			else

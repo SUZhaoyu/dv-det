@@ -3,14 +3,16 @@ from os import mkdir
 import logging
 from tqdm import tqdm
 import numpy as np
+import sys
+sys.path.append('/home/tan/tony/dv-det')
 from random import shuffle
 from point_viz.converter import PointvizConverter
 logging.basicConfig(level=logging.INFO)
 from data.utils.normalization import get_union_sets, convert_threejs_coors, convert_threejs_bbox
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
-task = 'val'
-node_num = 16
+
+task = 'train'
 keep_ratio = 0.2
 scene_num_dict = {'train': 798,
                   'val': 202}
@@ -18,9 +20,15 @@ range_x = [-75.2, 75.2]
 range_y = [-75.2, 75.2]
 range_z = [-2., 4.]
 
+expand_ratio = 0.15
+min_object_points = 15
+min_vehicle_length = 3.0
+
+
 raw_home = join('/media/data1/waymo', task)
-lidar_output_home = join('/media/data1/waymo/segments', '{}/lidar'.format(task))
-label_output_home = join('/media/data1/waymo/segments', '{}/label'.format(task))
+output_home = '/media/data1/waymo/segments'
+lidar_output_home = join(output_home, '{}/lidar'.format(task))
+label_output_home = join(output_home, '{}/label'.format(task))
 
 
 scene_num = scene_num_dict[task]
@@ -49,20 +57,41 @@ def bbox_clean(input_bboxes):
             diff = bbox[11]
             output_bboxes.append([w, l, h, x, y, z, r + np.pi / 2, 0, diff])
     output_bboxes = np.array(output_bboxes)
-    # if len(output_bboxes.shape) == 1 and output_bboxes.shape[0] != 0:
-    #     output_bboxes = np.expand_dims(output_bboxes, axis=0)
-    # if len(output_bboxes.shape) == 1 and output_bboxes.shape[0] == 0:
-    #     output_bboxes = np.array([[0.1, 0.1, 0.1, 0., 0., 0., 0., 2]])
 
     return output_bboxes
 
-total_output_label = []
+def get_objects(points, bboxes):
+    '''
+    Get the foreground points inside each valid bbox.
+    :param points: the set of all the foreground points ([coors + intensity]) in each instance.
+    :param bboxes: the bboxes in each instance
+    :return: a list of coors of each foreground points [[n0, n1...], [n0, n1, n2...]]
+    '''
+    output_points = []
+    output_bboxes = []
+    for i in range(len(bboxes)):
+        w, l, h, x, y, z, r, cls, diff = bboxes[i]
+        rel_point_x = points[:, 0] - x
+        rel_point_y = points[:, 1] - y
+        rel_point_z = points[:, 2] - z
+        rot_rel_point_x = rel_point_x * np.cos(r) + rel_point_y * np.sin(r)
+        rot_rel_point_y = -rel_point_x * np.sin(r) + rel_point_y * np.cos(r)
+        valid_idx = (np.abs(rot_rel_point_x) <= w * (1 + expand_ratio) / 2) * \
+                    (np.abs(rot_rel_point_y) <= l * (1 + expand_ratio) / 2) * \
+                    (np.abs(rel_point_z) <= h * (1 + expand_ratio) / 2)
+        if np.sum(valid_idx) > min_object_points and l > min_vehicle_length:
+            output_points.append(points[valid_idx])
+            output_bboxes.append(bboxes[i])
+    return output_points, output_bboxes
+
 
 if __name__ == '__main__':
     scene_id_list = np.arange(scene_num_dict[task]).tolist()
     logging.info("Process with keep ratio {}".format(keep_ratio))
     output_lidar = []
     output_label = []
+    output_object_lidar = []
+    output_object_label = []
     frame_count = 0
     logging.info("Loading raw dataset...")
     for scene_id in tqdm(scene_id_list):
@@ -73,22 +102,26 @@ if __name__ == '__main__':
         selected_scene_frame_num = int(np.floor(scene_frame_num * keep_ratio))
         for i in range(selected_scene_frame_num):
             frame_id = int(i / keep_ratio)
-            frame_lidar = scene_lidar[frame_id]
-            frame_label = scene_label[frame_id]
+            frame_lidar = scene_lidar[frame_id].astype(np.float32)
+            frame_label = scene_label[frame_id].astype(np.float32)
             frame_lidar = trim(frame_lidar)
             frame_label = bbox_clean(frame_label)
+
+            if task == 'train':
+                points_list, bbox_list = get_objects(points=frame_lidar,
+                                                     bboxes=frame_label)
+                if len(bbox_list) > 0:
+                    for j in range(len(bbox_list)):
+                        output_object_lidar.append(points_list[j])
+                        output_object_label.append(bbox_list[j])
+
+
             np.save(join(lidar_output_home, "%06d.npy" % frame_count), np.array(frame_lidar, dtype=object))
             np.save(join(label_output_home, "%06d.npy" % frame_count), np.array(frame_label, dtype=object))
             frame_count += 1
 
-        # if scene_id > 10:
-        #     break
+    if task == 'train':
+        np.save(join(output_home, "objects", "object_collections.npy"), np.array(output_object_lidar, dtype=object))
+        np.save(join(output_home, "objects", "bbox_collections.npy"), np.array(output_object_label, dtype=object))
 
     logging.info("Completed.")
-
-
-
-
-
-
-
