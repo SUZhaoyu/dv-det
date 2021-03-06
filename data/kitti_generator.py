@@ -238,7 +238,7 @@ class Dataset(object):
 
 
 if __name__ == '__main__':
-    aug_config = {'nbbox': 128,
+    aug_config = {'nbbox': 256,
                   'rotate_range': np.pi / 4,
                   'rotate_mode': 'u',
                   'scale_range': 0.05,

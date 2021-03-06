@@ -43,14 +43,14 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.6)
-roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
-roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
-roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.6)
+# roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+# roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
+# roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
 
 bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
@@ -63,12 +63,12 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
                        is_training=is_training_p,
                        trainable=False,
                        is_eval=True,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.6)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.7)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()

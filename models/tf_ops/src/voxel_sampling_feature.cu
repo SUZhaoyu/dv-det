@@ -89,10 +89,10 @@ void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int cha
 //    output_init_gpu_kernel<<<gridSize, blockSize>>>(center_num, kernel_num,
 //                                                    padding, channels,
 //                                                    output_features);
-    float et;
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start); cudaEventCreate(&stop);
-    cudaEventRecord(start);
+//    float et;
+//    cudaEvent_t start, stop;
+//    cudaEventCreate(&start); cudaEventCreate(&stop);
+//    cudaEventRecord(start);
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_feature_gpu_kernel, 0, center_num * kernel_num * channels);
     gridSize = (center_num * kernel_num * channels + blockSize - 1) / blockSize;
@@ -105,12 +105,12 @@ void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int cha
 
 
 
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&et, start, stop);
-    printf("Voxel Sampling Feature Time elapse: %f ms\n", et);
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
+//    cudaEventRecord(stop);
+//    cudaEventSynchronize(stop);
+//    cudaEventElapsedTime(&et, start, stop);
+//    printf("Voxel Sampling Feature Time elapse: %f ms\n", et);
+//    cudaEventDestroy(start);
+//    cudaEventDestroy(stop);
 
 }
 

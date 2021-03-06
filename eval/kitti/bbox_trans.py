@@ -108,7 +108,7 @@ def write_null_txt(txt_dir):
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
     calib_home = join(home, 'dataset')
-    prediction_home = join(home, 'eval', 'data')
+    prediction_home = join(home, 'eval/kitti', 'data')
     output_txt_home = join(home, 'eval', 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
     TASK = 'validation'

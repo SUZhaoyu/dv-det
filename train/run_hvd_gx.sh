@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #exe_file="train_stage1_anchor_x2.py"
-exe_file="waymo/train_stage1.py"
+exe_file="kitti/train_stage1.py"
 #exe_file="train_stage1.py"
 pkill -f -9 $exe_file
 
 HOME="dv-det"
-checkpoints="ckpt-waymo"
+checkpoints="ckpt-kitti"
 
 root_gx4="/home/tan/tony"
 root_gx6="/home/tan/tony"
