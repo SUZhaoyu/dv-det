@@ -12,7 +12,7 @@ from data.utils.normalization import get_union_sets, convert_threejs_coors, conv
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
 
-task = 'train'
+task = 'val'
 keep_ratio = 0.2
 scene_num_dict = {'train': 798,
                   'val': 202}
@@ -119,7 +119,6 @@ if __name__ == '__main__':
             np.save(join(lidar_output_home, "%06d.npy" % frame_count), np.array(frame_lidar, dtype=object))
             np.save(join(label_output_home, "%06d.npy" % frame_count), np.array(frame_label, dtype=object))
             frame_count += 1
-
     if task == 'train':
         np.save(join(output_home, "objects", "object_collections.npy"), np.array(output_object_lidar, dtype=object))
         np.save(join(output_home, "objects", "bbox_collections.npy"), np.array(output_object_label, dtype=object))

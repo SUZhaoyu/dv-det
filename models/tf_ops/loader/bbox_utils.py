@@ -11,7 +11,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 get_roi_bbox_exe = tf.load_op_library(join(CWD, '../build', 'get_roi_bbox.so'))
 
 
-def get_roi_bbox(input_coors, bboxes, input_num_list, anchor_size, expand_ratio=0.15, diff_thres=3, cls_thres=0):
+def get_roi_bbox(input_coors, bboxes, input_num_list, anchor_size, expand_ratio=0.15, diff_thres=4, cls_thres=1):
     '''
     Get point-wise RoI ground truth.
     :param input_coors: 2-D Tensor with shape [npoint, 3]
@@ -39,7 +39,7 @@ ops.NoGradient("GetRoiBboxOp")
 # =============================================Get Bbox Ground Truth===============================================
 
 get_bbox_exe = tf.load_op_library(join(CWD, '../build', 'get_bbox.so'))
-def get_bbox(roi_attrs, bboxes, input_num_list, expand_ratio=0.15, diff_thres=3, cls_thres=0):
+def get_bbox(roi_attrs, bboxes, input_num_list, expand_ratio=0.15, diff_thres=4, cls_thres=1):
     bbox_attrs, bbox_conf, bbox_diff = get_bbox_exe.get_bbox_op(roi_attrs=roi_attrs,
                                                                 gt_bbox=bboxes,
                                                                 input_num_list=input_num_list,

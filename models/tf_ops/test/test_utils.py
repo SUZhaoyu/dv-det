@@ -86,6 +86,8 @@ def plot_points_from_voxels_with_color(voxels, center_coors, resolution, self_rg
                       default_rgb=output_rgb,
                       task_name=name)
 
+
+
 def plot_points_from_roi_voxels(voxels, roi_attrs, kernel_size=5, mask=-1, name='test'):
     output_coors = []
     output_rgb = []
@@ -96,9 +98,11 @@ def plot_points_from_roi_voxels(voxels, roi_attrs, kernel_size=5, mask=-1, name=
         for n in range(kernel_size ** 3):
             r, g, b = voxels[i, n, :]
             if r + g + b > 0:
-                x = n % kernel_size
-                z = n // (kernel_size ** 2)
-                y = (n - z * kernel_size ** 2) // kernel_size
+
+                x = n // (kernel_size ** 2)
+                z = n % kernel_size
+                # kernel_id % (kernel_size * kernel_size) / kernel_size;
+                y = (n % kernel_size ** 2) // kernel_size
                 x_coor = (x - half_kernel_size) * roi_w / kernel_size
                 y_coor = (y - half_kernel_size) * roi_l / kernel_size
                 z_coor = (z - half_kernel_size) * roi_h / kernel_size + roi_z

@@ -60,6 +60,13 @@ void grid_sampling_gpu_launcher(int batch_size, int input_point_num, float resol
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_sampling_gpu_kernel, 0, input_point_num);
     // Round up according to array size
     gridSize = (input_point_num + blockSize - 1) / blockSize;
+//    printf("GridSize=%d, BlockSize=%d\n", gridSize, blockSize);
+
+
+//    float et;
+//    cudaEvent_t start, stop;
+//    cudaEventCreate(&start); cudaEventCreate(&stop);
+//    cudaEventRecord(start, 1);
 
     grid_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num, resolution,
                                           grid_w, grid_l, grid_h,
@@ -69,4 +76,11 @@ void grid_sampling_gpu_launcher(int batch_size, int input_point_num, float resol
                                           output_idx_temp,
                                           output_num_list,
                                           grid_buffer);
+
+//    cudaEventRecord(stop, 1);
+//    cudaEventSynchronize(stop);
+//    cudaEventElapsedTime(&et, start, stop);
+//    printf("Grid Sampling Time elapse: %f\nms", et);
+//    cudaEventDestroy(start);
+//    cudaEventDestroy(stop);
 }

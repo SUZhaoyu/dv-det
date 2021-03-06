@@ -13,7 +13,7 @@ from point_viz.converter import PointvizConverter
 from tqdm import tqdm
 
 from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
-    get_pasted_point_cloud
+    get_pasted_point_cloud_waymo
 from data.utils.normalization import feature_normalize, bboxes_normalization, convert_threejs_coors, \
     convert_threejs_bbox
 
@@ -29,7 +29,7 @@ default_config = {'nbbox': 256,
                   'flip': False,
                   'shuffle': False,
                   'paste_augmentation': False,
-                  'paste_instance_num': 32,
+                  'paste_instance_num': 64,
                   'maximum_interior_points': 40,
                   'normalization': 'channel_std'}
 
@@ -61,6 +61,9 @@ class Dataset(object):
         self.flip = self.config['flip']
         self.shuffle = self.config['shuffle']
         self.normalization = self.config['normalization']
+        self.paste_augmentation = self.config['paste_augmentation']
+        self.paste_instance_num = self.config['paste_instance_num']
+        self.maximum_interior_points = self.config['maximum_interior_points']
         self.nbbox = self.config['nbbox']
         self.hvd_id = hvd_id
         self.random = random
@@ -74,11 +77,9 @@ class Dataset(object):
 
         # if not self.evaluation:
         #     self.bboxes = np.load(join(self.home, 'bbox_labels_{}.npy'.format(self.task)), allow_pickle=True)
-        # if self.config['paste_augmentation'] and not self.validation:
-        #     self.object_collections = np.load(join(self.home, 'object_collections_{}.npy'.format(self.task)),
-        #                                       allow_pickle=True)
-        #     self.bbox_collections = np.load(join(self.home, 'bbox_collections_{}.npy'.format(self.task)),
-        #                                     allow_pickle=True)
+        if self.config['paste_augmentation'] and not self.validation:
+            self.object_collections = np.load(join(home, 'objects', 'object_collections.npy'), allow_pickle=True)
+            self.bbox_collections = np.load(join(home, 'objects', 'bbox_collections.npy'), allow_pickle=True)
         #     self.ground_plane = np.load(join(self.home, 'ground_plane_{}.npy'.format(self.task)), allow_pickle=True)
         #     self.trans_matrix = np.load(join(self.home, 'trans_matrix_{}.npy'.format(self.task)), allow_pickle=True)
         # self.paste_augmentation = self.config['paste_augmentation']
@@ -130,15 +131,13 @@ class Dataset(object):
                         if len(bboxes) > 0:
                             bboxes = bboxes[bboxes[:, 0] > 0, :]
 
-                        # if self.paste_augmentation:
-                        #     points, bboxes = get_pasted_point_cloud(scene_points=points,
-                        #                                             scene_bboxes=bboxes,
-                        #                                             ground=np.array(deepcopy(self.ground_plane[idx])),
-                        #                                             trans_list=np.array(deepcopy(self.trans_matrix[idx])),
-                        #                                             object_collections=self.object_collections,
-                        #                                             bbox_collections=self.bbox_collections,
-                        #                                             instance_num=self.paste_instance_num,
-                        #                                             maximum_interior_points=self.maximum_interior_points)
+                        if self.paste_augmentation:
+                            points, bboxes = get_pasted_point_cloud_waymo(scene_points=points,
+                                                                          scene_bboxes=bboxes,
+                                                                          object_collections=self.object_collections,
+                                                                          bbox_collections=self.bbox_collections,
+                                                                          instance_num=self.paste_instance_num,
+                                                                          maximum_interior_points=self.maximum_interior_points)
                         # print(points.shape, bboxes.shape)
                         if self.shuffle:
                             points = shuffle(points)
@@ -260,26 +259,26 @@ if __name__ == '__main__':
                   'flip': False,
                   'shuffle': True,
                   'paste_augmentation': True,
-                  'paste_instance_num': 32,
+                  'paste_instance_num': 96,
                   'maximum_interior_points': 40,
                   'normalization': None}
 
     dataset = Dataset(task='train',
                       config=aug_config,
-                      batch_size=2,
+                      batch_size=4,
                       validation=False,
-                      num_worker=1,
+                      num_worker=5,
                       hvd_size=8,
                       hvd_id=0)
     generator = dataset.train_generator()
-    for i in tqdm(range(200000)):
+    for i in tqdm(range(1)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
 
 
 
         # print(num_list)
-        print(coors.shape, features.shape, num_list)
+        # print(coors.shape, features.shape, num_list)
 
         # dimension = [180., 180., 8.]
         # offset = [90., 90., 3.0]
@@ -295,7 +294,7 @@ if __name__ == '__main__':
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()
-    batch_id = 6
+    batch_id = 2
     acc_num_list = np.cumsum(num_list)
     #
     coors = coors[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]

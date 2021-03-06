@@ -19,7 +19,7 @@ from data.utils.normalization import feature_normalize, bboxes_normalization, co
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
 
-default_config = {'nbbox': 64,
+default_config = {'nbbox': 128,
                   'rotate_range': 0.,
                   'rotate_mode': 'u',
                   'scale_range': 0.,
@@ -28,8 +28,8 @@ default_config = {'nbbox': 64,
                   'flip': False,
                   'shuffle': False,
                   'paste_augmentation': False,
-                  'paste_instance_num': 32,
-                  'maximum_interior_points': 40,
+                  'paste_instance_num': 64,
+                  'maximum_interior_points': 80,
                   'normalization': None}
 
 
@@ -238,7 +238,7 @@ class Dataset(object):
 
 
 if __name__ == '__main__':
-    aug_config = {'nbbox': 64,
+    aug_config = {'nbbox': 128,
                   'rotate_range': np.pi / 4,
                   'rotate_mode': 'u',
                   'scale_range': 0.05,
@@ -247,18 +247,18 @@ if __name__ == '__main__':
                   'flip': False,
                   'shuffle': True,
                   'paste_augmentation': True,
-                  'paste_instance_num': 32,
+                  'paste_instance_num': 64,
                   'maximum_interior_points': 40,
                   'normalization': None}
 
-    dataset = Dataset(task='validation',
-                      # config=aug_config,
+    dataset = Dataset(task='training',
+                      config=aug_config,
                       batch_size=16,
                       validation=False,
                       hvd_size=3,
                       hvd_id=1)
-    generator = dataset.valid_generator()
-    for i in tqdm(range(2000)):
+    generator = dataset.train_generator()
+    for i in tqdm(range(1)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
 
@@ -267,15 +267,15 @@ if __name__ == '__main__':
         # print(num_list)
         # print(coors.shape, features.shape)
 
-        dimension = [100, 160.0, 9.0]
-        offset = [10., 60.0, 5.0]
-
-        coors += offset
-        coors_min = np.min(coors, axis=0)
-        coors_max = np.max(coors, axis=0)
-        for j in range(3):
-            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-                print(coors_min, coors_max)
+        # dimension = [100, 160.0, 9.0]
+        # offset = [10., 60.0, 5.0]
+        #
+        # coors += offset
+        # coors_min = np.min(coors, axis=0)
+        # coors_max = np.max(coors, axis=0)
+        # for j in range(3):
+        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+        #         print(coors_min, coors_max)
         # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())

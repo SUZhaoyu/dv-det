@@ -40,11 +40,11 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         proj_v = v.dot(trans_matrix.transpose())
         proj_v /= proj_v[:, 2:3]
         # TODO: May need change the filtering strategy.
-        # if np.min(proj_v[:, 0]) < 0. or \
-        #    np.max(proj_v[:, 0]) > col or \
-        #    np.min(proj_v[:, 1]) < 0. or \
-        #    np.max(proj_v[:, 1]) > row:
-        #     continue
+        if np.min(proj_v[:, 0]) < 0. or \
+           np.max(proj_v[:, 0]) > col or \
+           np.min(proj_v[:, 1]) < 0. or \
+           np.max(proj_v[:, 1]) > row:
+            continue
         if np.min(proj_v[:, 2]) < 0.:
             continue
         else:

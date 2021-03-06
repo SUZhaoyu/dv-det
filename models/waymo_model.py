@@ -1,7 +1,7 @@
 import horovod.tensorflow as hvd
 import tensorflow as tf
 
-import train.configs.waymo_config as config
+import train.waymo.waymo_config as config
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
 from models.tf_ops.loader.others import roi_filter, iou_filtering
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
@@ -120,14 +120,15 @@ def stage1_model(input_coors,
 
         roi_conf_logits = roi_logits[:, 7]
 
-        # roi_attrs, roi_coors, roi_conf_logits, roi_num_list = \
-        #     iou_filtering(attrs=roi_attrs,
-        #                   coors=roi_coors,
-        #                   conf_logits=roi_conf_logits,
-        #                   num_list=roi_num_list,
-        #                   nms_overlap_thresh=0.75,
-        #                   nms_conf_thres=config.roi_thres,
-        #                   offset=config.offset_training)
+        # if not trainable:
+        #     roi_attrs, roi_coors, roi_conf_logits, roi_num_list = \
+        #         iou_filtering(attrs=roi_attrs,
+        #                       coors=roi_coors,
+        #                       conf_logits=roi_conf_logits,
+        #                       num_list=roi_num_list,
+        #                       nms_overlap_thresh=0.8,
+        #                       nms_conf_thres=config.roi_thres,
+        #                       offset=config.offset_training)
 
         return coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
 
@@ -143,8 +144,7 @@ def stage2_model(coors,
                  is_eval,
                  mem_saving,
                  bn):
-    dimension = config.dimension_training,
-    offset = config.offset_training
+
     roi_conf = tf.nn.sigmoid(roi_conf_logits)
     with tf.variable_scope("stage2"):
         bbox_roi_attrs, bbox_num_list, bbox_idx = roi_filter(input_roi_attrs=roi_attrs,
@@ -154,34 +154,7 @@ def stage2_model(coors,
                                                              conf_thres=config.roi_thres,
                                                              iou_thres=config.iou_thres,
                                                              max_length=config.max_length,
-                                                             with_negative=not is_eval)
-
-        # bbox_voxels = la_roi_pooling(input_coors=coors,
-        #                              input_features=features,
-        #                              roi_attrs=bbox_roi_attrs,
-        #                              input_num_list=num_list,
-        #                              roi_num_list=bbox_num_list,
-        #                              voxel_size=config.roi_voxel_size,
-        #                              pooling_size=8)
-
-        # bbox_voxels = roi_pooling(input_coors=coors,
-        #                          input_features=features,
-        #                          roi_attrs=bbox_roi_attrs,
-        #                          input_num_list=num_list,
-        #                          roi_num_list=bbox_num_list,
-        #                          voxel_size=config.roi_voxel_size,
-        #                          pooling_size=8)
-
-        # bbox_voxels = la_roi_pooling_fast(input_coors=coors,
-        #                                   input_features=features,
-        #                                   roi_attrs=bbox_roi_attrs,
-        #                                   input_num_list=num_list,
-        #                                   roi_num_list=bbox_num_list,
-        #                                   voxel_size=config.roi_voxel_size,
-        #                                   pooling_size=8,
-        #                                   grid_buffer_resolution=np.max(anchor_size)/config.roi_voxel_size,
-        #                                   dimension=dimension,
-        #                                   offset=offset)
+                                                             with_negative=False)
 
         bbox_voxels = la_roi_pooling_fast(input_coors=coors,
                                           input_features=features,

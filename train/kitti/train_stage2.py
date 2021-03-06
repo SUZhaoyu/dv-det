@@ -14,8 +14,8 @@ from shutil import rmtree
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import rcnn_model as model
-from train.configs import rcnn_config as config
+from models import kitti_model as model
+from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
 
@@ -86,7 +86,7 @@ stage1_output_coors, stage1_output_features, stage1_output_num_list, \
                        is_training=is_stage1_training_p,
                        is_eval=False,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 
 roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
@@ -131,28 +131,6 @@ validation_writer = tf.summary.FileWriter(os.path.join(log_dir, 'valid'))
 stage1_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='stage1')
 stage1_loader = tf.train.Saver(stage1_variables)
 saver = tf.train.Saver(max_to_keep=None)
-
-# vars = {
-#     'stage1_input_coors_p': stage1_input_coors_p,
-#     'stage1_input_features_p': stage1_input_features_p,
-#     'stage1_input_num_list_p': stage1_input_num_list_p,
-#     'stage2_input_coors_p': stage2_input_coors_p,
-#     'stage2_input_features_p': stage2_input_features_p,
-#     'stage2_input_num_list_p': stage2_input_num_list_p,
-#     'input_roi_coors_p': input_roi_coors_p,
-#     'input_roi_attrs_p': input_roi_attrs_p,
-#     'input_roi_conf_logits_p': input_roi_conf_logits_p,
-#     'input_roi_num_list_p': input_roi_num_list_p,
-#     'input_bbox_p': input_bbox_p,
-#     'is_stage1_training_p': is_stage1_training_p,
-#     'is_stage2_training_p': is_stage2_training_p,
-#     'stage2_step': stage2_step,
-#     'training_batch': training_batch,
-#     'validation_batch': validation_batch,
-#     'bbox_iou': averaged_bbox_iou,
-#     'stage2_train_op': stage2_train_op,
-#     'summary': summary}
-
 
 
 def train_one_epoch(sess, step, dataset_generator, writer):
@@ -239,7 +217,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-complicated/test/best_model_0.7281508956090916')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

@@ -132,6 +132,14 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
                 }
             }
         }
+
+//        for (int p=0; p<grid_buffer_size; p++) {
+//            int point_id = grid_buffer[target_grid_id*grid_buffer_size + p];
+//            if (point_id>=0) {
+//                output_idx[13*output_pooling_size] = point_id;
+//            }
+//        }
+
 	}
 }
 
@@ -180,15 +188,30 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_idx_gpu_kernel, 0, center_num * search_kernel_num);
     gridSize = (center_num * search_kernel_num + blockSize - 1) / blockSize;
+
+    float et;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start); cudaEventCreate(&stop);
+    cudaEventRecord(start);
+
     voxel_sampling_idx_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num,
-                                                           kernel_size,
-                                                           grid_dim_w, grid_dim_l, grid_dim_h, resolution,
-                                                           grid_buffer_size, output_pooling_size,
-                                                           input_coors,
-                                                           center_coors,
-                                                           center_accu_list,
-                                                           grid_buffer,
-                                                           grid_buffer_count,
-                                                           output_idx,
-                                                           output_idx_count);
+                                                       kernel_size,
+                                                       grid_dim_w, grid_dim_l, grid_dim_h, resolution,
+                                                       grid_buffer_size, output_pooling_size,
+                                                       input_coors,
+                                                       center_coors,
+                                                       center_accu_list,
+                                                       grid_buffer,
+                                                       grid_buffer_count,
+                                                       output_idx,
+                                                       output_idx_count);
+
+
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&et, start, stop);
+    printf("Voxel Sampling Idx Time elapse: %f ms\n", et);
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 }

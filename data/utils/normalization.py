@@ -198,3 +198,23 @@ def convert_threejs_bbox_with_colors(bboxes, color="white"):
             # if (box[-1] == 0):
             threejs_bboxes.append(threejs_bbox)
     return threejs_bboxes
+
+
+def convert_threejs_bbox_with_assigned_colors(bboxes, colors):
+    bboxes = deepcopy(bboxes)
+    assert len(bboxes) > 0 and len(bboxes) == len(colors)
+    for bbox in bboxes:
+        w, l, h, x, y, z = bbox[:6]
+        bbox[:6] = [l, h, w, y, z, x]
+
+    threejs_bboxes = []
+    for i, box in enumerate(bboxes):
+        if box[0] * box[1] * box[2] > 0:
+            threejs_bbox = [0] * 9
+            threejs_bbox[:7] = box[:7]
+            threejs_bbox[-1] = "%0.2f, %0.2f" % (box[6] / np.pi, box[-1])
+            # threejs_bbox[-1] = "conf=%0.2f, iou=%0.2f" % (box[-2], box[-1])
+            threejs_bbox[-2] = colors[i]
+            # if (box[-1] == 0):
+            threejs_bboxes.append(threejs_bbox)
+    return threejs_bboxes

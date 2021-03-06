@@ -121,7 +121,7 @@ public:
                         output_idx_list.push_back(id);
                     }
                 } else {
-                    if (input_roi_conf_ptr[id] >= conf_thres) {
+                    if (input_roi_conf_ptr[id] >= conf_thres && positive_count < max_length) {
                         output_num_list_ptr[b] += 1;
                         positive_count += 1;
                         output_idx_list.push_back(id);

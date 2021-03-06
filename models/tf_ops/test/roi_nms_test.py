@@ -1,23 +1,17 @@
 import os
-from os.path import join
-import numpy as np
 import tensorflow as tf
 from point_viz.converter import PointvizConverter
-from tensorflow.python.client import timeline
 from tqdm import tqdm
 # from models.tf_ops.loader.others import rotated_nms3d_idx
-from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_colors
 import horovod.tensorflow as hvd
-from models.tf_ops.loader.bbox_utils import get_roi_bbox
-from models.utils.iou_utils import cal_3d_iou
-from models.utils.loss_utils import get_masked_average
+
 hvd.init()
 
 os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-stage1'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-stage1')
 
 from models import waymo_model as model
-from train.configs import waymo_config as config
+from train.waymo import waymo_config as config
 from data.waymo_generator import Dataset
 
 model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage1-avg_pool/test/best_model_0.6606513755109455' # 68.8%@non-mem-saving

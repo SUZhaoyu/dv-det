@@ -230,7 +230,7 @@ def get_polygon_from_bbox(bbox, expend_ratio=0.):
     return bbox_polygon
 
 
-def get_interior_scene_points(points, bbox, limit, offset=[0.5, 0.5, 2.]):
+def get_interior_scene_points(points, bbox, limit, offset=[0.5, 0.5, -0.5]):
     w, l, h, x, y, z, r, cls, diff = bbox
     rel_point_x = points[:, 0] - x
     rel_point_y = points[:, 1] - y
@@ -263,6 +263,55 @@ def ground_align(points, bbox, ground, trans_list):
     return np.array(points), np.array(bbox)
 
 
+def get_pasted_point_cloud_waymo(scene_points, scene_bboxes, object_collections, bbox_collections,
+                                 instance_num, maximum_interior_points):
+    bbox_polygons = []
+    output_points = []
+    output_bboxes = []
+
+    for i in range(len(scene_bboxes)):
+        bbox_polygons.append(get_polygon_from_bbox(deepcopy(scene_bboxes[i])))
+        output_bboxes.append(scene_bboxes[i])
+
+    for i in range(instance_num - len(scene_bboxes)):
+        found = False
+        count = 0
+        while not found and count < 10:
+            id = np.random.randint(len(object_collections))
+            new_points = object_collections[id]
+            new_bbox = bbox_collections[id]
+            count += 1
+
+            if len(new_points) < 100:
+                new_bbox = deepcopy(new_bbox)
+                new_points = deepcopy(new_points)
+                new_bbox_polygon = Polygon(get_polygon_from_bbox(new_bbox, expend_ratio=0.15))
+                overlap = False
+                intersect = False
+                for polygon in bbox_polygons:
+                    if new_bbox_polygon.intersection(polygon).area > 0:
+                        overlap = True
+                        break
+
+                if not overlap:
+                    intersect, scene_points = get_interior_scene_points(points=scene_points,
+                                                                        bbox=new_bbox,
+                                                                        limit=maximum_interior_points)
+
+                if not overlap and not intersect:
+                    bbox_polygons.append(new_bbox_polygon)
+                    output_points.append(new_points)
+                    output_bboxes.append(new_bbox)
+                    found = True
+
+    output_points.append(scene_points)
+    output_points = np.concatenate(output_points, axis=0)
+    if len(output_bboxes) > 0:
+        output_bboxes = np.stack(output_bboxes, axis=0)
+
+    return output_points, output_bboxes
+
+
 def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, object_collections, bbox_collections,
                            instance_num, maximum_interior_points):
     bbox_polygons = []
@@ -275,32 +324,42 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
 
     for i in range(instance_num):
         prob = np.random.rand()
-        if prob > 0.6:
-            found = False
-            while not found:
-                diff = np.random.randint(3)
-                id = np.random.randint(len(object_collections[diff]))
-                new_points = object_collections[diff][id]
-                new_bbox = bbox_collections[diff][id]
-                if np.abs(new_bbox[6]) < np.pi / 4 or np.abs(new_bbox[6]) > 3 * np.pi / 4:
-                    found = True
+
+        if prob < 0.6:
+            id = np.random.randint(len(object_collections[1]))
+            new_points = object_collections[1][id]
+            new_bbox = bbox_collections[1][id]
         else:
-            if prob < 0.30 * 0.6:
-                id = np.random.randint(len(object_collections[0]))
-                new_points = object_collections[0][id]
-                new_bbox = bbox_collections[0][id]
-            elif 0.30 * 0.6 <= prob < 0.70 * 0.6:
-                id = np.random.randint(len(object_collections[1]))
-                new_points = object_collections[1][id]
-                new_bbox = bbox_collections[1][id]
-            else:
-                found = False
-                while not found:
-                    id = np.random.randint(len(object_collections[2]))
-                    new_points = object_collections[2][id]
-                    new_bbox = bbox_collections[2][id]
-                    if len(new_points) < 50:
-                        found = True
+            id = np.random.randint(len(object_collections[2]))
+            new_points = object_collections[2][id]
+            new_bbox = bbox_collections[2][id]
+
+        # if prob > 0.6:
+        #     found = False
+        #     while not found:
+        #         diff = np.random.randint(3)
+        #         id = np.random.randint(len(object_collections[diff]))
+        #         new_points = object_collections[diff][id]
+        #         new_bbox = bbox_collections[diff][id]
+        #         if np.abs(new_bbox[6]) < np.pi / 4 or np.abs(new_bbox[6]) > 3 * np.pi / 4:
+        #             found = True
+        # else:
+        #     if prob < 0.30 * 0.6:
+        #         id = np.random.randint(len(object_collections[0]))
+        #         new_points = object_collections[0][id]
+        #         new_bbox = bbox_collections[0][id]
+        #     elif 0.30 * 0.6 <= prob < 0.70 * 0.6:
+        #         id = np.random.randint(len(object_collections[1]))
+        #         new_points = object_collections[1][id]
+        #         new_bbox = bbox_collections[1][id]
+        #     else:
+        #         found = False
+        #         while not found:
+        #             id = np.random.randint(len(object_collections[2]))
+        #             new_points = object_collections[2][id]
+        #             new_bbox = bbox_collections[2][id]
+        #             if len(new_points) < 50:
+        #                 found = True
 
         new_bbox = deepcopy(new_bbox)
         new_points = deepcopy(new_points)

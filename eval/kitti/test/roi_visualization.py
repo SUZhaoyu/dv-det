@@ -17,7 +17,8 @@ hvd.init()
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_eval/test/best_model_0.6925084921062944' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/best_model_0.6553928047743294' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-aug-2/test/best_model_0.6956733309270209' # 68.8%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-complicated/test/best_model_0.7281508956090916' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_focal=0.75/test/best_model_0.6906541874676403' # 68.5%@non-mem-saving
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
@@ -95,7 +96,7 @@ if __name__ == '__main__':
 
             # output_idx = output_idx[:output_count[0]]
 
-            output_idx = output_conf > 0.4
+            output_idx = output_conf > 0.6
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
             #

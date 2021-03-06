@@ -2,7 +2,6 @@ import logging
 
 import numpy as np
 import tensorflow as tf
-from horovod.tensorflow.sync_batch_norm import SyncBatchNormalization
 
 from models.tf_ops.loader.bbox_utils import roi_logits_to_attrs, bbox_logits_to_attrs
 from models.tf_ops.loader.others import voxel2col
@@ -19,9 +18,9 @@ def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
     :param bn_decay: float or float tensor variable, controling moving average weight
     :param scope: string, variable scope
 
-    :return: batch-normalized maps
+    :return: batch-normalized mapsx
     '''
-
+    from horovod.tensorflow.sync_batch_norm import SyncBatchNormalization
     hvd_sync_bn = SyncBatchNormalization(axis=-1,
                                          momentum=bn_decay,
                                          trainable=trainable,
@@ -32,12 +31,15 @@ def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
         tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
 
     return ret
+
     # return tf.layers.batch_normalization(inputs=inputs,
     #                                      axis=-1,
     #                                      momentum=bn_decay,
     #                                      training=is_training,
     #                                      trainable=trainable,
     #                                      name=name)
+
+    # return inputs
 
 
 def kernel_conv_wrapper(inputs,

@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 from data.utils.normalization import get_union_sets, convert_threejs_coors, convert_threejs_bbox
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
-task = 'train'
+task = 'val'
 node_num = 16
 keep_ratio = 0.2
 scene_num_dict = {'train': 798,

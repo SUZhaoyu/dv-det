@@ -1,7 +1,7 @@
 import horovod.tensorflow as hvd
 import tensorflow as tf
 
-import train.configs.waymo_config as config
+import train.waymo.waymo_config as config
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
 from models.tf_ops.loader.others import roi_filter
 from models.tf_ops.loader.pooling import la_roi_pooling_fast

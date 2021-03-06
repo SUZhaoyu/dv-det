@@ -159,8 +159,8 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
             //                printf("Yes\n");
                             float dist_2 = pow(point_x - act_roi_grid_x, 2.) + pow(point_y - act_roi_grid_y, 2.) + pow(point_z - act_roi_grid_z, 2.);
                             float dist = sqrt(dist_2);
-                            float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z);
-                            float weight = 2.71828 / expf(2 * dist / radius);
+                            float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z) / 2.;
+                            float weight = 2.71828 / expf(dist / radius);
             //                float weight = 1.;
 
                             int pool_count = temp_count[voxel_coor];
@@ -197,14 +197,21 @@ __global__ void roi_pooling_fill_gpu_kernel(int roi_num, int voxel_num, int chan
                 weight_sum += output_weight[pool_id];
             }
             for (int p=0; p<pool_count; p++) {
-                pool_id = thread_id * pooling_size + p;
+                int pool_id = thread_id * pooling_size + p;
                 int input_id = output_idx[pool_id];
-                float weight = output_weight[pool_id] * output_weight[pool_id] / weight_sum;
+                float weight = output_weight[pool_id] / weight_sum;
+//                float weight = output_weight[pool_id];
 //                printf("%d, %d, %f\n", input_id, pool_count, weight);
                 output_weight[pool_id] = weight;
+//                float temp_max = -1e6;
                 for (int c=0; c < channels; c++) {
                     output_features[thread_id * channels + c] += input_features[input_id * channels + c] * weight;
-//                    printf("%d, %d\n", thread_id, input_id);
+//                    float features = input_features[input_id * channels + c] * weight;
+//                    if (features > temp_max) {
+//                        output_features[thread_id * channels + c] = features;
+//                        temp_max = features;
+//                    }
+////                    printf("%d, %d\n", thread_id, input_id);
                 }
             }
         }

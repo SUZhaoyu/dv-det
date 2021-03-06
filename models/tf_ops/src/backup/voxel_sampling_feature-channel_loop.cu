@@ -25,24 +25,27 @@ __global__ void voxel_sampling_feature_gpu_kernel(int center_num, int channels, 
                                                   float* output_features) {
 
     int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
-    int c = thread_id % channels;
-    int voxel_coor = thread_id / channels;
-    if (thread_id < center_num * kernel_num * channels) {
+    int voxel_coor = thread_id % kernel_num;
+    if (thread_id < center_num * kernel_num) {
         int pooling_count = 0;
         for (int p=0; p<output_pooling_size; p++) {
+            if (output_idx[voxel_coor*output_pooling_size + p] >= 0)
+                pooling_count += 1;
+        }
+
+        for (int p=0; p<pooling_count; p++) {
             int point_id = output_idx[voxel_coor*output_pooling_size + p];
             if (point_id >= 0) {
-                output_features[thread_id] += input_features[point_id * channels + c];
-                pooling_count += 1;
-//                printf("%f\n", input_features[point_id * channels + c]);
+                for (int c=0; c<channels; c++) {
+                    output_features[thread_id*channels + c] += input_features[point_id * channels + c] / pooling_count;
+                }
             }
         }
-//        if (pooling_count > 1)
-//            printf("%f\n", output_features[thread_id]);
-        if (pooling_count > 0)
-            output_features[thread_id] /= pooling_count;
-        if (pooling_count == 0)
-            output_features[thread_id] = padding;
+        if (pooling_count == 0) {
+            for (int c=0; c<channels; c++) {
+                output_features[thread_id*channels + c] = padding;
+            }
+        }
 	}
 }
 
@@ -94,8 +97,8 @@ void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int cha
     cudaEventCreate(&start); cudaEventCreate(&stop);
     cudaEventRecord(start);
 
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_feature_gpu_kernel, 0, center_num * kernel_num * channels);
-    gridSize = (center_num * kernel_num * channels + blockSize - 1) / blockSize;
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, voxel_sampling_feature_gpu_kernel, 0, center_num * kernel_num);
+    gridSize = (center_num * kernel_num + blockSize - 1) / blockSize;
     voxel_sampling_feature_gpu_kernel<<<gridSize, blockSize>>>(center_num, channels, kernel_num, padding,
                                                                output_pooling_size,
                                                                input_features,
