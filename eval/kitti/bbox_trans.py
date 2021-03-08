@@ -40,11 +40,11 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         proj_v = v.dot(trans_matrix.transpose())
         proj_v /= proj_v[:, 2:3]
         # TODO: May need change the filtering strategy.
-        if np.min(proj_v[:, 0]) < 0. or \
-           np.max(proj_v[:, 0]) > col or \
-           np.min(proj_v[:, 1]) < 0. or \
-           np.max(proj_v[:, 1]) > row:
-            continue
+        # if np.min(proj_v[:, 0]) < 0. or \
+        #    np.max(proj_v[:, 0]) > col or \
+        #    np.min(proj_v[:, 1]) < 0. or \
+        #    np.max(proj_v[:, 1]) > row:
+        #     continue
         if np.min(proj_v[:, 2]) < 0.:
             continue
         else:
@@ -108,7 +108,7 @@ def write_null_txt(txt_dir):
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
     calib_home = join(home, 'dataset')
-    prediction_home = join(home, 'eval/kitti', 'data')
+    prediction_home = join(home, 'eval', 'data')
     output_txt_home = join(home, 'eval', 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
     TASK = 'validation'

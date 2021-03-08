@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 Converter = PointvizConverter(home='/home/tan/tony/threejs/test')
 
-data_home = '/home/tan/tony/dv-det/eval/kitti/data'
+data_home = '/home/tan/tony/dv-det/eval/data'
 input_bboxes_stack = np.load(join(data_home, 'input_bboxes.npy'), allow_pickle=True)
 
 if __name__ == '__main__':
@@ -15,8 +15,6 @@ if __name__ == '__main__':
     for i in tqdm(range(len(input_bboxes_stack))):
         output_bboxes = input_bboxes_stack[i][0]
         output_bboxes = output_bboxes[output_bboxes[:, 0] != 0, :]
-        output_bboxes = output_bboxes[output_bboxes[:, 7] == 0, :]
-
         w = output_bboxes[:, 0] * ((np.random.rand() * 0.1 - 0.05) + 1.)
         l = output_bboxes[:, 1] * ((np.random.rand() * 0.1 - 0.05) + 1.)
         h = output_bboxes[:, 2] * ((np.random.rand() * 0.1 - 0.05) + 1.)
@@ -33,9 +31,9 @@ if __name__ == '__main__':
         # z = output_bboxes[:, 5]
         # r = output_bboxes[:, 6]
 
-        # if np.random.rand() > 0.5:
-        #     w, l = l, w
-        #     r += np.pi * choice([-0.5, 0.5])
+        if np.random.rand() > 0.5:
+            w, l = l, w
+            r += np.pi * choice([-0.5, 0.5])
 
 
         c = np.zeros(len(w))
@@ -46,7 +44,7 @@ if __name__ == '__main__':
         # if np.random.rand() < 0.2:
         #     bboxes = np.vstack((bboxes, np.array([1.5, 3., 1.6, 10., -10., 5, 0., 0., 0., np.random.rand()])))
         testing_output.append(bboxes)
-    np.save('/home/tan/tony/dv-det/eval/kitti/data/bbox_testing.npy', testing_output)
+    np.save('/home/tan/tony/dv-det/eval/data/bbox_testing.npy', testing_output)
 
 
 

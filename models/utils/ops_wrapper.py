@@ -18,28 +18,26 @@ def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
     :param bn_decay: float or float tensor variable, controling moving average weight
     :param scope: string, variable scope
 
-    :return: batch-normalized mapsx
+    :return: batch-normalized maps
     '''
-    from horovod.tensorflow.sync_batch_norm import SyncBatchNormalization
-    hvd_sync_bn = SyncBatchNormalization(axis=-1,
-                                         momentum=bn_decay,
-                                         trainable=trainable,
-                                         name=name)
-    ret = hvd_sync_bn(inputs, training=is_training)  # 调用后updates属性才会有内容。
-    # print(hvd_sync_bn.updates)
-    for op in hvd_sync_bn.updates:
-        tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
-
-    return ret
-
-    # return tf.layers.batch_normalization(inputs=inputs,
-    #                                      axis=-1,
+    # from horovod.tensorflow.sync_batch_norm import SyncBatchNormalization
+    # hvd_sync_bn = SyncBatchNormalization(axis=-1,
     #                                      momentum=bn_decay,
-    #                                      training=is_training,
     #                                      trainable=trainable,
     #                                      name=name)
+    # ret = hvd_sync_bn(inputs, training=is_training)  # 调用后updates属性才会有内容。
+    # # print(hvd_sync_bn.updates)
+    # for op in hvd_sync_bn.updates:
+    #     tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, op)
+    #
+    # return ret
 
-    # return inputs
+    return tf.layers.batch_normalization(inputs=inputs,
+                                         axis=-1,
+                                         momentum=bn_decay,
+                                         training=is_training,
+                                         trainable=trainable,
+                                         name=name)
 
 
 def kernel_conv_wrapper(inputs,

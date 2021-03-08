@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-aug_config = {'nbbox': 128,
+aug_config = {'nbbox': 256,
               'rotate_range': np.pi / 4,
               'rotate_mode': 'u',
               'scale_range': 0.05,
@@ -11,12 +11,12 @@ aug_config = {'nbbox': 128,
               'flip': False,
               'shuffle': True,
               'paste_augmentation': True,
-              'paste_instance_num': 64,
+              'paste_instance_num': 128,
               'maximum_interior_points': 40,
               'normalization': None}
 
-dimension_training = [120., 180., 10.]
-offset_training = [20., 70., 5.]
+dimension_training = [100., 160., 9.]
+offset_training = [10., 60., 5.]
 
 # dimension_training = [72., 82., 6.]
 # offset_training = [1., 41.0, 4.]
@@ -82,10 +82,10 @@ base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel
                          'base_2': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
                          'base_3': {'subsample_res': 0.20, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
                          'base_4': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
-                         'base_5': {'subsample_res': 0.40, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
-                         'base_6': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
-                         'base_7': {'subsample_res': 0.60, 'c_out': 256, 'kernel_res': 0.80, 'padding':  0.}}
-rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 0.80, 'padding': 0.}
+                         'base_5': {'subsample_res': 0.40, 'c_out': 128, 'kernel_res': 0.80, 'padding':  0.},
+                         'base_6': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.80, 'padding':  0.},
+                         'base_7': {'subsample_res': 0.60, 'c_out': 256, 'kernel_res': 1.20, 'padding':  0.}}
+rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 1.20, 'padding': 0.}
 
 # base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding': -1.},
 #                          'base_1': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},

@@ -15,11 +15,12 @@ from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, tran
     get_pasted_point_cloud
 from data.utils.normalization import feature_normalize, bboxes_normalization, convert_threejs_coors, \
     convert_threejs_bbox
+import train.kitti.kitti_config as config
 
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
 
-default_config = {'nbbox': 128,
+default_config = {'nbbox': config.bbox_padding,
                   'rotate_range': 0.,
                   'rotate_mode': 'u',
                   'scale_range': 0.,
@@ -28,7 +29,7 @@ default_config = {'nbbox': 128,
                   'flip': False,
                   'shuffle': False,
                   'paste_augmentation': False,
-                  'paste_instance_num': 64,
+                  'paste_instance_num': 0,
                   'maximum_interior_points': 80,
                   'normalization': None}
 
@@ -247,7 +248,7 @@ if __name__ == '__main__':
                   'flip': False,
                   'shuffle': True,
                   'paste_augmentation': True,
-                  'paste_instance_num': 64,
+                  'paste_instance_num': 128,
                   'maximum_interior_points': 40,
                   'normalization': None}
 

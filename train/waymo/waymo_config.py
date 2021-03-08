@@ -15,7 +15,7 @@ aug_config = {'nbbox': bbox_padding,
               'flip': False,
               'shuffle': True,
               'paste_augmentation': True,
-              'paste_instance_num': 96,
+              'paste_instance_num': 64,
               'maximum_interior_points': 40,
               'normalization': 'channel_std'}
 
@@ -82,31 +82,31 @@ roi_voxel_size = 5
 # rpn_params_training = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 0.80, 'padding': 0.}
 
 # base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding': -1.},
-#                          'base_1': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.20, 'padding':  0.},
-#                          'base_2': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': 0.20, 'padding':  0.},
-#                          'base_3': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.40, 'padding':  0.},
-#                          'base_4': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': 0.40, 'padding':  0.},
-#                          'base_5': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.60, 'padding':  0.},
-#                          'base_6': {'subsample_res': 0.60, 'c_out':  64, 'kernel_res': 0.60, 'padding':  0.},
-#                          'base_7': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.80, 'padding':  0.}}
-# rpn_params_inference = {'subsample_res': 0.80, 'c_out': 128, 'kernel_res': 0.80, 'padding': 0.}
-
-base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding': -1.},
-                         'base_1': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
-                         'base_2': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': None, 'padding':  0.},
-                         'base_3': {'subsample_res': None, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
-                         'base_4': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': None, 'padding':  0.},
-                         'base_5': {'subsample_res': None, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
-                         'base_6': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': None, 'padding':  0.},
-                         'base_7': {'subsample_res': None, 'c_out': 256, 'kernel_res': 0.80, 'padding':  0.}}
-rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': None, 'padding': 0.}
+#                         'base_1': {'subsample_res': 0.10, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
+#                         'base_2': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
+#                         'base_3': {'subsample_res': 0.20, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
+#                         'base_4': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
+#                         'base_5': {'subsample_res': 0.40, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
+#                         'base_6': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
+#                         'base_7': {'subsample_res': 0.60, 'c_out': 256, 'kernel_res': 0.80, 'padding':  0.}}
+# rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 0.80, 'padding': 0.}
 
 # base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding':  0.},
-#                          'base_1': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
-#                          'base_2': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
-#                          'base_3': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
-#                          'base_4': {'subsample_res': 0.80, 'c_out': 192, 'kernel_res': 0.80, 'padding':  0.}}
-# rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 1.20, 'padding': 0.}
+#                          'base_1': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
+#                          'base_2': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
+#                          'base_3': {'subsample_res': None, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
+#                          'base_4': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
+#                          'base_5': {'subsample_res': None, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
+#                          'base_6': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
+#                          'base_7': {'subsample_res': None, 'c_out': 256, 'kernel_res': 0.80, 'padding':  0.}}
+# rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 0.80, 'padding': 0.}
+
+base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding':  0.},
+                         'base_1': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding':  0.},
+                         'base_2': {'subsample_res': 0.40, 'c_out':  64, 'kernel_res': 0.40, 'padding':  0.},
+                         'base_3': {'subsample_res': 0.60, 'c_out': 128, 'kernel_res': 0.60, 'padding':  0.},
+                         'base_4': {'subsample_res': 0.80, 'c_out': 192, 'kernel_res': 0.80, 'padding':  0.}}
+rpn_params_inference = {'subsample_res': 0.80, 'c_out': 256, 'kernel_res': 1.20, 'padding': 0.}
 
 # base_params_inference = {'base_0': {'subsample_res': 0.05, 'c_out':  16, 'kernel_res': 0.05, 'padding': -1.},
 #                          'base_1': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding':  0.},

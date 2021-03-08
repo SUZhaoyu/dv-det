@@ -3,10 +3,8 @@ from os.path import join
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import numpy as np
-import time
 import tensorflow as tf
 from point_viz.converter import PointvizConverter
-from tensorflow.python.client import timeline
 from tqdm import tqdm
 # from models.tf_ops.loader.others import rotated_nms3d_idx
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_colors
@@ -22,7 +20,7 @@ from models import waymo_model as model
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_eval/test/best_model_0.6925084921062944' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage1-no_scale_lr/test/best_model_0.6559794634147377' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-complicated-paste/test/best_model_0.6200861480780779' # 68.8%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-1.20-paste/test/best_model_0.661185401552268' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage1-avg_pool/test/best_model_0.6606513755109455' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_focal=0.75/test/best_model_0.6906541874676403' # 68.5%@non-mem-saving
 data_home = '/home/tan/tony/dv-det/eval/waymo/data'
@@ -58,7 +56,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
@@ -122,11 +120,6 @@ if __name__ == '__main__':
                                     input_num_list_p: batch_input_num_list,
                                     input_bbox_p: batch_input_bboxes,
                                     is_training_p: False})
-                        # options=run_options,
-                        # run_metadata=run_metadata)
-
-            time.sleep(0.5)
-
             # if output_iou_loss == np.nan:
             # print(output_iou_loss)
             # if np.isnan(np.mean(output_ious)):
@@ -136,68 +129,69 @@ if __name__ == '__main__':
             #     np.save(join(data_home, 'roi_ious_nan.npy'), output_ious)
             #     break
 
-
+                         # options=run_options,
+                         # run_metadata=run_metadata)
 
             # tl = timeline.Timeline(run_metadata.step_stats)
             # ctf = tl.generate_chrome_trace_format()
-            # with open('waymo-stage1.json', 'w') as f:
+            # with open('timeline-stage1.json', 'w') as f:
             #     f.write(ctf)
 
-        #     output_idx = output_conf >= 0.6
-        #     output_bboxes = output_bboxes[output_idx]
-        #     output_conf = output_conf[output_idx]
-        #
-        #     # output_ious = output_ious[output_idx]
-        #     # for i in range(len(output_ious)):
-        #     #     if not np.isnan(output_ious[i]):
-        #     #         overall_iou.append(output_ious[i])
-        #     # #
-        #     input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
-        #     output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
-        #     plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
-        #     plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
-        #
-        #     w = output_bboxes[:, 0]
-        #     l = output_bboxes[:, 1]
-        #     h = output_bboxes[:, 2]
-        #     x = output_bboxes[:, 3]
-        #     y = output_bboxes[:, 4]
-        #     z = output_bboxes[:, 5]
-        #     r = output_bboxes[:, 6]
-        #
-        #     c = np.ones(len(w))
-        #     d = np.zeros(len(w))
-        #     pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
-        #     pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
-        #     prediction_output.append(pred_bboxes)
-        #
-        #     output_bboxes = input_bboxes_stack[frame_id][0]
-        #     output_bboxes = output_bboxes[output_bboxes[:, 0] != 0, :]
-        #     w = output_bboxes[:, 0]
-        #     l = output_bboxes[:, 1]
-        #     h = output_bboxes[:, 2]
-        #     x = output_bboxes[:, 3]
-        #     y = output_bboxes[:, 4]
-        #     z = output_bboxes[:, 5]
-        #     r = output_bboxes[:, 6]
-        #     c = np.ones(len(w))
-        #     d = output_bboxes[:, 8]
-        #     p = np.ones(len(w))
-        #     label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
-        #     label_output.append(label_bboxes)
-        #
-        #
-        #
-        #     if visualization:
-        #         # pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
-        #         pred_bbox_params = convert_threejs_bbox_with_colors(pred_bboxes, color='red') if len(pred_bboxes) > 0 else []
-        #         label_bbox_params = convert_threejs_bbox_with_colors(label_bboxes, color='blue') if len(label_bboxes) > 0 else []
-        #         task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
-        #
-        #         Converter.compile(task_name=task_name,
-        #                           coors=convert_threejs_coors(plot_coors),
-        #                           default_rgb=plot_rgbs,
-        #                           bbox_params=pred_bbox_params + label_bbox_params)
-        #
-        # np.save(join(data_home, 'bbox_predictions.npy'), np.array(prediction_output, dtype=object))
-        # np.save(join(data_home, 'bbox_labels.npy'), np.array(label_output, dtype=object))
+            output_idx = output_conf >= 0.6
+            output_bboxes = output_bboxes[output_idx]
+            output_conf = output_conf[output_idx]
+
+            # output_ious = output_ious[output_idx]
+            # for i in range(len(output_ious)):
+            #     if not np.isnan(output_ious[i]):
+            #         overall_iou.append(output_ious[i])
+            # #
+            input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
+            output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
+            plot_coors = np.concatenate([batch_input_coors, output_coors], axis=0)
+            plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
+
+            w = output_bboxes[:, 0]
+            l = output_bboxes[:, 1]
+            h = output_bboxes[:, 2]
+            x = output_bboxes[:, 3]
+            y = output_bboxes[:, 4]
+            z = output_bboxes[:, 5]
+            r = output_bboxes[:, 6]
+
+            c = np.ones(len(w))
+            d = np.zeros(len(w))
+            pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
+            pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
+            prediction_output.append(pred_bboxes)
+
+            output_bboxes = input_bboxes_stack[frame_id][0]
+            output_bboxes = output_bboxes[output_bboxes[:, 0] != 0, :]
+            w = output_bboxes[:, 0]
+            l = output_bboxes[:, 1]
+            h = output_bboxes[:, 2]
+            x = output_bboxes[:, 3]
+            y = output_bboxes[:, 4]
+            z = output_bboxes[:, 5]
+            r = output_bboxes[:, 6]
+            c = np.ones(len(w))
+            d = output_bboxes[:, 8]
+            p = np.ones(len(w))
+            label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
+            label_output.append(label_bboxes)
+
+
+
+            if visualization:
+                # pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
+                pred_bbox_params = convert_threejs_bbox_with_colors(pred_bboxes, color='red') if len(pred_bboxes) > 0 else []
+                label_bbox_params = convert_threejs_bbox_with_colors(label_bboxes, color='blue') if len(label_bboxes) > 0 else []
+                task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
+
+                Converter.compile(task_name=task_name,
+                                  coors=convert_threejs_coors(plot_coors),
+                                  default_rgb=plot_rgbs,
+                                  bbox_params=pred_bbox_params + label_bbox_params)
+
+        np.save(join(data_home, 'bbox_predictions.npy'), np.array(prediction_output, dtype=object))
+        np.save(join(data_home, 'bbox_labels.npy'), np.array(label_output, dtype=object))

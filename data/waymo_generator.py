@@ -131,13 +131,13 @@ class Dataset(object):
                         if len(bboxes) > 0:
                             bboxes = bboxes[bboxes[:, 0] > 0, :]
 
-                        if self.paste_augmentation:
-                            points, bboxes = get_pasted_point_cloud_waymo(scene_points=points,
-                                                                          scene_bboxes=bboxes,
-                                                                          object_collections=self.object_collections,
-                                                                          bbox_collections=self.bbox_collections,
-                                                                          instance_num=self.paste_instance_num,
-                                                                          maximum_interior_points=self.maximum_interior_points)
+                        # if self.paste_augmentation:
+                        #     points, bboxes = get_pasted_point_cloud_waymo(scene_points=points,
+                        #                                                   scene_bboxes=bboxes,
+                        #                                                   object_collections=self.object_collections,
+                        #                                                   bbox_collections=self.bbox_collections,
+                        #                                                   instance_num=self.paste_instance_num,
+                        #                                                   maximum_interior_points=self.maximum_interior_points)
                         # print(points.shape, bboxes.shape)
                         if self.shuffle:
                             points = shuffle(points)
@@ -259,7 +259,7 @@ if __name__ == '__main__':
                   'flip': False,
                   'shuffle': True,
                   'paste_augmentation': True,
-                  'paste_instance_num': 96,
+                  'paste_instance_num': 64,
                   'maximum_interior_points': 40,
                   'normalization': None}
 
@@ -271,7 +271,7 @@ if __name__ == '__main__':
                       hvd_size=8,
                       hvd_id=0)
     generator = dataset.train_generator()
-    for i in tqdm(range(1)):
+    for i in tqdm(range(10000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
 
@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()
-    batch_id = 2
+    batch_id = 6
     acc_num_list = np.cumsum(num_list)
     #
     coors = coors[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]

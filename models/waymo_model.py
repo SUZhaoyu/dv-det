@@ -120,15 +120,15 @@ def stage1_model(input_coors,
 
         roi_conf_logits = roi_logits[:, 7]
 
-        # if not trainable:
-        #     roi_attrs, roi_coors, roi_conf_logits, roi_num_list = \
-        #         iou_filtering(attrs=roi_attrs,
-        #                       coors=roi_coors,
-        #                       conf_logits=roi_conf_logits,
-        #                       num_list=roi_num_list,
-        #                       nms_overlap_thresh=0.8,
-        #                       nms_conf_thres=config.roi_thres,
-        #                       offset=config.offset_training)
+        if not trainable:
+            roi_attrs, roi_coors, roi_conf_logits, roi_num_list = \
+                iou_filtering(attrs=roi_attrs,
+                              coors=roi_coors,
+                              conf_logits=roi_conf_logits,
+                              num_list=roi_num_list,
+                              nms_overlap_thresh=0.8,
+                              nms_conf_thres=config.roi_thres,
+                              offset=config.offset_training)
 
         return coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
 
