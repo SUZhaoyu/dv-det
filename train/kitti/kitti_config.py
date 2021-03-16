@@ -2,16 +2,17 @@ import os
 
 import numpy as np
 
-aug_config = {'nbbox': 256,
-              'rotate_range': np.pi / 4,
+aug_config = {'nbbox': 128,
+              # 'rotate_range': np.pi / 4,
+              'rotate_range': 0.,
               'rotate_mode': 'u',
               'scale_range': 0.05,
               'scale_mode': 'u',
               'drop_out': 0.1,
               'flip': False,
               'shuffle': True,
-              'paste_augmentation': True,
-              'paste_instance_num': 128,
+              'paste_augmentation': False,
+              'paste_instance_num': 64,
               'maximum_interior_points': 40,
               'normalization': None}
 
@@ -62,8 +63,8 @@ output_attr = 8
 # stage1_training_epoch = 25
 total_epoch = 300
 
-roi_thres = 0.6
-iou_thres = 0.55
+roi_thres = 0.5
+iou_thres = 0.5
 max_length = 128
 roi_voxel_size = 5
 

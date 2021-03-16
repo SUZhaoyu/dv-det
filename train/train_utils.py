@@ -120,6 +120,10 @@ def get_iou_loss_weight(current_step, total_l1_step):
     return tf.cast(tf.greater_equal(current_step, total_l1_step), dtype=tf.float32)
 
 
+# grad_check = tf.check_numerics(clipped_gradients)
+# with tf.control_dependencies([grad_check]):
+#   self.optimizer = opt.apply_gradients(zip(clipped_gradients, params))
+
 def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step=None, use_hvd=False):
     if opt == 'adam':
         optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -130,20 +134,38 @@ def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step
     if use_hvd:
         import horovod.tensorflow as hvd
         optimizer = hvd.DistributedOptimizer(optimizer, device_dense="/cpu:0")
-    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    with tf.control_dependencies(update_ops):
-        var_list = None
-        if var_keywords is not None:
-            var_list = []
-            for keyword in var_keywords:
-                for var in tf.trainable_variables():
-                    if keyword in var.name:
-                        var_list.append(var)
-            if len(var_list) == 0:
-                print("WARNING: no variables matches with keywords: {}".format(var_keywords))
-                var_list = None
 
-        train_op = optimizer.minimize(loss, global_step=global_step, var_list=var_list)
+    var_list = None
+    if var_keywords is not None:
+        var_list = []
+        for keyword in var_keywords:
+            for var in tf.trainable_variables():
+                if keyword in var.name:
+                    var_list.append(var)
+        if len(var_list) == 0:
+            print("WARNING: no variables matches with keywords: {}".format(var_keywords))
+            var_list = None
+    else:
+        var_list = tf.trainable_variables()
+
+    # gradients = tf.gradients(loss, var_list)
+
+    # update_ops = [tf.get_collection(tf.GraphKeys.UPDATE_OPS), tf.check_numerics(gradients, message='NaN Error')]
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
+    with tf.control_dependencies(update_ops):
+        # train_op = optimizer.minimize(loss, global_step=global_step, var_list=var_list)
+        gradients = optimizer.compute_gradients(loss)
+
+        clipped_gradients = []
+        for grad, var in gradients:
+            if grad is not None:
+                clipped_gradients.append((tf.clip_by_value(grad, -10., 10.), var))
+            else:
+                clipped_gradients.append((grad, var))
+
+        # clipped_gradients = [(tf.clip_by_value(grad, -10., 10.), var) for grad, var in gradients]
+        train_op = optimizer.apply_gradients(clipped_gradients, global_step=global_step)
     return train_op
 
 

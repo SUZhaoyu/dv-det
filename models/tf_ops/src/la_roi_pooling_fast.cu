@@ -191,10 +191,11 @@ __global__ void roi_pooling_fill_gpu_kernel(int roi_num, int voxel_num, int chan
         int pool_count = min(temp_count[thread_id], pooling_size);
         if (pool_count > 0) {
             float weight_sum = 0;
-            int pool_id;
+//            int pool_id;
             for (int p=0; p<pool_count; p++) {
-                pool_id = thread_id * pooling_size + p;
-                weight_sum += output_weight[pool_id];
+//                pool_id = thread_id * pooling_size + p;
+//                weight_sum += output_weight[pool_id];
+                weight_sum += 1;
             }
             for (int p=0; p<pool_count; p++) {
                 int pool_id = thread_id * pooling_size + p;
@@ -203,6 +204,8 @@ __global__ void roi_pooling_fill_gpu_kernel(int roi_num, int voxel_num, int chan
 //                float weight = output_weight[pool_id];
 //                printf("%d, %d, %f\n", input_id, pool_count, weight);
                 output_weight[pool_id] = weight;
+//                if (thread_id == 0)
+//                    printf("Forward: %f\n", weight);
 //                float temp_max = -1e6;
                 for (int c=0; c < channels; c++) {
                     output_features[thread_id * channels + c] += input_features[input_id * channels + c] * weight;
@@ -217,6 +220,33 @@ __global__ void roi_pooling_fill_gpu_kernel(int roi_num, int voxel_num, int chan
         }
     }
 }
+
+
+__global__ void roi_pooling_grad_gpu_kernel(int ncenters, int voxel_num, int channels, int pooling_size,
+                                            const int* output_idx,
+                                            const float* output_weight,
+                                            const float* output_features_grad,
+                                            float* input_features_grad) {
+    int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+    if (thread_id < ncenters * voxel_num * pooling_size) {
+        int pooling_id = thread_id % pooling_size;
+        int center_id = thread_id / (pooling_size * voxel_num);
+        int voxel_id = thread_id / pooling_size % voxel_num;
+
+        int voxel_coor = center_id*voxel_num + voxel_id;
+        int point_id = output_idx[voxel_coor * pooling_size + pooling_id];
+        float point_weight = output_weight[voxel_coor * pooling_size + pooling_id];
+//        if (thread_id == 0)
+//        printf("Center_id=%d, voxel_id=%d, pooling_id=%d, point_id=%d\n", center_id, voxel_id, pooling_id, point_id);
+
+        for (int c=0; c<channels; c++) {
+            if (point_id >= 0) {
+                atomicAdd(&input_features_grad[point_id*channels + c], output_features_grad[voxel_coor*channels + c] * point_weight);
+            }
+        }
+    }
+}
+
 
 void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
                               int roi_num, int voxel_size, int pooling_size, float padding_value,
@@ -241,9 +271,9 @@ void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
         printf("RoiPoolingFastOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
-    if (input_point_num <= 0)
+    if (input_point_num * roi_num <= 0)
         return;
-
+//    printf("RoI Num: %d\n", roi_num);
     const int voxel_num = voxel_size * voxel_size * voxel_size;
     int max_batch_input_point_num = 0;
 
@@ -298,4 +328,30 @@ void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
                                                         output_features,
                                                         output_idx,
                                                         output_weight);
+}
+
+
+void roi_pooling_grad_gpu_launcher(int ncenters, int voxel_num, int channels, int pooling_size,
+                                   const int* output_idx,
+                                   const float* output_weight,
+                                   const float* output_features_grad,
+                                   float* input_features_grad) {
+    if (channels * voxel_num <= 0) {
+        printf("RoiPoolingGradOp ERROR: Invalid CUDA input dimensions.\n");
+        return;
+    }
+    if (ncenters == 0)
+        return;
+    int blockSize;      // The launch configurator returned block size
+    int minGridSize;    // The minimum grid size needed to achieve the maximum occupancy for a full device launch
+    int gridSize;       // The actual grid size needed, based on input size
+
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, roi_pooling_grad_gpu_kernel, 0, ncenters * voxel_num * pooling_size);
+    gridSize = (ncenters * voxel_num * pooling_size + blockSize - 1) / blockSize;
+
+    roi_pooling_grad_gpu_kernel<<<gridSize, blockSize>>>(ncenters, voxel_num, channels, pooling_size,
+                                                         output_idx,
+                                                         output_weight,
+                                                         output_features_grad,
+                                                         input_features_grad);
 }

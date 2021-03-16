@@ -24,7 +24,6 @@ epoch = 2
 if __name__ == '__main__':
     WaymoDataset = Dataset(task='train',
                            batch_size=batch_size,
-                           config=config.aug_config,
                            num_worker=6,
                            hvd_size=1,
                            hvd_id=0)

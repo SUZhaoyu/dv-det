@@ -228,6 +228,7 @@ def conv_3d_wrapper(inputs,
     else:
         l2_loss_collection = scope.split('_')[0] + "_l2"
     with tf.variable_scope(scope):
+        kernel_num = tf.shape(inputs)[0]
         num_input_channels = inputs.get_shape()[-1].value
         input_size = np.cbrt(inputs.get_shape()[-2].value).astype(np.int32)
         reshaped_inputs = tf.reshape(inputs, shape=[-1, input_size, input_size, input_size, num_input_channels])
@@ -249,10 +250,17 @@ def conv_3d_wrapper(inputs,
         if summary:
             tf.summary.scalar('kernel_l2', tf.nn.l2_loss(kernel))
 
-        outputs = tf.nn.conv3d(input=reshaped_inputs,
-                               filter=kernel,
-                               strides=[1, 1, 1, 1, 1],
-                               padding='VALID')
+        # outputs = tf.nn.conv3d(input=reshaped_inputs,
+        #                        filter=kernel,
+        #                        strides=[1, 1, 1, 1, 1],
+        #                        padding='VALID')
+
+        outputs = tf.cond(tf.greater(kernel_num, 0),
+                          lambda: tf.nn.conv3d(input=reshaped_inputs,
+                                               filter=kernel,
+                                               strides=[1, 1, 1, 1, 1],
+                                               padding='VALID'),
+                          lambda: tf.random.uniform(shape=[0, input_size-2, input_size-2, input_size-2, num_output_channels]))
 
         if bn_decay is None:
             outputs = tf.nn.bias_add(outputs, biases)

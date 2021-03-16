@@ -246,3 +246,71 @@ private:
     std::vector<float> offset;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("LaRoiPoolingFastOp").Device(DEVICE_GPU), LaRoiPoolingFastOp);
+
+
+REGISTER_OP("LaRoiPoolingFastGradOp")
+    .Input("input_features: float32")
+    .Input("output_idx: int32")
+    .Input("output_weight: float32")
+    .Input("output_features_grad: float32")
+    .Output("input_features_grad: float32")
+    .SetShapeFn([](InferenceContext* c){
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    }); // InferenceContext
+
+
+void roi_pooling_grad_gpu_launcher(int ncenters, int ngrid, int channels, int pooling_size,
+                                   const int* output_idx,
+                                   const float* output_weight,
+                                   const float* output_features_grad,
+                                   float* input_features_grad);
+
+class LaRoiPoolingFastGradOp: public OpKernel {
+public:
+    explicit LaRoiPoolingFastGradOp(OpKernelConstruction* context): OpKernel(context) {}
+    void Compute(OpKernelContext* context) override {
+
+        const Tensor& input_features = context->input(0);
+        auto input_features_ptr = input_features.template flat<float>().data();
+        OP_REQUIRES(context, input_features.dims()==2 && input_features.dim_size(1) > 0,
+                    errors::InvalidArgument("LaRoiPoolingFastGradOp expects input features in shape: [input_point_nums, channels(>0)]."));
+
+        const Tensor& output_idx = context->input(1);
+        auto output_idx_ptr = output_idx.template flat<int>().data();
+        OP_REQUIRES(context, output_idx.dims()==3 && output_idx.dim_size(2) > 0,
+                    errors::InvalidArgument("LaRoiPoolingFastGradOp expects output_idx in shape: [ncenters, voxel_size*3, pooling_size(>0)]."));
+
+        const Tensor& output_weight = context->input(2);
+        auto output_weight_ptr = output_weight.template flat<float>().data();
+        OP_REQUIRES(context, output_weight.dims()==3 && output_weight.dim_size(2) > 0,
+                    errors::InvalidArgument("LaRoiPoolingFastGradOp expects output_idx in shape: [ncenters, voxel_size*3, pooling_size(>0)]."));
+
+        const Tensor& output_features_grad = context->input(3);
+        auto output_features_grad_ptr = output_features_grad.template flat<float>().data();
+        OP_REQUIRES(context, output_features_grad.dims()==3 && output_features_grad.dim_size(2) > 0,
+                    errors::InvalidArgument("LaRoiPoolingFastGradOp expects output_features_grad in shape: [input_point_nums, voxel_size*3, channels(>0)]."));
+        OP_REQUIRES(context, output_idx.dim_size(0)==output_features_grad.dim_size(0) &&
+                             output_idx.dim_size(1)==output_features_grad.dim_size(1) &&
+                             output_idx.dim_size(2)==output_weight.dim_size(2),
+                             errors::InvalidArgument("LaRoiPoolingFastGradOp expects output_idx and output_features_grad has the same shape."));
+
+        int input_point_num = input_features.dim_size(0);
+        int channels = input_features.dim_size(1);
+        int ncenters = output_idx.dim_size(0);
+        int ngrid = output_idx.dim_size(1);
+        int pooling_size = output_idx.dim_size(2);
+
+        Tensor* input_features_grad = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape{input_point_num, channels}, &input_features_grad));
+        auto input_features_grad_ptr = input_features_grad->template flat<float>().data();
+        cudaMemset(input_features_grad_ptr, 0.f, input_point_num*channels*sizeof(float));
+
+        roi_pooling_grad_gpu_launcher(ncenters, ngrid, channels, pooling_size,
+                                      output_idx_ptr,
+                                      output_weight_ptr,
+                                      output_features_grad_ptr,
+                                      input_features_grad_ptr);
+    }
+};
+REGISTER_KERNEL_BUILDER(Name("LaRoiPoolingFastGradOp").Device(DEVICE_GPU), LaRoiPoolingFastGradOp);

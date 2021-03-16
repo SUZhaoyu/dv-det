@@ -75,6 +75,17 @@ def la_roi_pooling_fast(input_coors, input_features, roi_attrs, input_num_list, 
                                                                            grid_buffer_resolution=grid_buffer_resolution,
                                                                            grid_buffer_size=grid_buffer_size)
     return output_features
-ops.NoGradient("LaRoiPoolingFastOp")
+# ops.NoGradient("LaRoiPoolingFastOp")
+
+@ops.RegisterGradient("LaRoiPoolingFastOp")
+def la_roi_pooling_fast_grad(op, grad, _, __):
+    input_features = op.inputs[1]
+    output_idx = op.outputs[1]
+    output_weight = op.outputs[2]
+    input_features_grad = la_roi_pooling_exe.la_roi_pooling_grad_op(input_features=input_features,
+                                                                    output_idx=output_idx,
+                                                                    output_weight=output_weight,
+                                                                    output_features_grad=grad)
+    return [None, input_features_grad, None, None, None]
 
 

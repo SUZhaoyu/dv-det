@@ -103,9 +103,10 @@ public:
                 id_list[i] = i;
             std::random_shuffle(id_list.begin(), id_list.end());
 
-            for (int i=0; i<input_num_list_ptr[b]; i++) {
-                int id = input_accu_list_ptr[b] + id_list[i];
-                if (with_negative) {
+
+            if (with_negative) {
+                for (int i=0; i<input_num_list_ptr[b]; i++) {
+                    int id = input_accu_list_ptr[b] + id_list[i];
                     if (input_roi_conf_ptr[id] >= conf_thres &&
                         positive_count < max_length / 2 &&
                         input_roi_ious_ptr[id] >= iou_thres) {
@@ -113,14 +114,23 @@ public:
                         positive_count += 1;
                         output_idx_list.push_back(id);
                     }
+                }
+
+                for (int i=0; i<input_num_list_ptr[b]; i++) {
+                    int id = input_accu_list_ptr[b] + id_list[i];
                     if (input_roi_conf_ptr[id] >= conf_thres &&
                         negative_count < max_length / 2 &&
-                        input_roi_ious_ptr[id] < iou_thres) {
+                        input_roi_ious_ptr[id] < iou_thres &&
+                        negative_count < positive_count) {
                         output_num_list_ptr[b] += 1;
                         negative_count += 1;
                         output_idx_list.push_back(id);
                     }
-                } else {
+                }
+//                printf("Positive count=%d, negative count=%d\n", positive_count, negative_count);
+            } else {
+                for (int i=0; i<input_num_list_ptr[b]; i++) {
+                    int id = input_accu_list_ptr[b] + id_list[i];
                     if (input_roi_conf_ptr[id] >= conf_thres && positive_count < max_length) {
                         output_num_list_ptr[b] += 1;
                         positive_count += 1;
@@ -128,6 +138,38 @@ public:
                     }
                 }
             }
+
+
+
+//            for (int i=0; i<input_num_list_ptr[b]; i++) {
+//                int id = input_accu_list_ptr[b] + id_list[i];
+//                if (with_negative) {
+//                    if (input_roi_conf_ptr[id] >= conf_thres &&
+//                        positive_count < max_length / 2 &&
+//                        input_roi_ious_ptr[id] >= iou_thres) {
+//                        output_num_list_ptr[b] += 1;
+//                        positive_count += 1;
+//                        output_idx_list.push_back(id);
+//                    }
+//                    if (input_roi_conf_ptr[id] >= conf_thres &&
+//                        negative_count < max_length / 2 &&
+//                        input_roi_ious_ptr[id] < iou_thres) {
+//                        output_num_list_ptr[b] += 1;
+//                        negative_count += 1;
+//                        output_idx_list.push_back(id);
+//                    }
+//                } else {
+//                    if (input_roi_conf_ptr[id] >= conf_thres && positive_count < max_length) {
+//                        output_num_list_ptr[b] += 1;
+//                        positive_count += 1;
+//                        output_idx_list.push_back(id);
+//                    }
+//                }
+//            }
+
+
+
+
         }
         free(input_accu_list_ptr);
 
