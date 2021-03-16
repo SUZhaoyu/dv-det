@@ -3,15 +3,15 @@ import os
 import numpy as np
 
 aug_config = {'nbbox': 128,
-              # 'rotate_range': np.pi / 4,
-              'rotate_range': 0.,
+              'rotate_range': np.pi / 4,
+              # 'rotate_range': 0.,
               'rotate_mode': 'u',
               'scale_range': 0.05,
               'scale_mode': 'u',
               'drop_out': 0.1,
               'flip': False,
               'shuffle': True,
-              'paste_augmentation': False,
+              'paste_augmentation': True,
               'paste_instance_num': 64,
               'maximum_interior_points': 40,
               'normalization': None}

@@ -148,9 +148,6 @@ def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step
     else:
         var_list = tf.trainable_variables()
 
-    # gradients = tf.gradients(loss, var_list)
-
-    # update_ops = [tf.get_collection(tf.GraphKeys.UPDATE_OPS), tf.check_numerics(gradients, message='NaN Error')]
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 
     with tf.control_dependencies(update_ops):

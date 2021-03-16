@@ -145,7 +145,7 @@ def stage2_model(coors,
                                                              conf_thres=config.roi_thres,
                                                              iou_thres=config.iou_thres,
                                                              max_length=config.max_length,
-                                                             with_negative=True)
+                                                             with_negative=not is_eval)
 
         bbox_voxels = la_roi_pooling_fast(input_coors=coors,
                                           input_features=features,
