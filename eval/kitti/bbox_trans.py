@@ -6,6 +6,7 @@ from shutil import rmtree
 import numpy as np
 from tqdm import tqdm
 
+# zip -j ../txt.zip ./*
 
 def get_bbox_center(input_bbox):
     output_center = []
@@ -45,13 +46,12 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         #    np.min(proj_v[:, 1]) < 0. or \
         #    np.max(proj_v[:, 1]) > row:
         #     continue
-        if np.min(proj_v[:, 2]) < 0.:
-            continue
-        else:
-            left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
-            top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
-            output_2d_bbox.append([left, top, right, bottom])
-            output_3d_bbox.append(box)
+        # if np.min(proj_v[:, 2]) < 0.:
+        #     continue
+        left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
+        top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
+        output_2d_bbox.append([left, top, right, bottom])
+        output_3d_bbox.append(box)
 
     return np.array(output_2d_bbox), np.array(output_3d_bbox) # [n, 8, 3], LiDAR coor
 
@@ -79,11 +79,13 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         # l = ' %.2f'%np.max([input_bbox[i, 0], input_bbox[i, 1]])
         w = ' %.2f' % input_bbox[i, 0]
         l = ' %.2f' % input_bbox[i, 1]
-        h = ' %.2f'%input_bbox[i, 2]
-        x_c = ' %.2f'%center_coors[i, 0]
-        y_c = ' %.2f'%center_coors[i, 1]
-        z_c = ' %.2f'%center_coors[i, 2]
+        h = ' %.2f' % input_bbox[i, 2]
+        x_c = ' %.2f' % center_coors[i, 0]
+        y_c = ' %.2f' % center_coors[i, 1]
+        z_c = ' %.2f' % center_coors[i, 2]
         score = ' %.2f\n'%input_bbox[i, -1]
+        if input_bbox[i, -1] < 0.1:
+            continue
         # score = ' %.2f\n'%0.95
         # r = input_bbox[i, 6] + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else input_bbox[i, 6]
         # r = -r
@@ -93,8 +95,10 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         #     r = (2 * np.pi - np.abs(r)) * ((-1) ** (r // np.pi))
         r = ' %.2f' % r
         bbox_height = float(y2) - float(y1)
-        if bbox_height > 25:
-            text = type + truncation + occlusion + alpha + x1 + y1 + x2 + y2 + h + w + l + x_c + y_c + z_c + r + score
+        # if bbox_height > 25:
+
+        text = type + truncation + occlusion + alpha + x1 + y1 + x2 + y2 + h + w + l + x_c + y_c + z_c + r + score
+        if input_bbox[i, -1] > 0.7:
             with open(txt_dir, 'a') as f:
                 f.write(text)
             valid_bbox_num += 1
@@ -102,14 +106,14 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
 
 def write_null_txt(txt_dir):
     with open(txt_dir, 'a') as f:
-        f.write('DontCare -1 -1 -10 -1 -1 -1 -1 -1 -1 -1 -1000 -1000 -1000 -10')
+        f.write('DontCare -1 -1 -10 -1 -1 -1 -1 -1 -1 -1 -1000 -1000 -1000 -10 0')
 
 
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
     calib_home = join(home, 'dataset')
-    prediction_home = join(home, 'eval', 'data')
-    output_txt_home = join(home, 'eval', 'txt')
+    prediction_home = join(home, 'eval/kitti', 'data')
+    output_txt_home = join(prediction_home, 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
     TASK = 'validation'
 

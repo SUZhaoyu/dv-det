@@ -325,7 +325,11 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
     for i in range(instance_num):
         prob = np.random.rand()
 
-        if prob < 0.6:
+        if prob < 0.3:
+            id = np.random.randint(len(object_collections[0]))
+            new_points = object_collections[0][id]
+            new_bbox = bbox_collections[0][id]
+        elif prob < 0.8:
             id = np.random.randint(len(object_collections[1]))
             new_points = object_collections[1][id]
             new_bbox = bbox_collections[1][id]
@@ -378,6 +382,7 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
 
         if not overlap and not intersect:
             bbox_polygons.append(new_bbox_polygon)
+            #TODO: need to fix the alignment order.
             aligned_points, aligned_bbox = ground_align(new_points, new_bbox, ground, trans_list)
             output_points.append(aligned_points)
             output_bboxes.append(aligned_bbox)

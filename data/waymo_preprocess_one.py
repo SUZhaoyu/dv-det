@@ -25,8 +25,8 @@ min_object_points = 15
 min_vehicle_length = 3.0
 
 
-raw_home = join('/media/data1/waymo', task)
-output_home = '/media/data1/waymo/segments'
+raw_home = join('/media/data1/waymo_npy_from_tfrecord', task)
+output_home = '/media/data1/waymo_npy_from_tfrecord/segments'
 lidar_output_home = join(output_home, '{}/lidar'.format(task))
 label_output_home = join(output_home, '{}/label'.format(task))
 

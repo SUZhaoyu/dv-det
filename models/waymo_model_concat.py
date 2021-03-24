@@ -24,7 +24,7 @@ def stage1_inputs_placeholder(input_channels=1,
     input_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage1_input_num_list_p')
     input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='stage1_input_bbox_p')
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
-w
+
 
 def stage2_inputs_placeholder(input_feature_channels=config.stage2_input_channels,
                               bbox_padding=config.aug_config['nbbox']):

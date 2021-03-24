@@ -27,8 +27,8 @@ def point_conv(input_coors,
                last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
-    grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
-    # grid_sampling_method = grid_sampling
+    # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    grid_sampling_method = grid_sampling
     voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
     # voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
 
@@ -81,24 +81,24 @@ def point_conv(input_coors,
 
 
 def point_conv_concat(input_coors,
-                       input_features,
-                       concat_features,
-                       input_num_list,
-                       voxel_idx,
-                       center_idx,
-                       layer_params,
-                       dimension_params,
-                       grid_buffer_size,
-                       output_pooling_size,
-                       scope,
-                       is_training,
-                       mem_saving,
-                       model_params,
-                       trainable=True,
-                       bn_decay=None,
-                       histogram=False,
-                       summary=False,
-                       last_layer=False):
+                      input_features,
+                      concat_features,
+                      input_num_list,
+                      voxel_idx,
+                      center_idx,
+                      layer_params,
+                      dimension_params,
+                      grid_buffer_size,
+                      output_pooling_size,
+                      scope,
+                      is_training,
+                      mem_saving,
+                      model_params,
+                      trainable=True,
+                      bn_decay=None,
+                      histogram=False,
+                      summary=False,
+                      last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
     grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling

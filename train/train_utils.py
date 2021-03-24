@@ -148,23 +148,17 @@ def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step
     else:
         var_list = tf.trainable_variables()
 
-    # gradients = tf.gradients(loss, var_list)
-
-    # update_ops = [tf.get_collection(tf.GraphKeys.UPDATE_OPS), tf.check_numerics(gradients, message='NaN Error')]
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
     with tf.control_dependencies(update_ops):
-        # train_op = optimizer.minimize(loss, global_step=global_step, var_list=var_list)
         gradients = optimizer.compute_gradients(loss)
-
         clipped_gradients = []
         for grad, var in gradients:
-            if grad is not None:
-                clipped_gradients.append((tf.clip_by_value(grad, -10., 10.), var))
-            else:
-                clipped_gradients.append((grad, var))
+            if var in var_list:
+                if grad is not None:
+                    clipped_gradients.append((tf.clip_by_value(grad, -10., 10.), var))
+                else:
+                    clipped_gradients.append((grad, var))
 
-        # clipped_gradients = [(tf.clip_by_value(grad, -10., 10.), var) for grad, var in gradients]
         train_op = optimizer.apply_gradients(clipped_gradients, global_step=global_step)
     return train_op
 

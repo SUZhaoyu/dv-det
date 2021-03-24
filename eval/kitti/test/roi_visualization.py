@@ -13,6 +13,7 @@ os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-stage1'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-stage1')
 
 from models import kitti_model as model
+from models.tf_ops.loader.others import rotated_nms3d_idx
 hvd.init()
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_eval/test/best_model_0.6925084921062944' # 68.8%@non-mem-saving
@@ -20,8 +21,9 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-aug-2/test/best_model_0.6956733309270209' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-complicated/test/best_model_0.7281508956090916' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-paste-64/test/best_model_0.7256191992549179' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-paste-64-large-no-thrust/test/best_model_0.7339335420152246' # 68.8%@non-mem-saving
-# model_path = '/home/tan/tony/dv-det/checkpoints/stage1_focal=0.75/test/best_model_0.6906541874676403' # 68.5%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1_prev-aug/test/best_model_0.7345306158031175' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1_new-aug/test/best_model_0.733512723619081' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-test/test/best_model_0.7721271928435091' # 68.5%@non-mem-saving
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 
@@ -45,6 +47,9 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
+
+nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
+
 
 # roi_attrs, roi_conf, roi_coors, nms_idx, nms_count = \
 #     rotated_nms3d(roi_attrs, roi_conf, roi_coors, nms_overlap_thresh=0.7, nms_conf_thres=0.4)
@@ -79,8 +84,8 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             batch_input_bboxes = input_bboxes_stack[frame_id]
-            output_bboxes, output_coors, output_conf = \
-                sess.run([roi_attrs, roi_coors, roi_conf],
+            output_bboxes, output_coors, output_conf, output_idx = \
+                sess.run([roi_attrs, roi_coors, roi_conf, nms_idx],
             # output_bboxes, output_coors, output_conf = \
             #     sess.run([roi_attrs, roi_coors, roi_conf],
                          feed_dict={input_coors_p: batch_input_coors,
@@ -97,8 +102,7 @@ if __name__ == '__main__':
             #     f.write(ctf)
 
             # output_idx = output_idx[:output_count[0]]
-
-            output_idx = output_conf > 0.6
+            output_idx = output_conf > 0.5
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
             #

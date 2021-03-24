@@ -131,7 +131,7 @@ public:
             } else {
                 for (int i=0; i<input_num_list_ptr[b]; i++) {
                     int id = input_accu_list_ptr[b] + id_list[i];
-                    if (input_roi_conf_ptr[id] >= conf_thres && positive_count < max_length) {
+                    if (input_roi_conf_ptr[id] >= conf_thres) {
                         output_num_list_ptr[b] += 1;
                         positive_count += 1;
                         output_idx_list.push_back(id);

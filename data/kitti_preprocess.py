@@ -3,13 +3,11 @@ import os
 from copy import deepcopy
 from os import mkdir
 from os.path import join, dirname
-logging.basicConfig(level=logging.INFO)
+
 import numpy as np
 from PIL import Image
 from point_viz.converter import PointvizConverter
 from tqdm import tqdm
-
-from data.utils.normalization import get_union_sets
 
 Converter = PointvizConverter(home='/home/tan/tony/threejs')
 logging.basicConfig(level=logging.INFO)
@@ -19,9 +17,16 @@ category_dict = {"car": 0,
 range_x = [0., 70.4]
 range_y = [-40., 40.]
 range_z = [-3., 1.]
-min_object_points = 15
+min_object_points = 10
 expand_ratio = 0.15
 home = dirname(os.getcwd())
+
+
+def get_union_sets(conditions):
+    output = conditions[0]
+    for i in np.arange(1, len(conditions)):
+        output = np.logical_and(output, conditions[i])
+    return output
 
 
 def load_calib(calib_dir):
@@ -79,16 +84,16 @@ def bbox_clean(label_dir, calib_dir, category_dict):
                 truncation = float(line[1])
                 occluded = int(line[2])
                 # TODO: the difficulty split strategy can be enhanced.
-                difficulty = 4
                 if occluded == 0 and truncation <= 0.15 and bbox_height_2d >= 40:
                     difficulty = 0
-                if occluded <= 1 and truncation <= 0.30 and bbox_height_2d >= 25:
+                elif occluded <= 1 and truncation <= 0.30 and bbox_height_2d >= 25:
                     difficulty = 1
-                if occluded <= 2 and truncation <= 0.50 and bbox_height_2d >= 25:
+                elif occluded <= 2 and truncation <= 0.50 and bbox_height_2d >= 25:
                     difficulty = 2
-                if bbox_height_2d >= 25:
+                elif bbox_height_2d >= 25:
                     difficulty = 3
-
+                else:
+                    difficulty = 4
                 category = category_dict[label]
 
                 x, y, z, _ = inv_trans_matrix.dot(np.array([float(line[11]),
@@ -133,7 +138,7 @@ def get_objects(points, bboxes):
         valid_idx = (np.abs(rot_rel_point_x) <= w * (1 + expand_ratio) / 2) * \
                     (np.abs(rot_rel_point_y) <= l * (1 + expand_ratio) / 2) * \
                     (np.abs(rel_point_z) <= h * (1 + expand_ratio) / 2)
-        if np.sum(valid_idx) > min_object_points and cls == 0:
+        if np.sum(valid_idx) >= min_object_points and cls == 0:
             output_points.append(points[valid_idx])
             output_diff.append(diff)
             output_bboxes.append(bboxes[i])
@@ -164,7 +169,7 @@ if __name__ == '__main__':
         calib_home = join(dataset_home, 'training', 'calib')
         label_home = join(dataset_home, 'training', 'label_2')
         plane_home = join(dataset_home, 'training', 'planes')
-        split_file = join(os.getcwd(), 'data_split', task + '.txt')
+        split_file = join(os.getcwd(), 'data_split_half', task + '.txt')
         logging.info("Processing {} dataset using split strategy: {}".format(task, split_file))
 
         with open(split_file, 'r') as f:

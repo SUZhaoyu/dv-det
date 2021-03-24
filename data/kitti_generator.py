@@ -71,6 +71,11 @@ class Dataset(object):
                                             allow_pickle=True)
             self.ground_plane = np.load(join(self.home, 'ground_plane_{}.npy'.format(self.task)), allow_pickle=True)
             self.trans_matrix = np.load(join(self.home, 'trans_matrix_{}.npy'.format(self.task)), allow_pickle=True)
+
+            self.diff_count = [len(self.object_collections[diff]) for diff in range(3)]
+            self.diff_ratio = [self.diff_count[diff] / np.sum(self.diff_count) for diff in range(3)]
+            # self.diff_ratio = self.diff_ratio / np.sum(self.diff_ratio)
+
         self.paste_augmentation = self.config['paste_augmentation']
         self.paste_instance_num = self.config['paste_instance_num']
         self.maximum_interior_points = self.config['maximum_interior_points']
@@ -128,6 +133,7 @@ class Dataset(object):
                         if self.paste_augmentation:
                             points, bboxes = get_pasted_point_cloud(scene_points=points,
                                                                     scene_bboxes=bboxes,
+                                                                    # ratio=self.diff_ratio,
                                                                     ground=np.array(deepcopy(self.ground_plane[idx])),
                                                                     trans_list=np.array(deepcopy(self.trans_matrix[idx])),
                                                                     object_collections=self.object_collections,
@@ -248,7 +254,7 @@ if __name__ == '__main__':
                   'flip': False,
                   'shuffle': True,
                   'paste_augmentation': True,
-                  'paste_instance_num': 128,
+                  'paste_instance_num': 64,
                   'maximum_interior_points': 40,
                   'normalization': None}
 

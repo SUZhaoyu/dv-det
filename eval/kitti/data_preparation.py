@@ -8,8 +8,8 @@ from tqdm import tqdm
 from data.kitti_generator import Dataset
 
 task = 'validation'
-validation = False
-evaluation = False
+validation = True
+evaluation = True
 output_home = '/home/tan/tony/dv-det/eval/kitti/data'
 
 aug_config = {'nbbox': 64,

@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors
 
-os.system("rm -r {}".format('/home/tan/tony/threejs/dv-det-test'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/dv-det-test')
+os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-compare'))
+Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-compare')
 
 TASK = 'validation'
 label_home = '/home/tan/tony/dv-det/eval/label_2'
