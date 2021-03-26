@@ -16,7 +16,7 @@ from models.tf_ops.test.test_layers import point_conv, conv_3d, fully_connected,
 
 # tf.enable_eager_execution()
 from models.tf_ops.custom_ops import grid_sampling, voxel_sampling, roi_logits_to_attrs, roi_logits_to_attrs, bbox_logits_to_attrs
-from models.utils.ops_wrapper import kernel_conv_wrapper
+from models.utils.layers_wrapper import kernel_conv_wrapper
 from data.kitti_generator import Dataset
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"

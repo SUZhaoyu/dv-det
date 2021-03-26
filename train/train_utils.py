@@ -94,14 +94,14 @@ def get_learning_rate(init_lr, current_step, decay_step, decay_rate, hvd_size=1,
     return learning_rate
 
 
-def set_training_controls(config, decay_batch, step, hvd_size, prefix):
-    lr = get_learning_rate(init_lr=config.init_lr,
+def set_training_controls(config, lr, scale, decay_batch, step, hvd_size, prefix):
+    lr = get_learning_rate(init_lr=lr,
                            current_step=step,
                            decay_step=decay_batch,
                            decay_rate=config.lr_decay,
                            name='{}_learning_rate'.format(prefix),
                            hvd_size=hvd_size,
-                           lr_scale=config.lr_scale)
+                           lr_scale=scale)
     bn = get_bn_decay(init_decay=0.5,
                       current_step=step,
                       decay_step=decay_batch,

@@ -224,22 +224,22 @@ def get_polygon_from_bbox(bbox, expend_ratio=0.):
                            [-(w + w * expend_ratio) / 2, -(l + l * expend_ratio) / 2],
                            [(w + w * expend_ratio) / 2, -(l + l * expend_ratio) / 2]])
     rotate_matrix = np.array([[np.cos(r), -np.sin(r)], [np.sin(r), np.cos(r)]])
-    rel_rot_vertex = np.matmul(rel_vertex, rotate_matrix)
+    rel_rot_vertex = transform(rel_vertex, rotate_matrix)
     vertex = rel_rot_vertex + [x, y]  # Global coor sys
     bbox_polygon = Polygon(vertex)
     return bbox_polygon
 
 
-def get_interior_scene_points(points, bbox, limit, offset=[0.5, 0.5, -0.5]):
+def get_interior_scene_points(points, bbox, limit, offset=[0.5, 0.5, -0.2]):
     w, l, h, x, y, z, r, cls, diff = bbox
     rel_point_x = points[:, 0] - x
     rel_point_y = points[:, 1] - y
     rel_point_z = points[:, 2] - z
-    rot_rel_point_x = rel_point_x * np.cos(r) + rel_point_y * np.sin(r)
-    rot_rel_point_y = -rel_point_x * np.sin(r) + rel_point_y * np.cos(r)
-    interior_idx = (np.abs(rot_rel_point_x) <= ((w + 2 * offset[0])) / 2) * \
-                   (np.abs(rot_rel_point_y) <= ((l + 2 * offset[1])) / 2) * \
-                   (np.abs(rel_point_z) <= ((h + 2 * offset[2])) / 2)
+    rot_rel_point_x = rel_point_x * np.cos(-r) - rel_point_y * np.sin(-r)
+    rot_rel_point_y = rel_point_x * np.sin(-r) + rel_point_y * np.cos(-r)
+    interior_idx = (np.abs(rot_rel_point_x) <= w / 2 + offset[0]) * \
+                   (np.abs(rot_rel_point_y) <= l / 2 + offset[1]) * \
+                   (np.abs(rel_point_z) <= h / 2 + offset[2])
     if np.sum(interior_idx) > limit:
         return True, points
     else:
@@ -312,6 +312,24 @@ def get_pasted_point_cloud_waymo(scene_points, scene_bboxes, object_collections,
     return output_points, output_bboxes
 
 
+def object_points_shift(point, bbox):
+    point[:, :2] -= bbox[3:5]
+    random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
+    T = np.array([[np.cos(random_r), -np.sin(random_r)],
+                  [np.sin(random_r), np.cos(random_r)]])
+
+    point[:, :2] = transform(point[:, :2], T)
+
+    random_xy = [np.random.uniform(low=5, high=65),
+                 np.random.uniform(low=-35, high=35)]
+
+    point[:, :2] += random_xy
+    bbox[3:5] = random_xy
+    bbox[6] += random_r
+    return point, bbox
+
+
+
 def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, object_collections, bbox_collections,
                            instance_num, maximum_interior_points):
     bbox_polygons = []
@@ -338,35 +356,11 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
             new_points = object_collections[2][id]
             new_bbox = bbox_collections[2][id]
 
-        # if prob > 0.6:
-        #     found = False
-        #     while not found:
-        #         diff = np.random.randint(3)
-        #         id = np.random.randint(len(object_collections[diff]))
-        #         new_points = object_collections[diff][id]
-        #         new_bbox = bbox_collections[diff][id]
-        #         if np.abs(new_bbox[6]) < np.pi / 4 or np.abs(new_bbox[6]) > 3 * np.pi / 4:
-        #             found = True
-        # else:
-        #     if prob < 0.30 * 0.6:
-        #         id = np.random.randint(len(object_collections[0]))
-        #         new_points = object_collections[0][id]
-        #         new_bbox = bbox_collections[0][id]
-        #     elif 0.30 * 0.6 <= prob < 0.70 * 0.6:
-        #         id = np.random.randint(len(object_collections[1]))
-        #         new_points = object_collections[1][id]
-        #         new_bbox = bbox_collections[1][id]
-        #     else:
-        #         found = False
-        #         while not found:
-        #             id = np.random.randint(len(object_collections[2]))
-        #             new_points = object_collections[2][id]
-        #             new_bbox = bbox_collections[2][id]
-        #             if len(new_points) < 50:
-        #                 found = True
-
         new_bbox = deepcopy(new_bbox)
         new_points = deepcopy(new_points)
+        new_points, new_bbox = object_points_shift(new_points, new_bbox)
+
+        new_points, new_bbox = ground_align(new_points, new_bbox, ground, trans_list)
         new_bbox_polygon = Polygon(get_polygon_from_bbox(new_bbox, expend_ratio=0.15))
         overlap = False
         intersect = False
@@ -382,10 +376,9 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
 
         if not overlap and not intersect:
             bbox_polygons.append(new_bbox_polygon)
-            #TODO: need to fix the alignment order.
-            aligned_points, aligned_bbox = ground_align(new_points, new_bbox, ground, trans_list)
-            output_points.append(aligned_points)
-            output_bboxes.append(aligned_bbox)
+            # new_points, new_bbox = ground_align(new_points, new_bbox, ground, trans_list)
+            output_points.append(new_points)
+            output_bboxes.append(new_bbox)
 
     output_points.append(scene_points)
     output_points = np.concatenate(output_points, axis=0)

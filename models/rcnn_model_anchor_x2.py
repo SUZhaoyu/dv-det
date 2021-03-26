@@ -6,8 +6,8 @@ import train.configs.rcnn_config as config
 from models.tf_ops.custom_ops import roi_pooling, get_roi_bbox, roi_filter, get_bbox
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_90_rotated_attrs, get_masked_average, focal_loss, smooth_l1_loss
-from models.utils.model_layers import point_conv, fully_connected, conv_3d
-from models.utils.ops_wrapper import get_roi_attrs, get_bbox_attrs
+from models.utils.model_blocks import point_conv, conv_1d, conv_3d
+from models.utils.layers_wrapper import get_roi_attrs, get_bbox_attrs
 
 anchor_size = [1.6, 3.9, 1.5]
 eps = tf.constant(1e-6)
@@ -88,14 +88,14 @@ def stage1_model(input_coors,
                                                            model_params=model_params,
                                                            bn_decay=bn)
 
-        roi_logits = fully_connected(input_points=roi_features,
-                                     num_output_channels=config.output_attr + 1,
-                                     drop_rate=0.,
-                                     model_params=model_params,
-                                     scope='stage1_rpn_fc',
-                                     is_training=is_training,
-                                     trainable=trainable,
-                                     last_layer=True)
+        roi_logits = conv_1d(input_points=roi_features,
+                             num_output_channels=config.output_attr + 1,
+                             drop_rate=0.,
+                             model_params=model_params,
+                             scope='stage1_rpn_fc',
+                             is_training=is_training,
+                             trainable=trainable,
+                             last_layer=True)
 
         roi_attrs = get_roi_attrs(input_logits=roi_logits[:, :7],
                                   base_coors=roi_coors,
@@ -145,14 +145,14 @@ def stage2_model(coors,
 
         bbox_features = tf.squeeze(bbox_voxels, axis=[1])
 
-        bbox_logits = fully_connected(input_points=bbox_features,
-                                      num_output_channels=config.output_attr,
-                                      drop_rate=0.,
-                                      model_params=model_params,
-                                      scope='stage2_refine_fc',
-                                      is_training=is_training,
-                                      trainable=trainable,
-                                      last_layer=True)
+        bbox_logits = conv_1d(input_points=bbox_features,
+                              num_output_channels=config.output_attr,
+                              drop_rate=0.,
+                              model_params=model_params,
+                              scope='stage2_refine_fc',
+                              is_training=is_training,
+                              trainable=trainable,
+                              last_layer=True)
 
         # FIXME: is_eval tag does not work.
         bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,

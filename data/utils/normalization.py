@@ -5,6 +5,20 @@ from copy import deepcopy
 
 import numpy as np
 
+def normalize_angle(angle):
+    """  Returns the angle (in radians) between -pi and +pi that corresponds to the input angle
+
+        Args:
+           * **angle** (float):  Angle to normalize
+
+        Returns:
+           float  Angle
+
+    """
+    angle = angle % (2 * np.pi)
+    if angle > np.pi:
+        angle -= 2 * np.pi
+    return angle
 
 def get_union_sets(conditions):
     output = conditions[0]

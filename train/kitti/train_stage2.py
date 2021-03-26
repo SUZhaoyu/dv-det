@@ -75,7 +75,13 @@ is_stage2_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage2_trai
 stage1_step = tf.Variable(0, name='stage1_step')
 stage2_step = tf.Variable(0, name='stage2_step')
 
-stage2_lr, stage2_bn, stage2_wd = set_training_controls(config, decay_batch, stage2_step, hvd.size(), prefix='stage2')
+stage2_lr, stage2_bn, stage2_wd = set_training_controls(config=config,
+                                                        lr=config.init_lr_stage2,
+                                                        scale=config.lr_scale_stage2,
+                                                        decay_batch=decay_batch,
+                                                        step=stage2_step,
+                                                        hvd_size=hvd.size(),
+                                                        prefix='stage2')
 
 
 stage1_output_coors, stage1_output_features, stage1_output_num_list, \
@@ -217,7 +223,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1_prev-aug/test/best_model_0.7345306158031175')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/test/test/best_model_0.7350936919553036')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

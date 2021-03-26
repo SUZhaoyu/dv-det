@@ -6,7 +6,7 @@ import tensorflow as tf
 from models.tf_ops.loader.bbox_utils import roi_logits_to_attrs, bbox_logits_to_attrs
 from models.tf_ops.loader.others import voxel2col
 from models.utils.iou_utils import roi_logits_to_attrs_tf, bbox_logits_to_attrs_tf
-from models.utils.var_utils import _variable_with_l2_loss
+from models.utils.ops_utils import _variable_with_l2_loss
 
 
 def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
@@ -158,17 +158,17 @@ def dense_conv_wrapper(inputs,
     return outputs
 
 
-def fully_connected_wrapper(inputs,
-                            num_output_channels,
-                            scope='default',
-                            use_xavier=True,
-                            stddev=1e-3,
-                            activation='relu',
-                            bn_decay=None,
-                            is_training=True,
-                            trainable=True,
-                            histogram=False,
-                            summary=False):
+def conv_1d_wrapper(inputs,
+                    num_output_channels,
+                    scope='default',
+                    use_xavier=True,
+                    stddev=1e-3,
+                    activation='relu',
+                    bn_decay=None,
+                    is_training=True,
+                    trainable=True,
+                    histogram=False,
+                    summary=False):
     if scope == 'default':
         logging.warning("Scope name was not given and has been assigned as 'default'. ")
         l2_loss_collection = 'default'

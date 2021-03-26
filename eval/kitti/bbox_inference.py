@@ -21,8 +21,8 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7913361259170595'
-# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2_5x_ratio-aug/test/best_model_0.6846482956771586'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2_5x_ratio-aug/test/best_model_0.5978156475419448'
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-7x/test/best_model_0.8011894231747593'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 
@@ -49,7 +49,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.5)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.5, nms_conf_thres=0.5)
 # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
 # roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
 # roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)

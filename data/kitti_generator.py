@@ -14,7 +14,7 @@ from tqdm import tqdm
 from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
     get_pasted_point_cloud
 from data.utils.normalization import feature_normalize, bboxes_normalization, convert_threejs_coors, \
-    convert_threejs_bbox
+    convert_threejs_bbox, normalize_angle
 import train.kitti.kitti_config as config
 
 # os.environ['MKL_NUM_THREADS'] = '1'
@@ -140,6 +140,8 @@ class Dataset(object):
                                                                     bbox_collections=self.bbox_collections,
                                                                     instance_num=self.paste_instance_num,
                                                                     maximum_interior_points=self.maximum_interior_points)
+                            height_valid_idx = np.logical_and(points[:, 2] > -3,  points[:, 2] < 1)
+                            points = points[height_valid_idx, :]
                         # print(points.shape, bboxes.shape)
                         if self.shuffle:
                             points = shuffle(points)
@@ -168,10 +170,13 @@ class Dataset(object):
                             r += angle
                             if flip_y == -1:
                                 r = (-1) ** int(r <= 0) * np.pi - r
-                            if np.abs(r) > 2 * np.pi:
-                                r = np.abs(r) % (2 * np.pi) * (-1) ** int(r <= 0)
-                            if np.abs(r) > np.pi:
-                                r = -(2 * np.pi - np.abs(r))
+
+                            r = normalize_angle(r)
+
+                            # if np.abs(r) > 2 * np.pi:
+                            #     r = np.abs(r) % (2 * np.pi) * (-1) ** int(r <= 0)
+                            # if np.abs(r) > np.pi:
+                            #     r = -(2 * np.pi - np.abs(r))
 
                             category = box[-2]
                             difficulty = box[-1]
@@ -245,7 +250,7 @@ class Dataset(object):
 
 
 if __name__ == '__main__':
-    aug_config = {'nbbox': 256,
+    aug_config = {'nbbox': 128,
                   'rotate_range': np.pi / 4,
                   'rotate_mode': 'u',
                   'scale_range': 0.05,
@@ -255,13 +260,14 @@ if __name__ == '__main__':
                   'shuffle': True,
                   'paste_augmentation': True,
                   'paste_instance_num': 64,
-                  'maximum_interior_points': 40,
+                  'maximum_interior_points': 100,
                   'normalization': None}
 
     dataset = Dataset(task='training',
                       config=aug_config,
                       batch_size=16,
                       validation=False,
+                      num_worker=16,
                       hvd_size=3,
                       hvd_id=1)
     generator = dataset.train_generator()
@@ -269,21 +275,16 @@ if __name__ == '__main__':
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
 
-
-
-        # print(num_list)
-        # print(coors.shape, features.shape)
-
-        # dimension = [100, 160.0, 9.0]
-        # offset = [10., 60.0, 5.0]
-        #
+        # dimension = [100., 100., 9.]
+        # offset = [10., 10., 5.]
+        # # #
         # coors += offset
         # coors_min = np.min(coors, axis=0)
         # coors_max = np.max(coors, axis=0)
+        # # print(coors_min, coors_max)
         # for j in range(3):
         #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
         #         print(coors_min, coors_max)
-        # time.sleep(1)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()

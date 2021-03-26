@@ -6,7 +6,7 @@ from tqdm import tqdm
 import train.configs.rcnn_config as training_config
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.utils.model_layers import point_conv
+from models.utils.model_blocks import point_conv
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 

@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from models.tf_ops.custom_ops import get_roi_bbox
 from models.utils.iou_utils import cal_3d_iou, roi_logits_to_attrs_tf
-from models.utils.model_layers import point_conv, fully_connected
+from models.utils.model_blocks import point_conv, conv_1d
 
 anchor_size = tf.constant([1.6, 3.9, 1.5])
 eps = tf.constant(1e-6)
@@ -53,13 +53,13 @@ def model(input_coors,
                                                             model_params=model_params,
                                                             bn_decay=bn)
 
-        roi_logits = fully_connected(input_points=roi_features,
-                                     num_output_channels=config.output_attr,
-                                     drop_rate=0.,
-                                     model_params=model_params,
-                                     scope='rpn_fc',
-                                     is_training=is_training,
-                                     last_layer=True)
+        roi_logits = conv_1d(input_points=roi_features,
+                             num_output_channels=config.output_attr,
+                             drop_rate=0.,
+                             model_params=model_params,
+                             scope='rpn_fc',
+                             is_training=is_training,
+                             last_layer=True)
 
         roi_attrs = roi_logits_to_attrs_tf(input_logits=roi_logits,
                                            base_coors=base_coors,

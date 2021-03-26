@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from models.tf_ops.custom_ops import roi_pooling, voxel_sampling, grid_sampling
-from models.utils.ops_wrapper import dense_conv_wrapper, kernel_conv_wrapper, fully_connected_wrapper
+from models.utils.layers_wrapper import dense_conv_wrapper, kernel_conv_wrapper, conv_1d_wrapper
 
 def point_conv(input_coors, input_features, input_num_list, c_out, resolution, scope):
     coors, num_list = grid_sampling(input_coors=input_coors,
@@ -35,8 +35,8 @@ def conv_3d(input_voxels, c_out, scope):
 
 
 def fully_connected(input_points, c_out, scope):
-    output_points = fully_connected_wrapper(inputs=input_points,
-                                            num_output_channels=c_out,
-                                            scope=scope,
-                                            bn_decay=1.)
+    output_points = conv_1d_wrapper(inputs=input_points,
+                                    num_output_channels=c_out,
+                                    scope=scope,
+                                    bn_decay=1.)
     return output_points
