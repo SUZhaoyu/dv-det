@@ -359,7 +359,6 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
         new_bbox = deepcopy(new_bbox)
         new_points = deepcopy(new_points)
         new_points, new_bbox = object_points_shift(new_points, new_bbox)
-
         new_points, new_bbox = ground_align(new_points, new_bbox, ground, trans_list)
         new_bbox_polygon = Polygon(get_polygon_from_bbox(new_bbox, expend_ratio=0.15))
         overlap = False

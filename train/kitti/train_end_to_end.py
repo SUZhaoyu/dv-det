@@ -64,7 +64,15 @@ input_coors_p, input_features_p, input_num_list_p, input_bbox_p = \
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage1_training")
 
 step = tf.Variable(0, name='stage1_step')
-lr, bn, wd = set_training_controls(config, decay_batch, step, hvd.size(), prefix='overall')
+
+
+lr, bn, wd = set_training_controls(config=config,
+                                   lr=config.init_lr_stage1,
+                                   scale=config.lr_scale_stage1,
+                                   decay_batch=decay_batch,
+                                   step=step,
+                                   hvd_size=hvd.size(),
+                                   prefix='end2end')
 
 coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,

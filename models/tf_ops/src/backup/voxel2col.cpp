@@ -70,7 +70,7 @@ class VoxelToColOp: public OpKernel {
 public:
     explicit VoxelToColOp(OpKernelConstruction* context): OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("kernel_size", &kernel_size));
-        OP_REQUIRES(context, kernel_size > 1,
+        OP_REQUIRES(context, kernel_size % 2 == 1 && kernel_size > 1,
                     errors::InvalidArgument("DenseConvOp expects kernel_size to be an odd number and it has to be greater than 1."));
     }
     void Compute(OpKernelContext* context) override {

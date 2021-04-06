@@ -6,7 +6,7 @@ from tqdm import tqdm
 from copy import deepcopy
 
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox
-
+import time
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
 
@@ -91,21 +91,20 @@ def plot_points_from_voxels_with_color(voxels, center_coors, resolution, self_rg
 def plot_points_from_roi_voxels(voxels, roi_attrs, kernel_size=5, mask=-1, name='test'):
     output_coors = []
     output_rgb = []
-    half_kernel_size = (kernel_size - 1) / 2
+    half_kernel_size = (kernel_size - kernel_size % 2) / 2
     assert voxels.shape[-1] == 3
     for i in tqdm(range(len(voxels))):
         roi_w, roi_l, roi_h, roi_x, roi_y, roi_z, roi_r = roi_attrs[i, :]
         for n in range(kernel_size ** 3):
             r, g, b = voxels[i, n, :]
-            if r + g + b > 0:
-
+            if r + g + b > 1e-3:
                 x = n // (kernel_size ** 2)
                 z = n % kernel_size
                 # kernel_id % (kernel_size * kernel_size) / kernel_size;
                 y = (n % kernel_size ** 2) // kernel_size
-                x_coor = (x - half_kernel_size) * roi_w / kernel_size
-                y_coor = (y - half_kernel_size) * roi_l / kernel_size
-                z_coor = (z - half_kernel_size) * roi_h / kernel_size + roi_z
+                x_coor = (x - half_kernel_size + 0.5 * (1 - kernel_size % 2)) * roi_w / kernel_size
+                y_coor = (y - half_kernel_size + 0.5 * (1 - kernel_size % 2)) * roi_l / kernel_size
+                z_coor = (z - half_kernel_size + 0.5 * (1 - kernel_size % 2)) * roi_h / kernel_size + roi_z
 
                 x_coor_r = x_coor * np.cos(roi_r) - y_coor * np.sin(roi_r) + roi_x
                 y_coor_r = x_coor * np.sin(roi_r) + y_coor * np.cos(roi_r) + roi_y

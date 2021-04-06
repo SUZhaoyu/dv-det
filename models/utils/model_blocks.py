@@ -1,6 +1,7 @@
 from __future__ import division
 
 import tensorflow as tf
+import numpy as np
 
 from models.tf_ops.loader.sampling import grid_sampling, grid_sampling_thrust, voxel_sampling_idx_binary, \
     voxel_sampling_idx, voxel_sampling_feature
@@ -119,17 +120,18 @@ def point_conv_res(input_coors,
         center_idx = center_idx
 
     res_features = tf.gather(input_features, center_idx, axis=0)
-    res_features = conv_1d_wrapper(inputs=res_features,
-                                   num_output_channels=output_channels,
-                                   scope=scope + '_res',
-                                   use_xavier=model_params['xavier'],
-                                   stddev=model_params['stddev'],
-                                   activation=activation,
-                                   bn_decay=bn_decay,
-                                   is_training=is_training,
-                                   trainable=trainable,
-                                   histogram=histogram,
-                                   summary=summary)
+    if output_channels != input_channels:
+        res_features = conv_1d_wrapper(inputs=res_features,
+                                       num_output_channels=output_channels,
+                                       scope=scope + '_res',
+                                       use_xavier=model_params['xavier'],
+                                       stddev=model_params['stddev'],
+                                       activation=activation,
+                                       bn_decay=bn_decay,
+                                       is_training=is_training,
+                                       trainable=trainable,
+                                       histogram=histogram,
+                                       summary=summary)
 
     # padding_features = tf.zeros(shape=[tf.shape(res_features)[0], output_channels - input_channels], dtype=tf.float32)
     # res_features = tf.concat([res_features, padding_features], axis=-1)
@@ -137,7 +139,7 @@ def point_conv_res(input_coors,
     # ================================== Conv 1x1x1 ===================================
 
     compress_features = conv_1d_wrapper(inputs=input_features,
-                                        num_output_channels=input_channels//4,
+                                        num_output_channels=input_channels//2,
                                         scope=scope+'_compress',
                                         use_xavier=model_params['xavier'],
                                         stddev=model_params['stddev'],
@@ -170,7 +172,7 @@ def point_conv_res(input_coors,
                                             padding=layer_params['padding'])
 
     output_features = kernel_conv_wrapper(inputs=voxel_features,
-                                          num_output_channels=output_channels//4,
+                                          num_output_channels=output_channels//2,
                                           scope=scope+'_voxel_conv',
                                           trainable=trainable,
                                           use_xavier=model_params['xavier'],
@@ -224,7 +226,8 @@ def point_conv_concat(input_coors,
                       last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
-    grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    grid_sampling_method = grid_sampling
     voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
     # voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
 
@@ -235,12 +238,13 @@ def point_conv_concat(input_coors,
                                  resolution=layer_params['subsample_res'],
                                  dimension=dimension_params['dimension'],
                                  offset=dimension_params['offset'])
+        if concat_features is not None:
+            concat_features = tf.gather(concat_features, center_idx, axis=0)
     else:
         kernel_center_coors = input_coors
         center_num_list = input_num_list
         center_idx = center_idx
-    if concat_features is not None:
-        concat_features = tf.gather(concat_features, center_idx, axis=0)
+
 
     if layer_params['kernel_res'] is not None:
         voxel_idx, features = voxel_sampling_idx_method(input_coors=input_coors,
@@ -273,7 +277,7 @@ def point_conv_concat(input_coors,
                                           is_training=is_training,
                                           histogram=histogram,
                                           summary=summary)
-    if concat_features is not None:
+    if concat_features is not None and layer_params['concat']:
         concat_features = tf.concat([concat_features, output_features], axis=1)
 
     return kernel_center_coors, output_features, center_num_list, voxel_idx, center_idx, concat_features
@@ -307,6 +311,69 @@ def conv_3d(input_voxels,
                                     summary=summary)
 
     return output_features
+
+def conv_3d_res(input_voxels,
+                layer_params,
+                scope,
+                is_training,
+                model_params,
+                mem_saving,
+                trainable=True,
+                bn_decay=None,
+                histogram=False,
+                summary=False,
+                last_layer=False):
+    bn_decay = bn_decay if not last_layer else None
+    activation = model_params['activation'] if not last_layer else None
+    conv3d_method = conv_3d_wrapper if mem_saving else dense_conv_wrapper
+    input_voxel_size = np.cbrt(input_voxels.get_shape()[1].value).astype(np.int32)
+    input_channels = input_voxels.get_shape()[2].value
+    output_channels = layer_params['c_out']
+    print(input_channels, output_channels, input_voxel_size)
+
+    input_features = tf.reshape(input_voxels, shape=[-1, input_channels])
+    compress_features = conv_1d_wrapper(inputs=input_features,
+                                        num_output_channels=input_channels // 2,
+                                        scope=scope + '_compress',
+                                        use_xavier=model_params['xavier'],
+                                        stddev=model_params['stddev'],
+                                        activation=activation,
+                                        bn_decay=bn_decay,
+                                        is_training=is_training,
+                                        trainable=trainable,
+                                        histogram=histogram,
+                                        summary=summary)
+    compress_features = tf.reshape(compress_features, shape=[-1, input_voxel_size * input_voxel_size * input_voxel_size, input_channels // 2])
+
+    output_features = conv3d_method(inputs=compress_features,
+                                    num_output_channels=output_channels // 2,
+                                    kernel_size=layer_params['kernel_size'],
+                                    scope=scope + '_3x3x3_conv',
+                                    trainable=trainable,
+                                    use_xavier=model_params['xavier'],
+                                    stddev=model_params['stddev'],
+                                    activation=activation,
+                                    bn_decay=bn_decay,
+                                    is_training=is_training,
+                                    histogram=histogram,
+                                    summary=summary)
+    output_voxel_size = np.cbrt(output_features.get_shape()[1].value).astype(np.int32)
+
+    output_features = tf.reshape(output_features, shape=[-1, output_channels // 2])
+    decompress_features = conv_1d_wrapper(inputs=output_features,
+                                          num_output_channels=output_channels,
+                                          scope=scope + '_decompress',
+                                          use_xavier=model_params['xavier'],
+                                          stddev=model_params['stddev'],
+                                          activation=activation,
+                                          bn_decay=bn_decay,
+                                          is_training=is_training,
+                                          trainable=trainable,
+                                          histogram=histogram,
+                                          summary=summary)
+    decompress_features = tf.reshape(decompress_features, shape=[-1, output_voxel_size * output_voxel_size * output_voxel_size, output_channels])
+
+    return decompress_features
 
 
 def conv_1d(input_points,

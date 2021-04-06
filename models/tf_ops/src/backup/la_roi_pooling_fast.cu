@@ -74,7 +74,7 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
                                                 float* output_weight) {
     const int voxel_num = voxel_size * voxel_size * voxel_size;
     const int grid_dim_size = grid_dim_w * grid_dim_l * grid_dim_h;
-    const int half_voxel_size = (voxel_size - 1) / 2;
+    const int half_voxel_size = (voxel_size - voxel_size % 2) / 2;
 //    const int center_offset = voxel_size * voxel_size * half_voxel_size + \
 //                              voxel_size * half_voxel_size + \
 //                              half_voxel_size;
@@ -108,9 +108,10 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
         roi_grid_coor_y -= half_voxel_size;
         roi_grid_coor_z -= half_voxel_size;
 
-        float rel_roi_grid_x = roi_grid_coor_x * roi_grid_length_x;
-        float rel_roi_grid_y = roi_grid_coor_y * roi_grid_length_y;
-        float rel_roi_grid_z = roi_grid_coor_z * roi_grid_length_z;
+        float rel_roi_grid_x = (roi_grid_coor_x + 0.5 * (1 - voxel_size % 2)) * roi_grid_length_x;
+        float rel_roi_grid_y = (roi_grid_coor_y + 0.5 * (1 - voxel_size % 2)) * roi_grid_length_y;
+        float rel_roi_grid_z = (roi_grid_coor_z + 0.5 * (1 - voxel_size % 2)) * roi_grid_length_z;
+
 
         float rot_rel_roi_grid_x = rel_roi_grid_x*cosf(roi_r) - rel_roi_grid_y*sinf(roi_r);
         float rot_rel_roi_grid_y = rel_roi_grid_x*sinf(roi_r) + rel_roi_grid_y*cosf(roi_r);
@@ -159,8 +160,8 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
             //                printf("Yes\n");
                             float dist_2 = pow(point_x - act_roi_grid_x, 2.) + pow(point_y - act_roi_grid_y, 2.) + pow(point_z - act_roi_grid_z, 2.);
                             float dist = sqrt(dist_2);
-                            float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z);
-                            float weight = 2.71828 / expf(2 * dist / radius);
+                            float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z) / 2.;
+                            float weight = 2.71828 / expf(dist / radius);
             //                float weight = 1.;
 
                             int pool_count = temp_count[voxel_coor];
@@ -191,25 +192,36 @@ __global__ void roi_pooling_fill_gpu_kernel(int roi_num, int voxel_num, int chan
         int pool_count = min(temp_count[thread_id], pooling_size);
         if (pool_count > 0) {
             float weight_sum = 0;
-            int pool_id;
+//            int pool_id;
             for (int p=0; p<pool_count; p++) {
-                pool_id = thread_id * pooling_size + p;
-                weight_sum += output_weight[pool_id];
+//                pool_id = thread_id * pooling_size + p;
+//                weight_sum += output_weight[pool_id];
+                weight_sum += 1;
             }
             for (int p=0; p<pool_count; p++) {
-                pool_id = thread_id * pooling_size + p;
+                int pool_id = thread_id * pooling_size + p;
                 int input_id = output_idx[pool_id];
-                float weight = output_weight[pool_id] * output_weight[pool_id] / weight_sum;
+                float weight = output_weight[pool_id] / weight_sum;
+//                float weight = output_weight[pool_id];
 //                printf("%d, %d, %f\n", input_id, pool_count, weight);
                 output_weight[pool_id] = weight;
+//                if (thread_id == 0)
+//                    printf("Forward: %f\n", weight);
+//                float temp_max = -1e6;
                 for (int c=0; c < channels; c++) {
                     output_features[thread_id * channels + c] += input_features[input_id * channels + c] * weight;
-//                    printf("%d, %d\n", thread_id, input_id);
+//                    float features = input_features[input_id * channels + c] * weight;
+//                    if (features > temp_max) {
+//                        output_features[thread_id * channels + c] = features;
+//                        temp_max = features;
+//                    }
+////                    printf("%d, %d\n", thread_id, input_id);
                 }
             }
         }
     }
 }
+
 
 void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
                               int roi_num, int voxel_size, int pooling_size, float padding_value,
@@ -230,18 +242,17 @@ void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
                               float* output_features,
                               int* output_idx,
                               float* output_weight) {
-    if (batch_size * channels <= 0) {
+
+    if (batch_size * channels <= 0 || input_point_num <= 0) {
         printf("RoiPoolingFastOp ERROR: Invalid CUDA input dimensions.\n");
         return;
     }
-    if (input_point_num <= 0)
+    if (roi_num <= 0) {
+        printf("RoiPoolingFastOp WARNING: No RoIs were found for the current batch.\n");
         return;
-
+    }
+//    printf("RoI Num: %d\n", roi_num);
     const int voxel_num = voxel_size * voxel_size * voxel_size;
-    int max_batch_input_point_num = 0;
-
-    for (int i=0; i<batch_size; i++)
-        max_batch_input_point_num = max(max_batch_input_point_num, input_num_list_host[i]);
 
 
     int blockSize;      // The launch configurator returned block size
@@ -266,7 +277,6 @@ void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, roi_pooling_register_gpu_kernel, 0, roi_num * voxel_num);
     gridSize = (roi_num * voxel_num + blockSize - 1) / blockSize;
-//    printf("<<<%d, %d>>>\n", gridSize, blockSize);
     roi_pooling_register_gpu_kernel<<<gridSize,blockSize>>>(batch_size, roi_num,
                                                             voxel_size, pooling_size,
                                                             grid_buffer_resolution, grid_buffer_size,

@@ -223,7 +223,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/test/test/best_model_0.7350936919553036')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/best_model_0.7362605482821678')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

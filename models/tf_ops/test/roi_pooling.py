@@ -17,14 +17,15 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 anchor_size = [1.6, 3.9, 1.5]
-batch_size = 4
-epoch = 2
+batch_size = 6
+epoch = 1
 
 
 if __name__ == '__main__':
     WaymoDataset = Dataset(task='train',
                            batch_size=batch_size,
                            num_worker=6,
+
                            hvd_size=1,
                            hvd_id=0)
     input_coors, input_features, input_num_list, input_bbox = [], [], [], []
@@ -81,7 +82,7 @@ if __name__ == '__main__':
                                  offset=config.offset_training,
                                  grid_buffer_resolution=2.0,
                                  grid_buffer_size=16,
-                                 voxel_size=5,
+                                 voxel_size=6,
                                  padding_value=0.,
                                  pooling_size=8)
 
@@ -107,14 +108,14 @@ if __name__ == '__main__':
 
     id = 2
 
+    output_coors = fetch_instance(input_coors[i], input_num_list[i], id=id)
+    output_features = fetch_instance(get_rgbs_from_coors(input_coors[i], repeat=20), input_num_list[i], id=id)
+    plot_points(output_coors, rgb=output_features, name='roi_pooling_input')
+
     output_voxels = fetch_instance(output_voxels, output_num_list, id=id)
     output_roi_attrs = fetch_instance(output_roi_attrs, output_num_list, id=id)
     plot_points_from_roi_voxels(voxels=output_voxels,
                                 roi_attrs=output_roi_attrs,
-                                kernel_size=5,
+                                kernel_size=6,
                                 name='la_roi_pooling_fast')
-
-    output_coors = fetch_instance(input_coors[i], input_num_list[i], id=id)
-    output_features = fetch_instance(get_rgbs_from_coors(input_coors[i], repeat=20), input_num_list[i], id=id)
-    plot_points(output_coors, rgb=output_features, name='roi_pooling_input')
 

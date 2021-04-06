@@ -46,7 +46,7 @@ class Dataset(object):
                  hvd_id=0,
                  hvd_size=1,
                  num_worker=1,
-                 home='/media/data1/waymo/segments'):
+                 home='/media/data1/waymo_npy_from_tfrecord/segments'):
         self.home = join(home, task)
         self.config = default_config if config is None else config
         self.batch_size = batch_size
@@ -249,19 +249,17 @@ class Dataset(object):
 
 if __name__ == '__main__':
     aug_config = {'nbbox': 256,
-                  'train': 500,
-                  'val': 125,
-                  'rotate_range': np.pi * 2,
+                  'rotate_range': 0.,
                   'rotate_mode': 'u',
-                  'scale_range': 0.05,
+                  'scale_range': 0.,
                   'scale_mode': 'u',
-                  'drop_out': 0.1,
+                  'drop_out': 0.,
                   'flip': False,
-                  'shuffle': True,
-                  'paste_augmentation': True,
+                  'shuffle': False,
+                  'paste_augmentation': False,
                   'paste_instance_num': 64,
                   'maximum_interior_points': 40,
-                  'normalization': None}
+                  'normalization': 'channel_std'}
 
     dataset = Dataset(task='train',
                       config=aug_config,
@@ -280,17 +278,16 @@ if __name__ == '__main__':
         # print(num_list)
         # print(coors.shape, features.shape, num_list)
 
-        # dimension = [180., 180., 8.]
-        # offset = [90., 90., 3.0]
-        #
-        # coors += offset
-        # coors_min = np.min(coors, axis=0)
-        # coors_max = np.max(coors, axis=0)
+        dimension = [180., 180., 8.]
+        offset = [90., 90., 3.0]
+
+        coors += offset
+        coors_min = np.min(coors, axis=0)
+        coors_max = np.max(coors, axis=0)
         # print(coors_min, coors_max)
-        # for j in range(3):
-        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-        #         print("***", coors_min, coors_max)
-        # time.sleep(1)
+        for j in range(3):
+            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+                print("***", coors_min, coors_max)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()
