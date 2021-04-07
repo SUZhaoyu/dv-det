@@ -111,11 +111,11 @@ def write_null_txt(txt_dir):
 
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
-    calib_home = join(home, 'dataset')
+    calib_home = join(home, 'dataset-all')
     prediction_home = join(home, 'eval/kitti', 'data')
     output_txt_home = join(prediction_home, 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
-    TASK = 'validation'
+    TASK = 'testing'
 
     try: rmtree(output_txt_home)
     except: pass
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     try: mkdir(output_txt_home)
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
-    input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
+    input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions_eval.npy'), allow_pickle=True)
     # input_bbox_predictions = np.load(join(prediction_home, 'bbox_testing.npy'), allow_pickle=True)
     input_trans_matrix = np.load(join(calib_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
     input_image_size = np.load(join(calib_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
