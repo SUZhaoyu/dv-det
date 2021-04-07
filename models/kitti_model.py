@@ -171,7 +171,7 @@ def stage2_model(coors,
                                           offset=config.offset_training)
 
         for i in range((config.roi_voxel_size - (config.roi_voxel_size + 1) % 2) // 2):
-            bbox_voxels = conv_3d_res(input_voxels=bbox_voxels,
+            bbox_voxels = conv_3d(input_voxels=bbox_voxels,
                                   layer_params=config.refine_params,
                                   scope="stage2_refine_conv_{}".format(i),
                                   is_training=is_training,
