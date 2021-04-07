@@ -147,7 +147,7 @@ def get_objects(points, bboxes):
 
 if __name__ == '__main__':
     dataset_home = '/home/tan/tony/kitti_raw'
-    output_home = join(home, 'dataset')
+    output_home = join(home, 'dataset-all')
     try:
         mkdir(output_home)
     except:
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         calib_home = join(dataset_home, 'training', 'calib')
         label_home = join(dataset_home, 'training', 'label_2')
         plane_home = join(dataset_home, 'training', 'planes')
-        split_file = join(os.getcwd(), 'data_split_half', task + '.txt')
+        split_file = join(os.getcwd(), 'data_all', task + '.txt')
         logging.info("Processing {} dataset using split strategy: {}".format(task, split_file))
 
         with open(split_file, 'r') as f:

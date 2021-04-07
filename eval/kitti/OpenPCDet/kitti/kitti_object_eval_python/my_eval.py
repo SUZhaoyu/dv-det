@@ -9,7 +9,7 @@ def _read_imageset_file(path):
 
 
 if __name__ == '__main__':
-    det_path = "/home/tan/tony/dv-det/eval/txt"
+    det_path = "/home/tan/tony/dv-det/eval/kitti/data/txt"
     dt_annos = kitti.get_label_annos(det_path)
     gt_path = "/home/tan/tony/kitti_raw/training/label_2"
     gt_split_file = "/home/tan/tony/dv-det/data/data_split_half/validation.txt"  # from https://xiaozhichen.github.io/files/mv3d/imagesets.tar.gz

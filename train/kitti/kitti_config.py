@@ -42,7 +42,7 @@ model_file_dir = os.path.dirname(os.path.abspath(__file__))
 config_dir = os.path.join(model_file_dir, model_file_name)
 
 bbox_padding = aug_config['nbbox']
-batch_size = 8
+batch_size = 12
 decay_epochs = 10
 
 init_lr_stage1 = 1e-4
@@ -71,8 +71,8 @@ output_attr = 8
 # stage1_training_epoch = 25
 total_epoch = 300
 
-roi_thres = 0.5
-iou_thres = 0.5
+roi_thres = 0.75
+iou_thres = 0.6
 max_length = 256
 roi_voxel_size = 5
 

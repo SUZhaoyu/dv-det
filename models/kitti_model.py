@@ -3,7 +3,7 @@ import tensorflow as tf
 
 import train.kitti.kitti_config as config
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
-from models.tf_ops.loader.others import roi_filter
+from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss
@@ -124,6 +124,13 @@ def stage1_model(input_coors,
 
         roi_conf_logits = roi_logits[:, 7]
 
+        # roi_conf = tf.nn.sigmoid(roi_conf_logits)
+        # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.75)
+        # roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
+        # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+        # roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
+        # roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
+
         return coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
 
 
@@ -164,7 +171,7 @@ def stage2_model(coors,
                                           offset=config.offset_training)
 
         for i in range((config.roi_voxel_size - (config.roi_voxel_size + 1) % 2) // 2):
-            bbox_voxels = conv_3d(input_voxels=bbox_voxels,
+            bbox_voxels = conv_3d_res(input_voxels=bbox_voxels,
                                   layer_params=config.refine_params,
                                   scope="stage2_refine_conv_{}".format(i),
                                   is_training=is_training,

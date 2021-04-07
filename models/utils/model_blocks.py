@@ -333,7 +333,7 @@ def conv_3d_res(input_voxels,
 
     input_features = tf.reshape(input_voxels, shape=[-1, input_channels])
     compress_features = conv_1d_wrapper(inputs=input_features,
-                                        num_output_channels=input_channels // 2,
+                                        num_output_channels=input_channels // 4,
                                         scope=scope + '_compress',
                                         use_xavier=model_params['xavier'],
                                         stddev=model_params['stddev'],
@@ -343,10 +343,10 @@ def conv_3d_res(input_voxels,
                                         trainable=trainable,
                                         histogram=histogram,
                                         summary=summary)
-    compress_features = tf.reshape(compress_features, shape=[-1, input_voxel_size * input_voxel_size * input_voxel_size, input_channels // 2])
+    compress_features = tf.reshape(compress_features, shape=[-1, input_voxel_size * input_voxel_size * input_voxel_size, input_channels // 4])
 
     output_features = conv3d_method(inputs=compress_features,
-                                    num_output_channels=output_channels // 2,
+                                    num_output_channels=output_channels // 4,
                                     kernel_size=layer_params['kernel_size'],
                                     scope=scope + '_3x3x3_conv',
                                     trainable=trainable,
@@ -359,7 +359,7 @@ def conv_3d_res(input_voxels,
                                     summary=summary)
     output_voxel_size = np.cbrt(output_features.get_shape()[1].value).astype(np.int32)
 
-    output_features = tf.reshape(output_features, shape=[-1, output_channels // 2])
+    output_features = tf.reshape(output_features, shape=[-1, output_channels // 4])
     decompress_features = conv_1d_wrapper(inputs=output_features,
                                           num_output_channels=output_channels,
                                           scope=scope + '_decompress',

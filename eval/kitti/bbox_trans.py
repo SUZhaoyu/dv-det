@@ -98,7 +98,7 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         # if bbox_height > 25:
 
         text = type + truncation + occlusion + alpha + x1 + y1 + x2 + y2 + h + w + l + x_c + y_c + z_c + r + score
-        if input_bbox[i, -1] > 0.6:
+        if input_bbox[i, -1] > 0.5:
             with open(txt_dir, 'a') as f:
                 f.write(text)
             valid_bbox_num += 1

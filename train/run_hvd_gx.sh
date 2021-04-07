@@ -18,7 +18,6 @@ rsync -avz -W -e ssh --progress \
                      --exclude='eval' \
                      --exclude='ckpt-*' \
                      --exclude='img_*.npy' \
-                     --exclude='dataset-eval' \
                      $root_gx4/$HOME tan@$ip_gx8:$root_gx8
 
 echo "Pushing Completed!"

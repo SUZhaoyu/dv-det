@@ -248,7 +248,7 @@ void roi_pooling_gpu_launcher(int batch_size, int input_point_num, int channels,
         return;
     }
     if (roi_num <= 0) {
-        printf("RoiPoolingFastOp WARNING: No RoIs were found for the current batch.\n");
+//        printf("RoiPoolingFastOp WARNING: No RoIs were found for the current batch.\n");
         return;
     }
 //    printf("RoI Num: %d\n", roi_num);
