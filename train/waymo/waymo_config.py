@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-batch_size = 4
+batch_size = 2
 aug_config = {'nbbox': 256,
               'train': 798 * 200 * 0.2 / 8 / batch_size,
               'val': 202 * 200 * 0.2 / 8 / batch_size,
@@ -18,8 +18,11 @@ aug_config = {'nbbox': 256,
               'maximum_interior_points': 40,
               'normalization': 'channel_std'}
 
-dimension_training = [180., 180., 8.]
-offset_training = [90., 90., 3.0]
+# dimension_training = [180., 180., 8.]
+# offset_training = [90., 90., 3.0]
+
+dimension_training = [200., 200., 8.]
+offset_training = [100., 100., 3.0]
 
 # dimension_training = [100., 100., 9.]
 # offset_training = [10., 10., 5.]
@@ -44,7 +47,7 @@ model_file_dir = os.path.dirname(os.path.abspath(__file__))
 config_dir = os.path.join(model_file_dir, model_file_name)
 
 bbox_padding = aug_config['nbbox']
-decay_epochs = 10
+decay_epochs = 5
 
 init_lr_stage1 = 1e-4
 lr_scale_stage1 = True
@@ -74,7 +77,7 @@ total_epoch = 300
 
 roi_thres = 0.75
 iou_thres = 0.6
-max_length = 256
+max_length = 512
 roi_voxel_size = 5
 
 # base_params_inference = {'base_0': {'subsample_res': 0.05, 'c_out':  16, 'kernel_res': 0.05, 'padding': 0.},

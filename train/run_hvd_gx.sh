@@ -74,20 +74,20 @@ if [ -d "$log_dir" ]; then
 fi
 mkdir $log_dir
 
-#mpirun -np 8 \
-#       -H $ip_gx4:8\
-#       -bind-to none -map-by slot \
-#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-#       -mca pml ob1 -mca btl ^openib \
-#       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
-#       -np 4 \
-#       -H $ip_gx8:4\
-#       -bind-to none -map-by slot \
-#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-#       -mca pml ob1 -mca btl ^openib \
-#       $conda_env_gx8 $exe_dir_gx8
+mpirun -np 8 \
+       -H $ip_gx4:8\
+       -bind-to none -map-by slot \
+       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+       -mca pml ob1 -mca btl ^openib \
+       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
+       -np 6 \
+       -H $ip_gx8:6\
+       -bind-to none -map-by slot \
+       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+       -mca pml ob1 -mca btl ^openib \
+       $conda_env_gx8 $exe_dir_gx8
 
-horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
+#horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
 
 # /usr/mpi/gcc/openmpi-4.0.3rc4/bin/
 # mpirun -np 6 \

@@ -5,8 +5,8 @@ import numpy as np
 batch_size = 4
 bbox_padding = 256
 aug_config = {'nbbox': bbox_padding,
-              'train': 798 * 200 * 0.2 / 8 / batch_size,
-              'val': 202 * 200 * 0.2 / 8 / batch_size,
+              # 'train': 798 * 200 * 0.2 / 8 / batch_size,
+              # 'val': 202 * 200 * 0.2 / 8 / batch_size,
               'rotate_range': np.pi * 2,
               'rotate_mode': 'u',
               'scale_range': 0.05,

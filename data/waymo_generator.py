@@ -265,11 +265,11 @@ if __name__ == '__main__':
                       config=aug_config,
                       batch_size=4,
                       validation=False,
-                      num_worker=1,
+                      num_worker=20,
                       hvd_size=8,
                       hvd_id=0)
     generator = dataset.train_generator()
-    for i in tqdm(range(1)):
+    for i in tqdm(range(10000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
 
@@ -278,16 +278,16 @@ if __name__ == '__main__':
         # print(num_list)
         # print(coors.shape, features.shape, num_list)
 
-        # dimension = [180., 180., 8.]
-        # offset = [90., 90., 3.0]
-        #
-        # coors += offset
-        # coors_min = np.min(coors, axis=0)
-        # coors_max = np.max(coors, axis=0)
-        # # print(coors_min, coors_max)
-        # for j in range(3):
-        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-        #         print("***", coors_min, coors_max)
+        dimension = [200., 200., 8.]
+        offset = [100., 100., 3.0]
+
+        coors += offset
+        coors_min = np.min(coors, axis=0)
+        coors_max = np.max(coors, axis=0)
+        # print(coors_min, coors_max)
+        for j in range(3):
+            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+                print("***", coors_min, coors_max)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()
