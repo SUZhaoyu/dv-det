@@ -19,9 +19,9 @@ range_x = [-75.2, 75.2]
 range_y = [-75.2, 75.2]
 range_z = [-2., 4.]
 
-raw_home = join('/media/data1/waymo', task)
-lidar_output_home = join('/media/data1/waymo/segments/lidar')
-label_output_home = join('/media/data1/waymo/segments/label')
+raw_home = join('/media/data1/waymo-old', task)
+lidar_output_home = join('/media/data1/waymo-old/segments/lidar')
+label_output_home = join('/media/data1/waymo-old/segments/label')
 
 
 scene_num = scene_num_dict[task]

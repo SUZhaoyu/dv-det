@@ -6,8 +6,8 @@ import tensorflow as tf
 from point_viz.converter import PointvizConverter
 from tqdm import tqdm
 
-os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-stage2'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-stage2')
+os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-old-stage2'))
+Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-old-stage2')
 
 from models import waymo_model_concat as model
 from models.tf_ops.loader.others import rotated_nms3d_idx
@@ -19,9 +19,9 @@ hvd.init()
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
-# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage2-avg_pool-2/test/best_model_0.7565488711153127'
-model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage2-concat/test/best_model_0.711922595884991'
-data_home = '/home/tan/tony/dv-det/eval/waymo/data'
+# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-old-stage2-avg_pool-2/test/best_model_0.7565488711153127'
+model_path = '/home/tan/tony/dv-det/ckpt-waymo-old/stage2-concat/test/best_model_0.711922595884991'
+data_home = '/home/tan/tony/dv-det/eval/waymo-old/data'
 visualization = True
 
 

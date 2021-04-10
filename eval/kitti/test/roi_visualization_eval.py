@@ -19,7 +19,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_eval/test/best_model_0.6925084921062944' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-aug-2/test/best_model_0.6956733309270209' # 68.8%@non-mem-saving
-# model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-complicated/test/best_model_0.7281508956090916' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/ckpt-waymo-old/stage1-complicated/test/best_model_0.7281508956090916' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-paste-64/test/best_model_0.7256191992549179' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/best_model_0.7350936919553036' # 68.8%@non-mem-saving
 model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-eval/test/model_0.76285055631128' # 68.8%@non-mem-saving

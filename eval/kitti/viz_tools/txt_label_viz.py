@@ -93,9 +93,9 @@ def draw_2d_bbox(img, bboxes, trans_matrix_list):
 
 
 if __name__ == '__main__':
-    img_npy = np.load(join(proj_home, 'dataset', 'img_validation.npy'), allow_pickle=True)
-    calib_npy = np.load(join(proj_home, 'dataset', 'trans_matrix_validation.npy'), allow_pickle=True)
-    lidar_npy = np.load(join(proj_home, 'dataset', 'lidar_points_validation.npy'), allow_pickle=True)
+    img_npy = np.load(join(proj_home, 'dataset-eval', 'img_testing.npy'), allow_pickle=True)
+    calib_npy = np.load(join(proj_home, 'dataset-eval', 'trans_matrix_testing.npy'), allow_pickle=True)
+    lidar_npy = np.load(join(proj_home, 'dataset-eval', 'lidar_points_testing.npy'), allow_pickle=True)
 
     txt_file_list = os.listdir(pred_txt_home)
 

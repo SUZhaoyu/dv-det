@@ -7,15 +7,15 @@ import horovod.tensorflow as hvd
 
 hvd.init()
 
-os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-stage1'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-stage1')
+os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-old-stage1'))
+Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-old-stage1')
 
 from models import waymo_model as model
 from train.waymo import waymo_config as config
 from data.waymo_generator import Dataset
 
-model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage1-avg_pool/test/best_model_0.6606513755109455' # 68.8%@non-mem-saving
-data_home = '/home/tan/tony/dv-det/eval/waymo/data'
+model_path = '/home/tan/tony/dv-det/checkpoints/waymo-old-stage1-avg_pool/test/best_model_0.6606513755109455' # 68.8%@non-mem-saving
+data_home = '/home/tan/tony/dv-det/eval/waymo-old/data'
 visualization = True
 
 DatasetTrain = Dataset(task="train",

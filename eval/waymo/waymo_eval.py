@@ -14,7 +14,7 @@ from waymo_open_dataset.metrics.python import detection_metrics
 from waymo_open_dataset.protos import metrics_pb2
 from copy import deepcopy
 
-input_home = '/home/tan/tony/dv-det/eval/waymo/data'
+input_home = '/home/tan/tony/dv-det/eval/waymo-old/data'
 tf.get_logger().setLevel('WARNING')
 
 
@@ -154,7 +154,7 @@ class OpenPCDetWaymoDetectionMetricsEstimator(tf.test.TestCase):
         return tuple(ret_ans)
 
     def waymo_evaluation(self, prediction_infos, gt_infos, distance_thresh=100):
-        print('Start the waymo evaluation...')
+        print('Start the waymo-old evaluation...')
         assert len(prediction_infos) == len(gt_infos), '%d vs %d' % (prediction_infos.__len__(), gt_infos.__len__())
 
         tf.compat.v1.disable_eager_execution()
@@ -194,7 +194,7 @@ def main():
     pred_data = np.load(join(input_home, 'bbox_predictions.npy'), allow_pickle=True)
     gt_data = np.load(join(input_home, 'bbox_labels.npy'), allow_pickle=True)
 
-    print('Start to evaluate the waymo format results...')
+    print('Start to evaluate the waymo-old format results...')
     eval = OpenPCDetWaymoDetectionMetricsEstimator()
 
     waymo_AP = eval.waymo_evaluation(

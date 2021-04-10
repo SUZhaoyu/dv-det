@@ -12,18 +12,18 @@ import horovod.tensorflow as hvd
 
 hvd.init()
 
-os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-stage1'))
-Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-stage1')
+os.system("rm -r {}".format('/home/tan/tony/threejs/waymo-old-stage1'))
+Converter = PointvizConverter(home='/home/tan/tony/threejs/waymo-old-stage1')
 
 from models import waymo_model as model
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_eval/test/best_model_0.6925084921062944' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_van/test/best_model_0.672630966259817' # 68.8%@non-mem-saving
-# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage1-no_scale_lr/test/best_model_0.6559794634147377' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-1.20-paste/test/best_model_0.661185401552268' # 68.8%@non-mem-saving
-# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-stage1-avg_pool/test/best_model_0.6606513755109455' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-old-stage1-no_scale_lr/test/best_model_0.6559794634147377' # 68.8%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/ckpt-waymo-old/stage1-1.20-paste/test/best_model_0.661185401552268' # 68.8%@non-mem-saving
+# model_path = '/home/tan/tony/dv-det/checkpoints/waymo-old-stage1-avg_pool/test/best_model_0.6606513755109455' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1_focal=0.75/test/best_model_0.6906541874676403' # 68.5%@non-mem-saving
-data_home = '/home/tan/tony/dv-det/eval/waymo/data'
+data_home = '/home/tan/tony/dv-det/eval/waymo-old/data'
 visualization = True
 
 # DatasetTrain = Dataset(task="train",

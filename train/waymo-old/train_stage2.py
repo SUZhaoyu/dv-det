@@ -14,9 +14,9 @@ from shutil import rmtree
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import kitti_model as model
-from train.kitti import kitti_config as config
-from data.kitti_generator import Dataset
+from models import waymo_model_concat as model
+from train.waymo import waymo_config as config
+from data.waymo_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
 
 hvd.init()
@@ -39,7 +39,7 @@ else:
 # if is_hvd_root:
 #     copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
 
-DatasetTrain = Dataset(task="training",
+DatasetTrain = Dataset(task="train",
                        batch_size=config.batch_size,
                        config=config.aug_config,
                        num_worker=config.num_worker,
@@ -47,7 +47,7 @@ DatasetTrain = Dataset(task="training",
                        hvd_id=hvd.rank())
 # DatasetTrain.stop()
 
-DatasetValid = Dataset(task="validation",
+DatasetValid = Dataset(task="val",
                        validation=True,
                        batch_size=config.batch_size,
                        hvd_size=hvd.size(),
@@ -59,7 +59,7 @@ validation_batch = DatasetValid.batch_sum
 decay_batch = training_batch * config.decay_epochs
 
 stage1_input_coors_p, stage1_input_features_p, stage1_input_num_list_p, _ = \
-    model.stage1_inputs_placeholder(input_channels=1,
+    model.stage1_inputs_placeholder(input_channels=2,
                                     bbox_padding=config.bbox_padding)
 
 stage2_input_coors_p, stage2_input_features_p, stage2_input_num_list_p, \
@@ -75,13 +75,7 @@ is_stage2_training_p = tf.placeholder(dtype=tf.bool, shape=[], name="stage2_trai
 stage1_step = tf.Variable(0, name='stage1_step')
 stage2_step = tf.Variable(0, name='stage2_step')
 
-stage2_lr, stage2_bn, stage2_wd = set_training_controls(config=config,
-                                                        lr=config.init_lr_stage2,
-                                                        scale=config.lr_scale_stage2,
-                                                        decay_batch=decay_batch,
-                                                        step=stage2_step,
-                                                        hvd_size=hvd.size(),
-                                                        prefix='stage2')
+stage2_lr, stage2_bn, stage2_wd = set_training_controls(config, decay_batch, stage2_step, hvd.size(), prefix='stage2')
 
 
 stage1_output_coors, stage1_output_features, stage1_output_num_list, \
@@ -138,6 +132,8 @@ validation_writer = tf.summary.FileWriter(os.path.join(log_dir, 'valid'))
 stage1_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='stage1')
 stage1_loader = tf.train.Saver(stage1_variables)
 saver = tf.train.Saver(max_to_keep=None)
+
+
 
 
 def train_one_epoch(sess, step, dataset_generator, writer):
@@ -224,7 +220,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-eval/test/model_0.76285055631128')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/checkpoints/waymo-old-stage1-avg_pool/test/best_model_0.6606513755109455')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
@@ -237,7 +233,7 @@ def main():
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
-                                                 log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
+                                                 log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
                                                  save_anyway=False)
 
 

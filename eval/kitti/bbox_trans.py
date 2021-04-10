@@ -44,7 +44,7 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
         top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
 
-        if box[-1] < 0.6:
+        if box[-1] < 0.5:
             continue
 
         # if np.min(proj_v[:, 0]) < 0. or \
@@ -57,11 +57,11 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
            np.max(proj_v[:, 0]) > col + 100:
             continue
 
-        if np.min(proj_v[:, 2]) < 0.:
-            continue
+        # if np.min(proj_v[:, 2]) < 0.:
+        #     continue
 
-        if bottom - top < 25:
-            continue
+        # if bottom - top < 25:
+        #     continue
 
         output_2d_bbox.append([left, top, right, bottom])
         output_3d_bbox.append(box)
@@ -112,7 +112,7 @@ def write_null_txt(txt_dir):
 
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
-    calib_home = join(home, 'dataset-half')
+    calib_home = join(home, 'dataset-eval')
     prediction_home = join(home, 'eval/kitti', 'data')
     output_txt_home = join(prediction_home, 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
@@ -125,7 +125,6 @@ if __name__ == '__main__':
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
     input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions_eval.npy'), allow_pickle=True)
-    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
     input_trans_matrix = np.load(join(calib_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
     input_image_size = np.load(join(calib_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
 

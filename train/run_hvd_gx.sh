@@ -5,7 +5,7 @@ exe_file="$1/$2.py"
 pkill -f -9 $exe_file
 
 HOME="dv-det"
-checkpoints="ckpt-kitti"
+checkpoints="ckpt-$1"
 
 root_gx4="/home/tan/tony"
 root_gx8="/home/tan/tony"
@@ -18,6 +18,7 @@ rsync -avz -W -e ssh --progress \
                      --exclude='eval' \
                      --exclude='img_*.npy' \
                      --exclude='*_testing.npy' \
+                     --exclude='waymo_npy' \
                      --exclude='.nv' \
                      $root_gx4/$HOME tan@$ip_gx8:$root_gx8
 
@@ -73,20 +74,20 @@ if [ -d "$log_dir" ]; then
 fi
 mkdir $log_dir
 
-mpirun -np 8 \
-       -H $ip_gx4:8\
-       -bind-to none -map-by slot \
-       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-       -mca pml ob1 -mca btl ^openib \
-       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
-       -np 8 \
-       -H $ip_gx8:8\
-       -bind-to none -map-by slot \
-       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-       -mca pml ob1 -mca btl ^openib \
-       $conda_env_gx8 $exe_dir_gx8
+#mpirun -np 8 \
+#       -H $ip_gx4:8\
+#       -bind-to none -map-by slot \
+#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+#       -mca pml ob1 -mca btl ^openib \
+#       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
+#       -np 4 \
+#       -H $ip_gx8:4\
+#       -bind-to none -map-by slot \
+#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+#       -mca pml ob1 -mca btl ^openib \
+#       $conda_env_gx8 $exe_dir_gx8
 
-#horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
+horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
 
 # /usr/mpi/gcc/openmpi-4.0.3rc4/bin/
 # mpirun -np 6 \

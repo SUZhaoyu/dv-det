@@ -8,7 +8,7 @@ import tensorflow as tf
 from models.utils.iou_utils import cal_3d_iou
 
 
-data_home = '/home/tan/tony/dv-det/eval/waymo/data'
+data_home = '/home/tan/tony/dv-det/eval/waymo-old/data'
 
 if __name__ == '__main__':
 

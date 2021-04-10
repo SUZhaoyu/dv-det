@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 
-task = 'testing'
+task = 'validation'
 validation = True
 evaluation = True
 output_home = '/home/tan/tony/dv-det/eval/kitti/data'
@@ -51,8 +51,8 @@ if __name__ == '__main__':
         if not evaluation:
             input_bboxes.append(bboxes)
         #
-        if i > 50:
-            break
+        # if i > 50:
+        #     break
 
     np.save(join(output_home, 'input_coors.npy'), np.array(input_coors, dtype=object))
     np.save(join(output_home, 'input_features.npy'), np.array(input_features, dtype=object))

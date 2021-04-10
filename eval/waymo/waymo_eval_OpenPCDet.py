@@ -175,7 +175,7 @@ class OpenPCDetWaymoDetectionMetricsEstimator(tf.test.TestCase):
         return tuple(ret_ans)
 
     def waymo_evaluation(self, prediction_infos, gt_infos, class_name, distance_thresh=100, fake_gt_infos=True):
-        print('Start the waymo evaluation...')
+        print('Start the waymo-old evaluation...')
         assert len(prediction_infos) == len(gt_infos), '%d vs %d' % (prediction_infos.__len__(), gt_infos.__len__())
 
         tf.compat.v1.disable_eager_execution()
@@ -225,7 +225,7 @@ def main():
     pred_infos = pickle.load(open(args.pred_infos, 'rb'))
     gt_infos = pickle.load(open(args.gt_infos, 'rb'))
 
-    print('Start to evaluate the waymo format results...')
+    print('Start to evaluate the waymo-old format results...')
     eval = OpenPCDetWaymoDetectionMetricsEstimator()
 
     gt_infos_dst = []
