@@ -100,7 +100,7 @@ roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
                              roi_num_list=input_roi_num_list_p,
                              bbox_labels=input_bbox_p)
 
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
+bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=stage2_input_coors_p,
                        features=stage2_input_features_p,
                        num_list=stage2_input_num_list_p,
@@ -120,6 +120,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
 stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=input_roi_attrs_p,
                                                    pred_bbox_attrs=bbox_attrs,
                                                    bbox_conf_logits=bbox_conf_logits,
+                                                   bbox_dir_logits=bbox_dir_logits,
                                                    bbox_num_list=bbox_num_list,
                                                    bbox_labels=input_bbox_p,
                                                    bbox_idx=bbox_idx,
@@ -223,7 +224,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-all/test/best_model_0.774586101828477')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-half/test/model_0.7407824958262826')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
@@ -236,7 +237,7 @@ def main():
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
-                                                 log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
+                                                 log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
                                                  save_anyway=False)
 
 

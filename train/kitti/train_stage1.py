@@ -172,7 +172,7 @@ def main():
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
-                                                 log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
+                                                 log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
                                                  save_anyway=False)
 
 

@@ -54,6 +54,7 @@ def trim(img_dir, lidar_dir, calib_dir, range_x, range_y, range_z):
     P2, R0_rect, Tr_velo_to_cam = load_calib(calib_dir)
     trans_matrix_list = [P2, R0_rect, Tr_velo_to_cam]
     trans_matrix = P2.dot(R0_rect.dot(Tr_velo_to_cam))
+
     trans_lidar_points = np.transpose(trans_matrix.dot(deepcopy(lidar_points).transpose()))  # [n, 4]
     proj_lidar_points = trans_lidar_points / trans_lidar_points[:, 2:3]
     keep_idx = get_union_sets([lidar_points[:, 0] > range_x[0],
@@ -147,7 +148,7 @@ def get_objects(points, bboxes):
 
 if __name__ == '__main__':
     dataset_home = '/home/tan/tony/kitti_raw'
-    output_home = join(home, 'dataset-all')
+    output_home = join(home, 'dataset-eval')
     try:
         mkdir(output_home)
     except:
@@ -169,7 +170,7 @@ if __name__ == '__main__':
         calib_home = join(dataset_home, 'training', 'calib')
         label_home = join(dataset_home, 'training', 'label_2')
         plane_home = join(dataset_home, 'training', 'planes')
-        split_file = join(os.getcwd(), 'data_all', task + '.txt')
+        split_file = join(os.getcwd(), 'data_split_eval', task + '.txt')
         logging.info("Processing {} dataset using split strategy: {}".format(task, split_file))
 
         with open(split_file, 'r') as f:

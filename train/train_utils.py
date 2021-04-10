@@ -188,29 +188,29 @@ def get_horovod_session(sess):
 
 
 def save_sess(sess, label_idx, log_dir, saver, log=False):
-    path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'best_model_{}'.format(label_idx)))
+    path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'model_{}'.format(label_idx)))
     if log:
         print("INFO: Model was saved to {}".format(path))
 
 
 def save_best_sess(sess, best_acc, acc, log_dir, saver, replace=False, inverse=False, log=False, save_anyway=False):
     if save_anyway:
-        path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'best_model_{}'.format(acc)))
+        path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'model_{}'.format(acc)))
         print("INFO: Model was saved to {}".format(path))
         return acc
     if not inverse:
         if acc > best_acc:
             if best_acc != 0 and replace:
-                os.system('rm {}/{}*'.format(os.path.join(log_dir, 'test'), 'best_model_'))
-            path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'best_model_{}'.format(acc)))
+                os.system('rm {}/{}*'.format(os.path.join(log_dir, 'test'), 'model_'))
+            path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'model_{}'.format(acc)))
             best_acc = acc
             if log:
                 print("INFO: Model was saved to {}".format(path))
     else:
         if acc < best_acc:
             if best_acc != np.inf and replace:
-                os.system('rm {}/{}*'.format(os.path.join(log_dir, 'test'), 'best_model_'))
-            path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'best_model_{}'.format(acc)))
+                os.system('rm {}/{}*'.format(os.path.join(log_dir, 'test'), 'model_'))
+            path = saver.save(get_horovod_session(sess), os.path.join(log_dir, 'test', 'model_{}'.format(acc)))
             best_acc = acc
             if log:
                 print("INFO: Model was saved to {}".format(path))

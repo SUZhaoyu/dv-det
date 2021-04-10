@@ -22,7 +22,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-waymo/stage1-complicated/test/best_model_0.7281508956090916' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-paste-64/test/best_model_0.7256191992549179' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/best_model_0.7350936919553036' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-batch12/test/best_model_0.7402505726864917' # 68.8%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-best/test/model_0.7393114599397744' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1_new-aug/test/best_model_0.733512723619081' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-test/test/best_model_0.7721271928435091' # 68.5%@non-mem-saving
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
@@ -103,7 +103,7 @@ if __name__ == '__main__':
             #     f.write(ctf)
 
             # output_idx = output_idx[:output_count[0]]
-            output_idx = output_conf > 0.5
+            output_idx = output_conf > 0.6
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
             #

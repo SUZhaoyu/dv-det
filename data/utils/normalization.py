@@ -16,8 +16,7 @@ def normalize_angle(angle):
 
     """
     angle = angle % (2 * np.pi)
-    if angle > np.pi:
-        angle -= 2 * np.pi
+    angle -= 2 * np.pi * np.array(angle > np.pi, dtype=np.float32)
     return angle
 
 def get_union_sets(conditions):
@@ -206,7 +205,7 @@ def convert_threejs_bbox_with_colors(bboxes, color="white"):
         if box[0] * box[1] * box[2] > 0:
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
-            threejs_bbox[-1] = "%0.2f, %0.2f" % (box[6] / np.pi, box[-1])
+            threejs_bbox[-1] = "%d, %0.2f" % (int(box[8]), box[-1])
             # threejs_bbox[-1] = "conf=%0.2f, iou=%0.2f" % (box[-2], box[-1])
             threejs_bbox[-2] = color
             # if (box[-1] == 0):

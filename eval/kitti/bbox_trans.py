@@ -40,16 +40,29 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         v = np.concatenate([v, np.ones(shape=[8, 1])], axis=-1) # [8, 4]
         proj_v = v.dot(trans_matrix.transpose())
         proj_v /= proj_v[:, 2:3]
-        # TODO: May need change the filtering strategy.
+
+        left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
+        top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
+
+        if box[-1] < 0.6:
+            continue
+
         # if np.min(proj_v[:, 0]) < 0. or \
         #    np.max(proj_v[:, 0]) > col or \
         #    np.min(proj_v[:, 1]) < 0. or \
         #    np.max(proj_v[:, 1]) > row:
         #     continue
-        # if np.min(proj_v[:, 2]) < 0.:
-        #     continue
-        left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
-        top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
+
+        if np.min(proj_v[:, 0]) < 0 - 100 or \
+           np.max(proj_v[:, 0]) > col + 100:
+            continue
+
+        if np.min(proj_v[:, 2]) < 0.:
+            continue
+
+        if bottom - top < 25:
+            continue
+
         output_2d_bbox.append([left, top, right, bottom])
         output_3d_bbox.append(box)
 
@@ -71,12 +84,10 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         truncation = ' -1'
         occlusion = ' -1'
         alpha = ' -10'
-        x1 = ' %.2f'%bbox_2d[i, 0]
-        y1 = ' %.2f'%bbox_2d[i, 1]
-        x2 = ' %.2f'%bbox_2d[i, 2]
-        y2 = ' %.2f'%bbox_2d[i, 3]
-        # w = ' %.2f'%np.min([input_bbox[i, 0], input_bbox[i, 1]])
-        # l = ' %.2f'%np.max([input_bbox[i, 0], input_bbox[i, 1]])
+        x1 = ' %.2f' % bbox_2d[i, 0]
+        y1 = ' %.2f' % bbox_2d[i, 1]
+        x2 = ' %.2f' % bbox_2d[i, 2]
+        y2 = ' %.2f' % bbox_2d[i, 3]
         w = ' %.2f' % input_bbox[i, 0]
         l = ' %.2f' % input_bbox[i, 1]
         h = ' %.2f' % input_bbox[i, 2]
@@ -84,24 +95,14 @@ def write_txt(txt_dir, bbox_2d, center_coors, input_bbox, category='Car'):
         y_c = ' %.2f' % center_coors[i, 1]
         z_c = ' %.2f' % center_coors[i, 2]
         score = ' %.2f\n'%input_bbox[i, -1]
-        if input_bbox[i, -1] < 0.1:
-            continue
-        # score = ' %.2f\n'%0.95
-        # r = input_bbox[i, 6] + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else input_bbox[i, 6]
-        # r = -r
+
         r = -input_bbox[i, 6]
-        # r = r + np.pi / 2. if input_bbox[i, 0] > input_bbox[i, 1] else r
-        # if np.abs(r) > np.pi:
-        #     r = (2 * np.pi - np.abs(r)) * ((-1) ** (r // np.pi))
         r = ' %.2f' % r
-        bbox_height = float(y2) - float(y1)
-        # if bbox_height > 25:
 
         text = type + truncation + occlusion + alpha + x1 + y1 + x2 + y2 + h + w + l + x_c + y_c + z_c + r + score
-        if input_bbox[i, -1] > 0.5:
-            with open(txt_dir, 'a') as f:
-                f.write(text)
-            valid_bbox_num += 1
+        with open(txt_dir, 'a') as f:
+            f.write(text)
+        valid_bbox_num += 1
     return valid_bbox_num
 
 def write_null_txt(txt_dir):
@@ -111,11 +112,11 @@ def write_null_txt(txt_dir):
 
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
-    calib_home = join(home, 'dataset-all')
+    calib_home = join(home, 'dataset-half')
     prediction_home = join(home, 'eval/kitti', 'data')
     output_txt_home = join(prediction_home, 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
-    TASK = 'testing'
+    TASK = 'validation'
 
     try: rmtree(output_txt_home)
     except: pass
@@ -124,7 +125,7 @@ if __name__ == '__main__':
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
     input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions_eval.npy'), allow_pickle=True)
-    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_testing.npy'), allow_pickle=True)
+    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
     input_trans_matrix = np.load(join(calib_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
     input_image_size = np.load(join(calib_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
 

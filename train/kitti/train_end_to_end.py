@@ -89,7 +89,7 @@ roi_ious = model.get_roi_iou(roi_coors=roi_coors,
                              roi_num_list=roi_num_list,
                              bbox_labels=input_bbox_p)
 
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
+bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
                        features=features,
                        num_list=num_list,
@@ -115,6 +115,7 @@ stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
 stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=roi_attrs,
                                                    pred_bbox_attrs=bbox_attrs,
                                                    bbox_conf_logits=bbox_conf_logits,
+                                                   bbox_dir_logits=bbox_dir_logits,
                                                    bbox_num_list=bbox_num_list,
                                                    bbox_labels=input_bbox_p,
                                                    bbox_idx=bbox_idx,
@@ -195,7 +196,7 @@ def main():
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
         step = 0
-        valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
+        # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
 
         for epoch in range(config.total_epoch):
             if is_hvd_root:

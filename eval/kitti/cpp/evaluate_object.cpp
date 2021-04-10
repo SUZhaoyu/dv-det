@@ -59,7 +59,7 @@ vector<string> CLASS_NAMES_CAP;
 const double MIN_OVERLAP[3][3] = {{0.7, 0.5, 0.5}, {0.7, 0.5, 0.5}, {0.7, 0.5, 0.5}};
 
 // no. of recall steps that should be evaluated (discretized)
-const double N_SAMPLE_PTS = 40;
+const double N_SAMPLE_PTS = 11;
 
 // initialize class names
 void initGlobals () {
@@ -716,9 +716,17 @@ void saveAndPlotPlots(string dir_name,string file_name,string obj_type,vector<do
   // save plot data to file
   FILE *fp = fopen((dir_name + "/" + file_name + ".txt").c_str(),"w");
   printf("save %s\n", (dir_name + "/" + file_name + ".txt").c_str());
-  for (int32_t i=0; i<(int)N_SAMPLE_PTS; i++)
+  float EASY_COUNT = 0; 
+  float MOD_COUNT = 0;
+  float HARD_COUNT = 0;
+  for (int32_t i=0; i<(int)N_SAMPLE_PTS; i++) {
     fprintf(fp,"%f %f %f %f\n",(double)i/(N_SAMPLE_PTS-1.0),vals[0][i],vals[1][i],vals[2][i]);
+    EASY_COUNT += vals[0][i];
+    MOD_COUNT += vals[1][i];
+    HARD_COUNT += vals[2][i];
+  }
   fclose(fp);
+  printf("******** Easy: %.2f, Moderate: %.2f, Hard: %.2f ********\n", EASY_COUNT / N_SAMPLE_PTS * 100, MOD_COUNT / N_SAMPLE_PTS * 100, HARD_COUNT / N_SAMPLE_PTS * 100);
 
   // create png + eps
   for (int32_t j=0; j<2; j++) {
@@ -778,9 +786,9 @@ bool eval(string result_sha,Mail* mail){
   initGlobals();
 
   // ground truth and result directories
-  string gt_dir         = "/home/tan/tony/dv-det/eval/label_2";
-  string result_dir     = "/home/tan/tony/dv-det/eval/txt";
-  string plot_dir       = "/home/tan/tony/dv-det/eval/plot";
+  string gt_dir         = "/home/tan/tony/dv-det/eval/kitti/data/label_2";
+  string result_dir     = "/home/tan/tony/dv-det/eval/kitti/data/txt";
+  string plot_dir       = "/home/tan/tony/dv-det/eval/kitti/plot";
 
   // create output directories
   system(("mkdir " + plot_dir).c_str());

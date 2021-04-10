@@ -68,7 +68,7 @@ def trim(img_dir, lidar_dir, calib_dir, range_x, range_y, range_z):
 
 if __name__ == '__main__':
     dataset_home = '/home/tan/tony/kitti_raw'
-    output_home = join(home, 'dataset-all')
+    output_home = join(home, 'dataset-eval')
     try:
         mkdir(output_home)
     except:
@@ -84,8 +84,7 @@ if __name__ == '__main__':
     img_home = join(dataset_home, 'testing', 'image_2')
     lidar_home = join(dataset_home, 'testing', 'velodyne')
     calib_home = join(dataset_home, 'testing', 'calib')
-    label_home = join(dataset_home, 'testing', 'label_2')
-    split_file = join(os.getcwd(), 'data_all', task + '.txt')
+    split_file = join(os.getcwd(), 'data_split_eval', task + '.txt')
     logging.info("Processing {} dataset using split strategy: {}".format(task, split_file))
 
     with open(split_file, 'r') as f:
@@ -94,7 +93,6 @@ if __name__ == '__main__':
             img_dir = join(img_home, '{}.png'.format(frame_id))
             lidar_dir = join(lidar_home, '{}.bin'.format(frame_id))
             calib_dir = join(calib_home, '{}.txt'.format(frame_id))
-            label_dir = join(label_home, '{}.txt'.format(frame_id))
 
             lidar_points, trans_matrix, img_size, img = trim(img_dir, lidar_dir, calib_dir, range_x=range_x,
                                                              range_y=range_y, range_z=range_z)

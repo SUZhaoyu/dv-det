@@ -24,8 +24,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
-# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-dir/test/best_model_0.8327349985458572'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-all/test/best_model_0.8322110000579623'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-half/test/model_0.8024305950474453'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 
@@ -55,7 +54,7 @@ roi_conf = tf.nn.sigmoid(roi_conf_logits)
 # roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
 # roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
 
-bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
+bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
                        features=features,
                        num_list=num_list,
@@ -70,6 +69,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
                        bn=1.)
 
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
+bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
 nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
 
@@ -91,8 +91,8 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             # batch_input_bboxes = input_bboxes_stack[frame_id]
-            output_bboxes, output_coors, output_conf, output_idx = \
-                sess.run([bbox_attrs, coors, bbox_conf, nms_idx],
+            output_bboxes, output_coors, output_conf, output_dir, output_idx = \
+                sess.run([bbox_attrs, coors, bbox_conf, bbox_dir, nms_idx],
             # output_bboxes, output_coors, output_conf = \
             #     sess.run([bbox_attrs, coors, bbox_conf],
                          feed_dict={input_coors_p: batch_input_coors,
@@ -104,6 +104,7 @@ if __name__ == '__main__':
             # output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
+            output_dir = np.array(output_dir[output_idx] > 0.5, dtype=np.float32)
             #
             input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
@@ -116,7 +117,7 @@ if __name__ == '__main__':
             x = output_bboxes[:, 3]
             y = output_bboxes[:, 4]
             z = output_bboxes[:, 5]
-            r = output_bboxes[:, 6]
+            r = output_bboxes[:, 6] + np.pi * output_dir
             r = normalize_angle(r)
 
             c = np.zeros(len(w))

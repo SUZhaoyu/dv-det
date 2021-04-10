@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #exe_file="train_stage1_anchor_x2.py"
-exe_file="kitti/train_stage2.py"
+exe_file="$1/$2.py"
 #exe_file="train_stage1.py"
 pkill -f -9 $exe_file
 
@@ -16,8 +16,9 @@ rsync -avz -W -e ssh --progress \
                      --exclude='*.pyc' \
                      --exclude='build' \
                      --exclude='eval' \
-                     --exclude='ckpt-*' \
                      --exclude='img_*.npy' \
+                     --exclude='*_testing.npy' \
+                     --exclude='.nv' \
                      $root_gx4/$HOME tan@$ip_gx8:$root_gx8
 
 echo "Pushing Completed!"

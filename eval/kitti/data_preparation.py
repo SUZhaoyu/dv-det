@@ -30,7 +30,7 @@ DatasetEval = Dataset(task=task,
                       # config=aug_config,
                       validation=validation,
                       evaluation=evaluation,
-                      home='/home/tan/tony/dv-det/dataset-all')
+                      home='/home/tan/tony/dv-det/dataset-eval')
 
 try:
     mkdir(output_home)
@@ -51,8 +51,8 @@ if __name__ == '__main__':
         if not evaluation:
             input_bboxes.append(bboxes)
         #
-        # if i > 50:
-        #     break
+        if i > 50:
+            break
 
     np.save(join(output_home, 'input_coors.npy'), np.array(input_coors, dtype=object))
     np.save(join(output_home, 'input_features.npy'), np.array(input_features, dtype=object))
