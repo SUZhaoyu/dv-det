@@ -24,7 +24,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-half/test/model_0.8024305950474453'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.8062656926309775'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 # ******** Easy: 91.15, Moderate: 81.23, Hard: 74.94 ********
 visualization = True
@@ -73,7 +73,7 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.2)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=0.1, nms_conf_thres=0.3)
 
 loader = tf.train.Saver()
 tf_config = tf.ConfigProto()

@@ -67,7 +67,8 @@ def trim(img_dir, lidar_dir, calib_dir, range_x, range_y, range_z):
 
 
 if __name__ == '__main__':
-    dataset_home = '/home/tan/tony/kitti_raw'
+    # dataset_home = '/home/tan/tony/kitti_raw'
+    dataset_home = '/media/data1/kitti_raw'
     output_home = join(home, 'dataset-eval')
     try:
         mkdir(output_home)
@@ -81,6 +82,7 @@ if __name__ == '__main__':
     output_trans_matrix = []
     output_image_size = []
     output_image = []
+    file_names = []
     img_home = join(dataset_home, 'testing', 'image_2')
     lidar_home = join(dataset_home, 'testing', 'velodyne')
     calib_home = join(dataset_home, 'testing', 'calib')
@@ -102,6 +104,7 @@ if __name__ == '__main__':
             output_trans_matrix.append(trans_matrix)
             output_image_size.append(img_size)
             output_image.append(img)
+            file_names.append(frame_id)
 
             # Converter.compile(task_name="prepare_lidar_points",
             #                   coors=convert_threejs_coors(lidar_points[:, :3]),
@@ -112,5 +115,6 @@ if __name__ == '__main__':
     np.save(join(output_home, 'trans_matrix_{}.npy'.format(task)), np.array(output_trans_matrix, dtype=object))
     np.save(join(output_home, 'img_size_{}.npy'.format(task)), np.array(output_image_size, dtype=object))
     np.save(join(output_home, 'img_{}.npy'.format(task)), np.array(output_image, dtype=object))
+    np.save(join(output_home, 'file_names_{}.npy'.format(task)), np.array(file_names, dtype=object))
 
     logging.info("Preprocess completed.")

@@ -278,13 +278,13 @@ if __name__ == '__main__':
         # print(num_list)
         # print(coors.shape, features.shape, num_list)
 
-        dimension = [200., 200., 8.]
-        offset = [100., 100., 3.0]
+        dimension = [180., 180., 7.]
+        offset = [90., 90., 2.5]
 
         coors += offset
         coors_min = np.min(coors, axis=0)
         coors_max = np.max(coors, axis=0)
-        # print(coors_min, coors_max)
+        print(coors_min, coors_max)
         for j in range(3):
             if coors_min[j] < 0 or coors_max[j] > dimension[j]:
                 print("***", coors_min, coors_max)

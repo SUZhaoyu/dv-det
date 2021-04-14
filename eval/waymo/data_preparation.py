@@ -10,7 +10,7 @@ from data.waymo_generator import Dataset
 task = 'val'
 validation = True
 evaluation = False
-output_home = '/home/tan/tony/dv-det/eval/waymo-old/data'
+output_home = '/home/tan/tony/dv-det/eval/waymo/data'
 
 aug_config = {'nbbox': 64,
               'rotate_range': np.pi / 4,
@@ -20,7 +20,7 @@ aug_config = {'nbbox': 64,
               'drop_out': 0.1,
               'flip': False,
               'shuffle': True,
-              'paste_augmentation': True,
+              'paste_augmentation': False,
               'paste_instance_num': 32,
               'maximum_interior_points': 40,
               'normalization': None}

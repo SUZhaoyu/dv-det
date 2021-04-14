@@ -33,7 +33,8 @@ STATIC EVALUATION PARAMETERS
 // holds the number of test images on the server
 
 // ****************** NUMBER OF EVALUATION IMAGES ******************
-const int32_t N_TESTIMAGES = 1496;
+//const int32_t N_TESTIMAGES = 1496;
+const int32_t N_TESTIMAGES = 3769;
 
 //const int32_t N_TESTIMAGES = 7480;
 

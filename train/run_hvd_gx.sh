@@ -9,8 +9,8 @@ checkpoints="ckpt-$1"
 
 root_gx4="/home/tan/tony"
 root_gx8="/home/tan/tony"
-ip_gx4="192.168.69.54"
-ip_gx8="192.168.69.58"
+ip_gx4="192.168.1.54"
+ip_gx8="192.168.1.58"
 
 rsync -avz -W -e ssh --progress \
                      --exclude='*.pyc' \
@@ -79,12 +79,16 @@ mpirun -np 8 \
        -bind-to none -map-by slot \
        -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
        -mca pml ob1 -mca btl ^openib \
+       -mca btl_tcp_if_exclude docker0,enp130s0,ibp130s0d1,lo\
+       -x NCCL_SOCKET_IFNAME=enp1s0f1 \
        $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
-       -np 6 \
-       -H $ip_gx8:6\
+       -np 8 \
+       -H $ip_gx8:8\
        -bind-to none -map-by slot \
        -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
        -mca pml ob1 -mca btl ^openib \
+       -mca btl_tcp_if_exclude lo,enp78s0,ibp78s0d1\
+       -x NCCL_SOCKET_IFNAME=enp1s0f0 \
        $conda_env_gx8 $exe_dir_gx8
 
 #horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir

@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 
-task = 'validation'
+task = 'testing'
 validation = True
 evaluation = True
 output_home = '/home/tan/tony/dv-det/eval/kitti/data'

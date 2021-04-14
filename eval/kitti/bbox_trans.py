@@ -44,8 +44,9 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
         top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
 
-        if box[-1] < 0.5:
+        if box[-1] < 0.1:
             continue
+
 
         # if np.min(proj_v[:, 0]) < 0. or \
         #    np.max(proj_v[:, 0]) > col or \
@@ -53,9 +54,9 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         #    np.max(proj_v[:, 1]) > row:
         #     continue
 
-        if np.min(proj_v[:, 0]) < 0 - 100 or \
-           np.max(proj_v[:, 0]) > col + 100:
-            continue
+        # if np.min(proj_v[:, 0]) < 0 - 100 or \
+        #    np.max(proj_v[:, 0]) > col + 100:
+        #     continue
 
         # if np.min(proj_v[:, 2]) < 0.:
         #     continue
@@ -112,11 +113,11 @@ def write_null_txt(txt_dir):
 
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
-    calib_home = join(home, 'dataset-eval')
-    prediction_home = join(home, 'eval/kitti', 'data')
+    dataset_home = join(home, 'dataset-eval')
+    prediction_home = join(home, 'eval', 'kitti', 'data')
     output_txt_home = join(prediction_home, 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
-    TASK = 'validation'
+    TASK = 'testing'
 
     try: rmtree(output_txt_home)
     except: pass
@@ -125,14 +126,17 @@ if __name__ == '__main__':
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
     input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions_eval.npy'), allow_pickle=True)
-    input_trans_matrix = np.load(join(calib_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
-    input_image_size = np.load(join(calib_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
+    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
+    input_trans_matrix = np.load(join(dataset_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
+    input_image_size = np.load(join(dataset_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
+    # file_names = np.load(join(dataset_home, 'file_names_{}.npy'.format(TASK)), allow_pickle=True)
 
     for i in tqdm(range(len(input_bbox_predictions))):
         bbox_labels = np.array(input_bbox_predictions[i])
         trans_matrix = input_trans_matrix[i]
         img_size = input_image_size[i]
-        txt_dir = join(output_txt_home, "%06d.txt" % int(i))
+        file_name = "%06d.txt" % i
+        txt_dir = join(output_txt_home, file_name)
         valid_bbox_num = 0
         bbox_2d, bbox_3d = [], []
 

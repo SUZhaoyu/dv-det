@@ -124,3 +124,5 @@ if __name__ == '__main__':
         np.save(join(output_home, "objects", "bbox_collections.npy"), np.array(output_object_label, dtype=object))
 
     logging.info("Completed.")
+
+
