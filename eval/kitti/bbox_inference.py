@@ -24,7 +24,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.8062656926309775'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-half-conf=0/test/model_0.8031254284172448'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 # ******** Easy: 91.15, Moderate: 81.23, Hard: 74.94 ********
 visualization = True

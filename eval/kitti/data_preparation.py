@@ -7,9 +7,9 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 
-task = 'testing'
+task = 'validation'
 validation = True
-evaluation = True
+evaluation = False
 output_home = '/home/tan/tony/dv-det/eval/kitti/data'
 
 aug_config = {'nbbox': 128,
@@ -30,7 +30,7 @@ DatasetEval = Dataset(task=task,
                       # config=aug_config,
                       validation=validation,
                       evaluation=evaluation,
-                      home='/home/tan/tony/dv-det/dataset-eval')
+                      home='/home/tan/tony/dv-det/dataset-half')
 
 try:
     mkdir(output_home)

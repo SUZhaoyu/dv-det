@@ -21,7 +21,5 @@ except: pass
 if __name__ == '__main__':
     with open(selected_frame_txt, 'r') as f:
         for i, frame_id in enumerate(f.readlines()):
-            copyfile(src=join(labels_input_dir, '%06d.txt'%int(frame_id)),
-                     dst=join(labels_output_dir, '%06d.txt'%i))
-
-
+            copyfile(src=join(labels_input_dir, '%06d.txt' % int(frame_id)),
+                     dst=join(labels_output_dir, '%06d.txt' % i))

@@ -44,7 +44,7 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
         top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
 
-        if box[-1] < 0.1:
+        if box[-1] < 0.6:
             continue
 
 
@@ -113,11 +113,11 @@ def write_null_txt(txt_dir):
 
 if __name__ == '__main__':
     home = '/home/tan/tony/dv-det'
-    dataset_home = join(home, 'dataset-eval')
+    dataset_home = join(home, 'dataset-half')
     prediction_home = join(home, 'eval', 'kitti', 'data')
     output_txt_home = join(prediction_home, 'txt')
     logging.info("Using KITTI dataset under: {}".format(home))
-    TASK = 'testing'
+    TASK = 'validation'
 
     try: rmtree(output_txt_home)
     except: pass
@@ -125,8 +125,8 @@ if __name__ == '__main__':
     try: mkdir(output_txt_home)
     except: logging.warning('Directory: {} already exists.'.format(output_txt_home))
 
-    input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions_eval.npy'), allow_pickle=True)
-    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
+    # input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions_eval.npy'), allow_pickle=True)
+    input_bbox_predictions = np.load(join(prediction_home, 'bbox_predictions.npy'), allow_pickle=True)
     input_trans_matrix = np.load(join(dataset_home, 'trans_matrix_{}.npy'.format(TASK)), allow_pickle=True)
     input_image_size = np.load(join(dataset_home, 'img_size_{}.npy'.format(TASK)), allow_pickle=True)
     # file_names = np.load(join(dataset_home, 'file_names_{}.npy'.format(TASK)), allow_pickle=True)
