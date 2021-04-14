@@ -12,7 +12,7 @@ aug_config = {'nbbox': 128,
               'flip': False,
               'shuffle': True,
               'paste_augmentation': True,
-              'paste_instance_num': 64,
+              'paste_instance_num': 32,
               'maximum_interior_points': 100,
               'normalization': None}
 

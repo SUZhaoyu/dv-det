@@ -60,7 +60,7 @@ vector<string> CLASS_NAMES_CAP;
 const double MIN_OVERLAP[3][3] = {{0.7, 0.5, 0.5}, {0.7, 0.5, 0.5}, {0.7, 0.5, 0.5}};
 
 // no. of recall steps that should be evaluated (discretized)
-const double N_SAMPLE_PTS = 11;
+const double N_SAMPLE_PTS = 40;
 
 // initialize class names
 void initGlobals () {
