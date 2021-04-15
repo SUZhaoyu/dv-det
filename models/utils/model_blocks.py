@@ -25,8 +25,13 @@ def point_conv(input_coors,
                bn_decay=None,
                histogram=False,
                summary=False,
+               second_last_layer=False,
                last_layer=False):
-    bn_decay = bn_decay if not last_layer else None
+
+    if last_layer or second_last_layer:
+        bn_decay = None
+    # if bn_decay is not None:
+    #     print("*****************************", scope)
     activation = model_params['activation'] if not last_layer else None
     # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
     grid_sampling_method = grid_sampling
@@ -386,10 +391,12 @@ def conv_1d(input_points,
             bn_decay=None,
             histogram=False,
             summary=False,
+            second_last_layer=False,
             last_layer=False):
     inputs = tf.nn.dropout(input_points, rate=drop_rate)
     activation = model_params['activation'] if not last_layer else None
-    bn_decay = bn_decay if not last_layer else None
+    if last_layer or second_last_layer:
+        bn_decay = None
     output_points = conv_1d_wrapper(inputs=inputs,
                                     num_output_channels=num_output_channels,
                                     scope=scope,

@@ -9,8 +9,8 @@ checkpoints="ckpt-$1"
 
 root_gx4="/home/tan/tony"
 root_gx8="/home/tan/tony"
-ip_gx4="192.168.1.54"
-ip_gx8="192.168.1.58"
+ip_gx4="192.168.69.54"
+ip_gx8="192.168.69.58"
 
 rsync -avz -W -e ssh --progress \
                      --exclude='*.pyc' \

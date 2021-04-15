@@ -267,7 +267,7 @@ if __name__ == '__main__':
                       config=aug_config,
                       batch_size=16,
                       validation=False,
-                      num_worker=16,
+                      num_worker=1,
                       hvd_size=3,
                       hvd_id=1)
     generator = dataset.train_generator()

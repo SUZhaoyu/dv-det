@@ -197,10 +197,12 @@ def clockwise_sorting(input_points, masks):
     angles = tf.math.atan2(det + eps, dot + eps)  # [n, 24] -pi~pi
     angles_masks = (0.5 - (masks - 0.5)) * 1000.  # [n, 24]
     masked_angles = angles + angles_masks  # [n, 24]
-    _, sort_idx = tf.nn.top_k(-masked_angles, k=input_points.get_shape().as_list()[1], sorted=True)  # [n, 24]
+    # _, sort_idx = tf.nn.top_k(-masked_angles, k=input_points.get_shape().as_list()[1], sorted=True)  # [n, 24]
+    _, sort_idx = tf.nn.top_k(-masked_angles, k=tf.shape(input_points)[1], sorted=True)  # [n, 24]
 
-    batch_id = tf.range(start=0, limit=tf.shape(input_points)[0], dtype=tf.int32)
-    batch_ids = tf.stack([batch_id] * input_points.get_shape().as_list()[1], axis=1)
+    batch_id = tf.expand_dims(tf.range(start=0, limit=tf.shape(input_points)[0], dtype=tf.int32), axis=1)
+    # batch_ids = tf.stack([batch_id] * input_points.get_shape().as_list()[1], axis=1)
+    batch_ids = tf.tile(batch_id, [1, tf.shape(input_points)[1]])
     sort_idx = tf.stack([batch_ids, sort_idx], axis=-1)  # [n, 24, 2]
 
     sorted_points = tf.gather_nd(input_points, sort_idx)

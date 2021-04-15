@@ -262,19 +262,23 @@ def ground_align(points, bbox, ground, trans_list):
 
     return np.array(points), np.array(bbox)
 
-def object_points_shift(point, bbox, x_min, x_max, y_min, y_max):
-    point[:, :2] = point[:, :2] - bbox[3:5]
+def object_points_shift(point, bbox, offset=5):
+    center_xy = np.array(bbox[3:5])
+    point[:, :2] -= center_xy
     random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
     T = np.array([[np.cos(random_r), -np.sin(random_r)],
                   [np.sin(random_r), np.cos(random_r)]])
 
     point[:, :2] = transform(point[:, :2], T)
 
-    random_xy = [np.random.uniform(low=x_min, high=x_max),
-                 np.random.uniform(low=y_min, high=y_max)]
+    random_xy = np.array([np.random.uniform(low=-offset, high=offset),
+                          np.random.uniform(low=-offset, high=offset)])
+    offset_xy = center_xy + random_xy
+    offset_xy[0] = np.clip(offset_xy[0], 5, 65)
+    offset_xy[1] = np.clip(offset_xy[1], -35, 35)
 
-    point[:, :2] += random_xy
-    bbox[3:5] = random_xy
+    point[:, :2] = point[:, :2] + offset_xy
+    bbox[3:5] = offset_xy
     bbox[6] += random_r
     return point, bbox
 
@@ -360,7 +364,7 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
 
         new_bbox = deepcopy(new_bbox)
         new_points = deepcopy(new_points)
-        new_points, new_bbox = object_points_shift(new_points, new_bbox, x_min=5, x_max=65, y_min=-35, y_max=35)
+        new_points, new_bbox = object_points_shift(new_points, new_bbox, offset=5)
         new_points, new_bbox = ground_align(new_points, new_bbox, ground, trans_list)
         new_bbox_polygon = Polygon(get_polygon_from_bbox(new_bbox, expend_ratio=0.15))
         overlap = False
