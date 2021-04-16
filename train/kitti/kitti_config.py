@@ -45,14 +45,14 @@ bbox_padding = aug_config['nbbox']
 batch_size = 12
 decay_epochs = 10
 
-init_lr_stage1 = 1e-4
+init_lr_stage1 = 1e-3
 lr_scale_stage1 = True
 
 init_lr_stage2 = 2e-4
 lr_scale_stage2 = False
 
 lr_decay = 0.5
-lr_warm_up = False
+lr_warm_up = True
 cls_loss_scale = 1.
 weight_decay = 5e-4
 valid_interval = 5
@@ -96,9 +96,17 @@ base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel
                          'base_5': {'subsample_res': 0.40, 'c_out': 64, 'kernel_res': 0.80, 'padding': 0., 'concat': False},
                          'base_6': {'subsample_res': 0.60, 'c_out': 64, 'kernel_res': 0.80, 'padding': 0., 'concat': True},
                          'base_7': {'subsample_res': 0.60, 'c_out': 64, 'kernel_res': 1.20, 'padding': 0., 'concat': False},
-                         'base_8': {'subsample_res': 0.80, 'c_out': 64, 'kernel_res': 1.20, 'padding': 0., 'concat': True}}
-# rpn_params_inference = {'rpn_0': {'subsample_res': 0.80, 'c_out': 64, 'kernel_res': 1.20, 'padding': 0., 'concat': True}}
+                         'base_8': {'subsample_res': 0.60, 'c_out': 64, 'kernel_res': 1.20, 'padding': 0., 'concat': True}}
 
+# base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out': 16, 'kernel_res': 0.10, 'padding': 0., 'concat': True},
+#                          'base_1': {'subsample_res': None, 'c_out': 16, 'kernel_res': 0.20, 'padding': 0., 'concat': False},
+#                          'base_2': {'subsample_res': 0.20, 'c_out': 16, 'kernel_res': None, 'padding': 0., 'concat': True},
+#                          'base_3': {'subsample_res': None, 'c_out': 32, 'kernel_res': 0.40, 'padding': 0., 'concat': False},
+#                          'base_4': {'subsample_res': 0.40, 'c_out': 32, 'kernel_res': None, 'padding': 0., 'concat': True},
+#                          'base_5': {'subsample_res': None, 'c_out': 64, 'kernel_res': 0.80, 'padding': 0., 'concat': False},
+#                          'base_6': {'subsample_res': 0.60, 'c_out': 64, 'kernel_res': None, 'padding': 0., 'concat': True},
+#                          'base_7': {'subsample_res': None, 'c_out': 64, 'kernel_res': 1.20, 'padding': 0., 'concat': False},
+#                          'base_8': {'subsample_res': 0.80, 'c_out': 64, 'kernel_res': None, 'padding': 0., 'concat': True}}
 
 # base_params_inference = {'base_0': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'padding': 0.},
 #                          'base_2': {'subsample_res': 0.20, 'c_out':  32, 'kernel_res': 0.20, 'padding': 0.},

@@ -16,6 +16,7 @@ from models import kitti_model as model
 from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
+from models.tf_ops.loader.others import rotated_nms3d_idx
 
 hvd.init()
 is_hvd_root = hvd.rank() == 0
@@ -84,6 +85,20 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        mem_saving=True,
                        bn=bn)
 
+stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
+                                                  pred_roi_attrs=roi_attrs,
+                                                  roi_conf_logits=roi_conf_logits,
+                                                  roi_num_list=roi_num_list,
+                                                  bbox_labels=input_bbox_p,
+                                                  wd=wd)
+
+roi_conf = tf.nn.sigmoid(roi_conf_logits)
+nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.8, nms_conf_thres=0.1)
+roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
+roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
+roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
+
 roi_ious = model.get_roi_iou(roi_coors=roi_coors,
                              pred_roi_attrs=roi_attrs,
                              roi_num_list=roi_num_list,
@@ -105,12 +120,6 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
 
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 
-stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
-                                                  pred_roi_attrs=roi_attrs,
-                                                  roi_conf_logits=roi_conf_logits,
-                                                  roi_num_list=roi_num_list,
-                                                  bbox_labels=input_bbox_p,
-                                                  wd=wd)
 
 stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=roi_attrs,
                                                    pred_bbox_attrs=bbox_attrs,
@@ -125,6 +134,8 @@ stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=roi_attrs,
 total_loss = stage1_loss + stage2_loss
 
 train_op = get_train_op(total_loss, lr, opt='adam', global_step=step, use_hvd=True)
+stage1_train_op = get_train_op(stage1_loss, stage1_lr, var_keywords=['stage1'], opt='adam', global_step=stage1_step, use_hvd=True)
+stage2_train_op = get_train_op(stage2_loss, stage2_lr, var_keywords=['stage2'], opt='adam', global_step=stage2_step, use_hvd=True)
 
 tf_summary = tf.summary.merge_all()
 hooks = [hvd.BroadcastGlobalVariablesHook(0)]
@@ -206,7 +217,7 @@ def main():
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
-                                                 log_dir, saver, replace=False, log=is_hvd_root, inverse=False,
+                                                 log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
                                                  save_anyway=False)
 
 

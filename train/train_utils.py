@@ -81,10 +81,10 @@ def get_learning_rate(init_lr, current_step, decay_step, decay_rate, hvd_size=1,
         decay_rate,  # Decay rate.
         staircase=True)
     if warm_up:
-        warm_up_learning_rate = 0.9 * init_lr / (0.5 * decay_step) * tf.cast(tf.identity(current_step),
+        warm_up_learning_rate = 0.9 * init_lr / decay_step * tf.cast(tf.identity(current_step),
                                                                              dtype=tf.float32) + 0.1 * init_lr
         # warm_up_learning_rate = tf.cast(warm_up_learning_rate, dtype=tf.float32)
-        learning_rate = tf.cond(tf.less_equal(current_step, int(0.5 * decay_step)),
+        learning_rate = tf.cond(tf.less_equal(current_step, int(decay_step)),
                                 lambda: warm_up_learning_rate,
                                 lambda: decay_learning_rate)
     else:
@@ -94,12 +94,13 @@ def get_learning_rate(init_lr, current_step, decay_step, decay_rate, hvd_size=1,
     return learning_rate
 
 
-def set_training_controls(config, lr, scale, decay_batch, step, hvd_size, prefix):
+def set_training_controls(config, lr, scale, decay_batch, step, lr_warm_up, hvd_size, prefix):
     lr = get_learning_rate(init_lr=lr,
                            current_step=step,
                            decay_step=decay_batch,
                            decay_rate=config.lr_decay,
                            name='{}_learning_rate'.format(prefix),
+                           warm_up=lr_warm_up,
                            hvd_size=hvd_size,
                            lr_scale=scale)
     bn = get_bn_decay(init_decay=0.5,

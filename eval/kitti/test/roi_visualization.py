@@ -22,7 +22,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-waymo-old/stage1-complicated/test/best_model_0.7281508956090916' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-paste-64/test/best_model_0.7256191992549179' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/best_model_0.7350936919553036' # 68.8%@non-mem-saving
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-concat/test/model_0.7393002476595413' # 68.8%@non-mem-saving
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-warmup/test/model_0.7636234388527147' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1_new-aug/test/best_model_0.733512723619081' # 68.8%@non-mem-saving
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-test/test/best_model_0.7721271928435091' # 68.5%@non-mem-saving
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
@@ -49,7 +49,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
 
 
 # roi_attrs, roi_conf, roi_coors, nms_idx, nms_count = \

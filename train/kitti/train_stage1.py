@@ -68,6 +68,7 @@ stage1_lr, stage1_bn, stage1_wd = set_training_controls(config=config,
                                                         lr=config.init_lr_stage1,
                                                         scale=config.lr_scale_stage1,
                                                         decay_batch=decay_batch,
+                                                        lr_warm_up=config.lr_warm_up,
                                                         step=stage1_step,
                                                         hvd_size=hvd.size(),
                                                         prefix='stage1')
