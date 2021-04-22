@@ -4,6 +4,9 @@ import math
 from copy import deepcopy
 
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 def normalize_angle(angle):
     """  Returns the angle (in radians) between -pi and +pi that corresponds to the input angle
@@ -168,6 +171,10 @@ def convert_threejs_bbox_with_id(bboxes, color="white"):
 
 
 def convert_threejs_bbox_with_prob(bboxes, color=None):
+    viridis = cm.get_cmap('viridis', lut=10)
+    magma = cm.get_cmap('magma')
+    hot = cm.get_cmap('hot')
+    seismic = cm.get_cmap('seismic')
     bboxes = deepcopy(bboxes)
     assert len(bboxes) > 0
     for bbox in bboxes:
@@ -185,9 +192,10 @@ def convert_threejs_bbox_with_prob(bboxes, color=None):
                 if math.isnan(box[-1]):
                     threejs_bbox[-2] = 'fuchsia'
                 else:
-                    threejs_bbox[-2] = 'rgb({},0,0)'.format(int(255 * box[-1]))
+                    rgb = viridis(color[i])
+                    threejs_bbox[-2] = 'rgb({},{},{})'.format(int(255*rgb[0]), int(255*rgb[1]), int(255*rgb[2]))
             else:
-                threejs_bbox[-2] = 'yellow'
+                threejs_bbox[-2] = 'white'
             threejs_bboxes.append(threejs_bbox)
 
     return threejs_bboxes
@@ -231,3 +239,9 @@ def convert_threejs_bbox_with_assigned_colors(bboxes, colors):
             # if (box[-1] == 0):
             threejs_bboxes.append(threejs_bbox)
     return threejs_bboxes
+
+
+def get_points_rgb_with_prob(conf):
+    viridis = cm.get_cmap('viridis', lut=10)
+    rgbs = viridis(conf) * 255
+    return rgbs[:, :3]

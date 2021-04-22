@@ -256,14 +256,14 @@ if __name__ == '__main__':
                   'drop_out': 0.1,
                   'flip': False,
                   'shuffle': True,
-                  'paste_augmentation': True,
+                  'paste_augmentation': False,
                   'paste_instance_num': 128,
                   'maximum_interior_points': 40,
                   'normalization': 'channel_std'}
 
     dataset = Dataset(task='train',
                       config=aug_config,
-                      batch_size=4,
+                      batch_size=1,
                       validation=False,
                       num_worker=20,
                       hvd_size=8,
@@ -272,35 +272,39 @@ if __name__ == '__main__':
     for i in tqdm(range(10000)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
+        valid_count = np.sum((bboxes[0, :, 0] > 0))
+        print(valid_count)
+        if valid_count > 50:
+            break
 
 
 
         # print(num_list)
         # print(coors.shape, features.shape, num_list)
 
-        dimension = [180., 180., 7.]
-        offset = [90., 90., 2.5]
-
-        coors += offset
-        coors_min = np.min(coors, axis=0)
-        coors_max = np.max(coors, axis=0)
-        print(coors_min, coors_max)
-        for j in range(3):
-            if coors_min[j] < 0 or coors_max[j] > dimension[j]:
-                print("***", coors_min, coors_max)
+        # dimension = [180., 180., 7.]
+        # offset = [90., 90., 2.5]
+        #
+        # coors += offset
+        # coors_min = np.min(coors, axis=0)
+        # coors_max = np.max(coors, axis=0)
+        # print(coors_min, coors_max)
+        # for j in range(3):
+        #     if coors_min[j] < 0 or coors_max[j] > dimension[j]:
+        #         print("***", coors_min, coors_max)
 
     # coors, ref, attention, bboxes = next(dataset.train_generator())
     # dataset.stop()
-    batch_id = 2
-    acc_num_list = np.cumsum(num_list)
+    # batch_id = 4
+    # acc_num_list = np.cumsum(num_list)
     #
-    coors = coors[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]
-    features = features[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]
-    bboxes = bboxes[batch_id]
+    # coors = coors[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]
+    # features = features[acc_num_list[batch_id-1]:acc_num_list[batch_id], :]
+    # bboxes = bboxes[batch_id]
 
     Converter = PointvizConverter(home='/home/tan/tony/threejs')
     Converter.compile(task_name="waymo_generator",
                       coors=convert_threejs_coors(coors),
                       intensity=features[:, 0],
                       default_rgb=None,
-                      bbox_params=convert_threejs_bbox(bboxes))
+                      bbox_params=convert_threejs_bbox(bboxes[0]))

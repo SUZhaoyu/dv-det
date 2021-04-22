@@ -18,6 +18,7 @@ from models import kitti_model as model
 from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
+from models.tf_ops.loader.others import rotated_nms3d_idx
 
 hvd.init()
 is_hvd_root = hvd.rank() == 0
@@ -80,6 +81,7 @@ stage2_lr, stage2_bn, stage2_wd = set_training_controls(config=config,
                                                         scale=config.lr_scale_stage2,
                                                         decay_batch=decay_batch,
                                                         step=stage2_step,
+                                                        lr_warm_up=config.lr_warm_up,
                                                         hvd_size=hvd.size(),
                                                         prefix='stage2')
 
@@ -94,6 +96,7 @@ stage1_output_coors, stage1_output_features, stage1_output_num_list, \
                        trainable=False,
                        mem_saving=True,
                        bn=1.)
+
 
 roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
                              pred_roi_attrs=input_roi_attrs_p,
@@ -225,7 +228,7 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
         # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-eval/test/model_0.76285055631128')
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.7380770489483464')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

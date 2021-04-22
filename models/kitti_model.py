@@ -15,7 +15,8 @@ eps = tf.constant(1e-6)
 
 model_params = {'xavier': config.xavier,
                 'stddev': config.stddev,
-                'activation': config.activation}
+                'activation': config.activation,
+                'padding': 0.,}
 
 def stage1_inputs_placeholder(input_channels=1,
                               bbox_padding=config.aug_config['nbbox']):
@@ -26,7 +27,7 @@ def stage1_inputs_placeholder(input_channels=1,
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
 # config.base_params_inference[sorted(config.base_params_inference.keys())[-1]]['c_out']
-def stage2_inputs_placeholder(input_feature_channels=193,
+def stage2_inputs_placeholder(input_feature_channels=385,
                               bbox_padding=config.aug_config['nbbox']):
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage2_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_feature_channels], name='stage2_input_features_p')
@@ -119,6 +120,14 @@ def stage1_model(input_coors,
                                model_params=model_params,
                                scope='stage1_rpn_fc_0',
                                is_training=is_training,
+                               trainable=trainable)
+
+        roi_features = conv_1d(input_points=roi_features,
+                               num_output_channels=256,
+                               drop_rate=0.,
+                               model_params=model_params,
+                               scope='stage1_rpn_fc_1',
+                               is_training=is_training,
                                trainable=trainable,
                                second_last_layer=True)
 
@@ -126,7 +135,7 @@ def stage1_model(input_coors,
                              num_output_channels=config.output_attr,
                              drop_rate=0.,
                              model_params=model_params,
-                             scope='stage1_rpn_fc_1',
+                             scope='stage1_rpn_fc_2',
                              is_training=is_training,
                              trainable=trainable,
                              last_layer=True)
@@ -139,7 +148,7 @@ def stage1_model(input_coors,
         roi_conf_logits = roi_logits[:, 7]
 
         # roi_conf = tf.nn.sigmoid(roi_conf_logits)
-        # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.8, nms_conf_thres=0.1)
+        # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.3)
         # roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
         # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
         # roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)

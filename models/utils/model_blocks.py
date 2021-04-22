@@ -65,10 +65,9 @@ def point_conv(input_coors,
         voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
         features = input_features
 
-
     voxel_features = voxel_sampling_feature(input_features=features,
                                             output_idx=voxel_idx,
-                                            padding=layer_params['padding'])
+                                            padding=model_params['padding'])
 
 
     output_features = kernel_conv_wrapper(inputs=voxel_features,
@@ -174,7 +173,7 @@ def point_conv_res(input_coors,
 
     voxel_features = voxel_sampling_feature(input_features=features,
                                             output_idx=voxel_idx,
-                                            padding=layer_params['padding'])
+                                            padding=model_params['padding'])
 
     output_features = kernel_conv_wrapper(inputs=voxel_features,
                                           num_output_channels=output_channels//2,
@@ -250,7 +249,6 @@ def point_conv_concat(input_coors,
         center_num_list = input_num_list
         center_idx = center_idx
 
-
     if layer_params['kernel_res'] is not None:
         voxel_idx, features = voxel_sampling_idx_method(input_coors=input_coors,
                                                         input_features=input_features,
@@ -263,13 +261,17 @@ def point_conv_concat(input_coors,
                                                         grid_buffer_size=grid_buffer_size,
                                                         output_pooling_size=output_pooling_size)
     else:
-        voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
-        features = input_features
+        if layer_params['subsample_res'] is not None:
+            voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
+            features = input_features
+        else:
+            voxel_idx = voxel_idx
+            features = input_features
 
 
     voxel_features = voxel_sampling_feature(input_features=features,
                                             output_idx=voxel_idx,
-                                            padding=layer_params['padding'])
+                                            padding=model_params['padding'])
 
     output_features = kernel_conv_wrapper(inputs=voxel_features,
                                           num_output_channels=layer_params['c_out'],

@@ -9,7 +9,7 @@ from tqdm import tqdm
 project_home = '/home/tan/tony/dv-det'
 task = 'validation'
 
-pred_input_dir = join(project_home, 'eval/kitti/data/pv_rcnn-val')
+pred_input_dir = join(project_home, 'eval/kitti/data/pointpillar-val')
 pred_output_dir = join(project_home, 'eval/kitti/data/compare_txt')
 
 try: rmtree(pred_output_dir)

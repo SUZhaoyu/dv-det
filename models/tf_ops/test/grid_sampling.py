@@ -7,14 +7,17 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.tf_ops.custom_ops import grid_sampling_thrust, grid_sampling
+from models.tf_ops.loader.sampling import grid_sampling
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-batch_size = 16
-epoch = 50
+batch_size = 8
+epoch = 2
+dimension = [140., 140., 9.]
+offset = [50., 50., 5.]
+
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
                       batch_size=batch_size,
@@ -23,7 +26,7 @@ if __name__ == '__main__':
                       hvd_id=0)
     input_coors, input_features, input_num_list = [], [], []
     for i in tqdm(range(epoch)):
-        coors_d, features_d, num_list_d, _ = next(Dataset.valid_generator())
+        coors_d, features_d, num_list_d, _ = next(Dataset.train_generator())
         features_d = np.zeros_like(coors_d)
         accu = 0
         for j in range(len(num_list_d)):
@@ -39,10 +42,10 @@ if __name__ == '__main__':
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
     coors, features, num_list = coors_p, features_p, num_list_p
-    coors, num_list = grid_sampling_thrust(coors, num_list, 0.1)
-    coors, num_list = grid_sampling_thrust(coors, num_list, 0.2)
-    coors, num_list = grid_sampling_thrust(coors, num_list, 0.4)
-    coors, num_list = grid_sampling_thrust(coors, num_list, 0.8)
+    coors, num_list, _ = grid_sampling(coors, num_list, 0.1, offset=offset, dimension=dimension, base_resolution=0.1)
+    coors, num_list, _ = grid_sampling(coors, num_list, 0.2, offset=offset, dimension=dimension, base_resolution=0.1)
+    # coors, num_list, _ = grid_sampling(coors, num_list, 0.4, offset=offset, dimension=dimension, base_resolution=0.1)
+    # coors, num_list, _ = grid_sampling(coors, num_list, 0.8, offset=offset, dimension=dimension, base_resolution=0.1)
 
 
     config = tf.ConfigProto()
@@ -72,4 +75,4 @@ if __name__ == '__main__':
     id = 4
     output_coors = fetch_instance(output_coors, output_num_list, id=id)
     plot_points(coors=output_coors,
-                name='grid_sampling_thrust')
+                name='grid_sampling')

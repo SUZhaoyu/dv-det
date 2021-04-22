@@ -14,6 +14,7 @@ output_home = '/home/tan/tony/dv-det/eval/kitti/data'
 
 aug_config = {'nbbox': 128,
               'rotate_range': np.pi / 4,
+              # 'rotate_range': 0,
               'rotate_mode': 'u',
               'scale_range': 0.05,
               'scale_mode': 'u',
@@ -22,7 +23,7 @@ aug_config = {'nbbox': 128,
               'shuffle': True,
               'paste_augmentation': True,
               'paste_instance_num': 64,
-              'maximum_interior_points': 40,
+              'maximum_interior_points': 100,
               'normalization': None}
 
 DatasetEval = Dataset(task=task,
@@ -51,11 +52,11 @@ if __name__ == '__main__':
         if not evaluation:
             input_bboxes.append(bboxes)
         #
-        # if i > 50:
+        # if i > 100:
         #     break
 
-    np.save(join(output_home, 'input_coors.npy'), np.array(input_coors, dtype=object))
-    np.save(join(output_home, 'input_features.npy'), np.array(input_features, dtype=object))
-    np.save(join(output_home, 'input_num_list.npy'), np.array(input_num_list, dtype=object))
+    np.save(join(output_home, 'input_coors_{}.npy'.format(task)), np.array(input_coors, dtype=object))
+    np.save(join(output_home, 'input_features_{}.npy'.format(task)), np.array(input_features, dtype=object))
+    np.save(join(output_home, 'input_num_list_{}.npy'.format(task)), np.array(input_num_list, dtype=object))
     if not evaluation:
-        np.save(join(output_home, 'input_bboxes.npy'), np.array(input_bboxes, dtype=object))
+        np.save(join(output_home, 'input_bboxes_{}.npy'.format(task)), np.array(input_bboxes, dtype=object))
