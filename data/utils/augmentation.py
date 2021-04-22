@@ -265,7 +265,7 @@ def ground_align(points, bbox, ground, trans_list):
 def object_points_shift(point, bbox, offset=5):
     center_xy = np.array(bbox[3:5])
     point[:, :2] -= center_xy
-    random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
+    random_r = np.random.uniform(low=-np.pi/6., high=np.pi/6.)
     T = np.array([[np.cos(random_r), -np.sin(random_r)],
                   [np.sin(random_r), np.cos(random_r)]])
 
@@ -349,11 +349,11 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
     for i in range(instance_num):
         prob = np.random.rand()
 
-        if prob < 0.3:
+        if prob < 0.2:
             id = np.random.randint(len(object_collections[0]))
             new_points = object_collections[0][id]
             new_bbox = bbox_collections[0][id]
-        elif prob < 0.8:
+        elif prob < 0.6:
             id = np.random.randint(len(object_collections[1]))
             new_points = object_collections[1][id]
             new_bbox = bbox_collections[1][id]

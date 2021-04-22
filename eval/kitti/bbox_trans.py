@@ -44,7 +44,7 @@ def get_2d_bbox(input_bbox, trans_matrix_list, img_size):
         left, right = np.min(proj_v[:, 0]), np.max(proj_v[:, 0])
         top, bottom = np.min(proj_v[:, 1]), np.max(proj_v[:, 1])
 
-        if box[-1] < 0.6:
+        if box[-1] < 0.1:
             continue
 
 

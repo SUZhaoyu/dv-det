@@ -29,6 +29,7 @@ REGISTER_OP("GridSamplingOp")
     .Output("output_num_list: int32")
     .Attr("dimension: list(float)")
     .Attr("resolution: float")
+    .Attr("base_resolution: float")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle input_coors_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &input_coors_shape));
@@ -44,7 +45,8 @@ REGISTER_OP("GridSamplingOp")
 
     }); // InferenceContext
 
-void grid_sampling_gpu_launcher(int batch_size, int input_point_num, float resolution,
+void grid_sampling_gpu_launcher(int batch_size, int input_point_num,
+                                float base_resolution, float resolution, int scale,
                                 int grid_w, int grid_l, int grid_h,
                                 const float* input_coors,
                                 const int* input_num_list,
@@ -56,6 +58,7 @@ void grid_sampling_gpu_launcher(int batch_size, int input_point_num, float resol
 class GridSamplingOp: public OpKernel {
 public:
     explicit GridSamplingOp(OpKernelConstruction* context): OpKernel(context) {
+    OP_REQUIRES_OK(context, context->GetAttr("base_resolution", &base_resolution));
     OP_REQUIRES_OK(context, context->GetAttr("resolution", &resolution));
     OP_REQUIRES_OK(context, context->GetAttr("dimension", &dimension));
     OP_REQUIRES(context, resolution > 0,
@@ -77,9 +80,10 @@ public:
 
         int input_point_num = input_coors.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
-        int grid_w = (int)floor(dimension[0] / resolution);
-        int grid_l = (int)floor(dimension[1] / resolution);
-        int grid_h = (int)floor(dimension[2] / resolution);
+        int scale = (int)floor(resolution / base_resolution);
+        int grid_w = (int)floor(dimension[0] / base_resolution) / scale;
+        int grid_l = (int)floor(dimension[1] / base_resolution) / scale;
+        int grid_h = (int)floor(dimension[2] / base_resolution) / scale;
         if (INT_MAX / grid_h / grid_l / grid_w < batch_size){
             printf("GridSamplingOp ERROR: size of grid buffer %d x [%d x %d x %d] exceeds INT32 range: %d.\n",
 	                batch_size, grid_w, grid_l, grid_h, INT_MAX);}
@@ -120,7 +124,8 @@ public:
         int* output_num_list_ptr = output_num_list->template flat<int>().data();
         cudaMemset(output_num_list_ptr, 0, batch_size*sizeof(int));
 
-        grid_sampling_gpu_launcher(batch_size, input_point_num, resolution,
+        grid_sampling_gpu_launcher(batch_size, input_point_num,
+                                   base_resolution, resolution, scale,
                                    grid_w, grid_l, grid_h,
                                    input_coors_ptr,
                                    input_num_list_ptr,
@@ -166,7 +171,7 @@ public:
 //        cudaFree(input_accu_list_ptr);
     }
 private:
-    float resolution;
+    float resolution, base_resolution;
     std::vector<float> dimension;
 };
 REGISTER_KERNEL_BUILDER(Name("GridSamplingOp").Device(DEVICE_GPU), GridSamplingOp);

@@ -11,9 +11,9 @@ dimension = [140., 140., 9.]
 offset = [50., 50., 5.]
 
 def grid_sampling_npy(input_coors, dimension, resolution, base_resolution):
+    np.random.shuffle(input_coors)
     idx = []
     scale = int(floor(resolution / base_resolution))
-    print(scale)
     grid_w = int(int(floor(dimension[0] / base_resolution)) / scale)
     grid_l = int(int(floor(dimension[1] / base_resolution)) / scale)
     grid_h = int(int(floor(dimension[2] / base_resolution)) / scale)
@@ -33,7 +33,7 @@ def grid_sampling_npy(input_coors, dimension, resolution, base_resolution):
         grid_offset_l = grid_base_coor_l % scale
         grid_offset_h = grid_base_coor_h % scale
 
-        if (grid_offset_w == grid_offset_l == grid_offset_h == 0):
+        if (grid_offset_w <= scale / 2 and grid_offset_l <= scale / 2 and grid_offset_h <= scale / 2):
             if (grid_buffer[grid_coor_w, grid_coor_l, grid_coor_h] == 0):
                 idx.append(i)
                 grid_buffer[grid_coor_w, grid_coor_l, grid_coor_h] = 1
@@ -70,12 +70,18 @@ if __name__ == '__main__':
                       hvd_id=0)
     coors_d, features_d, num_list_d, _ = next(Dataset.valid_generator(start_idx=71))
 
-    coors, buffer = grid_sampling_npy(input_coors=coors_d + offset,
-                                      dimension=dimension,
-                                      resolution=0.1,
-                                      base_resolution=0.1)
+    coors, buffer = grid_sampling_npy(input_coors=coors_d + offset, dimension=dimension, resolution=0.1, base_resolution=0.1)
+    coors, buffer = grid_sampling_npy(input_coors=coors, dimension=dimension, resolution=0.2, base_resolution=0.1)
+    coors, buffer = grid_sampling_npy(input_coors=coors, dimension=dimension, resolution=0.4, base_resolution=0.2)
+    coors, buffer = grid_sampling_npy(input_coors=coors, dimension=dimension, resolution=0.8, base_resolution=0.4)
+    # coors, buffer = grid_sampling_npy(input_coors=coors_d + offset, dimension=dimension, resolution=0.6, base_resolution=0.1)
 
     # coors, features = buffer_to_coors(buffer, dimension)
     # plot_points(coors=coors-offset, intensity=features, name='grid_sampling')
 
-    plot_points(coors=coors-offset, name='grid_sampling')
+    raw_rgb = np.ones_like(coors_d) + [255, 255, 255]
+    output_rgb = np.ones_like(coors) + [255, 0, 0]
+    plot_rgb = np.concatenate([raw_rgb, output_rgb], axis=0)
+    plot_coors = np.concatenate([coors_d, coors - offset], axis=0)
+
+    plot_points(coors=plot_coors, rgb=plot_rgb, name='grid_sampling')

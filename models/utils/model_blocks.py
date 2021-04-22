@@ -230,8 +230,8 @@ def point_conv_concat(input_coors,
                       last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
-    # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
-    grid_sampling_method = grid_sampling
+    grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    # grid_sampling_method = grid_sampling
     voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
     # voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
 

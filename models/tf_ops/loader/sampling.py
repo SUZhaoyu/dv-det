@@ -15,10 +15,12 @@ def grid_sampling(input_coors,
                   resolution,
                   dimension,
                   offset):
+    base_resolution = resolution / 2.
     output_idx, output_num_list = grid_sampling_exe.grid_sampling_op(input_coors=input_coors + offset,
                                                                      input_num_list=input_num_list,
                                                                      dimension=dimension,
-                                                                     resolution=resolution)
+                                                                     resolution=resolution,
+                                                                     base_resolution=base_resolution)
     output_coors = tf.gather(input_coors, output_idx, axis=0)
     return output_coors, output_num_list, output_idx
 

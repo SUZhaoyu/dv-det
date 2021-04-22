@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from data.kitti_generator import Dataset
 # tf.enable_eager_execution()
-from models.tf_ops.loader.sampling import grid_sampling
+from models.tf_ops.loader.sampling import grid_sampling_thrust
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
 
@@ -42,10 +42,12 @@ if __name__ == '__main__':
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 3])
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
     coors, features, num_list = coors_p, features_p, num_list_p
-    coors, num_list, _ = grid_sampling(coors, num_list, 0.1, offset=offset, dimension=dimension)
-    coors, num_list, _ = grid_sampling(coors, num_list, 0.2, offset=offset, dimension=dimension)
-    coors, num_list, _ = grid_sampling(coors, num_list, 0.4, offset=offset, dimension=dimension)
-    coors, num_list, _ = grid_sampling(coors, num_list, 0.6, offset=offset, dimension=dimension)
+    coors, num_list, _ = grid_sampling_thrust(coors, num_list, 0.1, offset=offset, dimension=dimension)
+    coors, num_list, _ = grid_sampling_thrust(coors, num_list, 0.2, offset=offset, dimension=dimension)
+    coors, num_list, _ = grid_sampling_thrust(coors, num_list, 0.4, offset=offset, dimension=dimension)
+    coors, num_list, _ = grid_sampling_thrust(coors, num_list, 0.6, offset=offset, dimension=dimension)
+    coors, num_list, _ = grid_sampling_thrust(coors, num_list, 0.6, offset=offset, dimension=dimension)
+    coors, num_list, _ = grid_sampling_thrust(coors, num_list, 0.6, offset=offset, dimension=dimension)
     # coors, num_list, _ = grid_sampling(coors, num_list, 0.4, offset=offset, dimension=dimension, base_resolution=0.1)
     # coors, num_list, _ = grid_sampling(coors, num_list, 0.8, offset=offset, dimension=dimension, base_resolution=0.1)
 

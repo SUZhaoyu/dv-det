@@ -14,7 +14,7 @@ os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-eval-viz'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-eval-viz')
 
 proj_home = '/home/tan/tony/dv-det'
-pred_txt_home = join(proj_home, 'eval/kitti/data/txt')
+pred_txt_home = join(proj_home, 'eval/kitti/data/compare_txt')
 img_output_home = '/home/tan/tony/threejs/kitti-eval-viz/html'
 
 
@@ -93,9 +93,9 @@ def draw_2d_bbox(img, bboxes, trans_matrix_list):
 
 
 if __name__ == '__main__':
-    img_npy = np.load(join(proj_home, 'dataset-eval', 'img_testing.npy'), allow_pickle=True)
-    calib_npy = np.load(join(proj_home, 'dataset-eval', 'trans_matrix_testing.npy'), allow_pickle=True)
-    lidar_npy = np.load(join(proj_home, 'dataset-eval', 'lidar_points_testing.npy'), allow_pickle=True)
+    img_npy = np.load(join(proj_home, 'dataset-half', 'img_validation.npy'), allow_pickle=True)
+    calib_npy = np.load(join(proj_home, 'dataset-half', 'trans_matrix_validation.npy'), allow_pickle=True)
+    lidar_npy = np.load(join(proj_home, 'dataset-half', 'lidar_points_validation.npy'), allow_pickle=True)
 
     txt_file_list = os.listdir(pred_txt_home)
 
