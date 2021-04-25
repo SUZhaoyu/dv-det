@@ -230,8 +230,8 @@ def point_conv_concat(input_coors,
                       last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
-    grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
-    # grid_sampling_method = grid_sampling
+    # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    grid_sampling_method = grid_sampling
     voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
     # voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
 
@@ -250,16 +250,17 @@ def point_conv_concat(input_coors,
         center_idx = center_idx
 
     if layer_params['kernel_res'] is not None:
-        voxel_idx, features = voxel_sampling_idx_method(input_coors=input_coors,
-                                                        input_features=input_features,
-                                                        input_num_list=input_num_list,
-                                                        center_coors=kernel_center_coors,
-                                                        center_num_list=center_num_list,
-                                                        resolution=layer_params['kernel_res'],
-                                                        dimension=dimension_params['dimension'],
-                                                        offset=dimension_params['offset'],
-                                                        grid_buffer_size=grid_buffer_size,
-                                                        output_pooling_size=output_pooling_size)
+        voxel_idx, _, features = voxel_sampling_idx_method(input_coors=input_coors,
+                                                           input_features=input_features,
+                                                           input_num_list=input_num_list,
+                                                           center_coors=kernel_center_coors,
+                                                           center_num_list=center_num_list,
+                                                           resolution=layer_params['kernel_res'],
+                                                           dimension=dimension_params['dimension'],
+                                                           offset=dimension_params['offset'],
+                                                           grid_buffer_size=grid_buffer_size,
+                                                           output_pooling_size=output_pooling_size,
+                                                           with_rpn=False)
     else:
         if layer_params['subsample_res'] is not None:
             voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)

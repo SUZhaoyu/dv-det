@@ -14,8 +14,7 @@ __device__ int get_batch_id(int* accu_list, int batch_size, int id) {
     return batch_size - 1;
 }
 
-__global__ void grid_sampling_gpu_kernel(int batch_size, int input_point_num,
-                                         float base_resolution, float resolution, int scale,
+__global__ void grid_sampling_gpu_kernel(int batch_size, int input_point_num, float resolution,
                                          int grid_w, int grid_l, int grid_h,
                                          const float* input_coors,
                                          const int* input_num_list,
@@ -34,33 +33,20 @@ __global__ void grid_sampling_gpu_kernel(int batch_size, int input_point_num,
 	int point_id = threadIdx.x + blockIdx.x * blockDim.x;
 	if (point_id < input_point_num) {
         int batch_id = get_batch_id(input_accu_list, batch_size, point_id);
-
-        int grid_base_coor_w = __float2int_rz(input_coors[point_id*3 + 0] / base_resolution);
-        int grid_base_coor_l = __float2int_rz(input_coors[point_id*3 + 1] / base_resolution);
-        int grid_base_coor_h = __float2int_rz(input_coors[point_id*3 + 2] / base_resolution);
-
-        int grid_coor_w = grid_base_coor_w / scale;
-        int grid_coor_l = grid_base_coor_l / scale;
-        int grid_coor_h = grid_base_coor_h / scale;
-
-        int grid_offset_w = grid_base_coor_w % scale;
-        int grid_offset_l = grid_base_coor_l % scale;
-        int grid_offset_h = grid_base_coor_h % scale;
-
-        if (grid_offset_w <= scale / 2 && grid_offset_l <= scale / 2 && grid_offset_h <= scale / 2) {
-            int grid_buffer_idx = batch_id * grid_size + grid_coor_w * grid_l * grid_h + grid_coor_l * grid_h + grid_coor_h;
-            int ret = atomicAdd(&grid_buffer[grid_buffer_idx], 1);
-            if (ret == 0) {
-                int count = atomicAdd(&output_num_list[batch_id], 1);
-                output_idx_temp[input_accu_list[batch_id] + count] = point_id;
-            }
+        int grid_coor_w = __float2int_rz(input_coors[point_id*3 + 0] / resolution);
+        int grid_coor_l = __float2int_rz(input_coors[point_id*3 + 1] / resolution);
+        int grid_coor_h = __float2int_rz(input_coors[point_id*3 + 2] / resolution);
+        int grid_buffer_idx = batch_id * grid_size + grid_coor_w * grid_l * grid_h + grid_coor_l * grid_h + grid_coor_h;
+        int ret = atomicAdd(&grid_buffer[grid_buffer_idx], 1);
+        if (ret == 0) {
+            int count = atomicAdd(&output_num_list[batch_id], 1);
+            output_idx_temp[input_accu_list[batch_id] + count] = point_id;
         }
     }
 }
 
 
-void grid_sampling_gpu_launcher(int batch_size, int input_point_num,
-                                float base_resolution, float resolution, int scale,
+void grid_sampling_gpu_launcher(int batch_size, int input_point_num, float resolution,
                                 int grid_w, int grid_l, int grid_h,
                                 const float* input_coors,
                                 const int* input_num_list,
@@ -75,13 +61,12 @@ void grid_sampling_gpu_launcher(int batch_size, int input_point_num,
     // Round up according to array size
     gridSize = (input_point_num + blockSize - 1) / blockSize;
 
-    grid_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num,
-                                                      base_resolution, resolution, scale,
-                                                      grid_w, grid_l, grid_h,
-                                                      input_coors,
-                                                      input_num_list,
-                                                      input_accu_list,
-                                                      output_idx_temp,
-                                                      output_num_list,
-                                                      grid_buffer);
+    grid_sampling_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num, resolution,
+                                          grid_w, grid_l, grid_h,
+                                          input_coors,
+                                          input_num_list,
+                                          input_accu_list,
+                                          output_idx_temp,
+                                          output_num_list,
+                                          grid_buffer);
 }

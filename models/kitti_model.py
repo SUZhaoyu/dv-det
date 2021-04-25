@@ -71,46 +71,46 @@ def stage1_model(input_coors,
         # =============================== STAGE-1 [base] ================================
 
         for i, layer_name in enumerate(sorted(base_params.keys())):
-
-            # coors, features, num_list, voxel_idx, center_idx, concat_features = \
-            #     point_conv_concat(input_coors=coors,
-            #                       input_features=features,
-            #                       concat_features=concat_features,
-            #                       input_num_list=num_list,
-            #                       voxel_idx=voxel_idx,
-            #                       center_idx=center_idx,
-            #                       layer_params=base_params[layer_name],
-            #                       dimension_params=dimension_params,
-            #                       grid_buffer_size=config.grid_buffer_size,
-            #                       output_pooling_size=config.output_pooling_size,
-            #                       scope="stage1_" + layer_name,
-            #                       is_training=is_training,
-            #                       trainable=trainable,
-            #                       mem_saving=mem_saving,
-            #                       model_params=model_params,
-            #                       bn_decay=bn)
-
-            coors, features, num_list, voxel_idx, center_idx = \
-                point_conv(input_coors=coors,
-                           input_features=features,
-                           input_num_list=num_list,
-                           voxel_idx=voxel_idx,
-                           center_idx=center_idx,
-                           layer_params=base_params[layer_name],
-                           dimension_params=dimension_params,
-                           grid_buffer_size=config.grid_buffer_size,
-                           output_pooling_size=config.output_pooling_size,
-                           scope="stage1_" + layer_name,
-                           is_training=is_training,
-                           trainable=trainable,
-                           mem_saving=mem_saving,
-                           model_params=model_params,
-                           bn_decay=bn)
+            coors, features, num_list, voxel_idx, center_idx, concat_features = \
+                point_conv_concat(input_coors=coors,
+                                  input_features=features,
+                                  concat_features=concat_features,
+                                  input_num_list=num_list,
+                                  voxel_idx=voxel_idx,
+                                  center_idx=center_idx,
+                                  layer_params=base_params[layer_name],
+                                  dimension_params=dimension_params,
+                                  grid_buffer_size=config.grid_buffer_size,
+                                  output_pooling_size=config.output_pooling_size,
+                                  scope="stage1_" + layer_name,
+                                  is_training=is_training,
+                                  trainable=trainable,
+                                  mem_saving=mem_saving,
+                                  model_params=model_params,
+                                  bn_decay=bn)
 
 
         # =============================== STAGE-1 [rpn] ================================
 
-        roi_features = features
+        # for i, layer_name in enumerate(sorted(rpn_params.keys())):
+        #     roi_coors, roi_features, roi_num_list, _, _ = \
+        #         point_conv(input_coors=coors,
+        #                    input_features=features,
+        #                    input_num_list=num_list,
+        #                    voxel_idx=voxel_idx,
+        #                    center_idx=center_idx,
+        #                    layer_params=rpn_params[layer_name],
+        #                    dimension_params=dimension_params,
+        #                    grid_buffer_size=config.grid_buffer_size,
+        #                    output_pooling_size=config.output_pooling_size,
+        #                    scope="stage1_" + layer_name,
+        #                    is_training=is_training,
+        #                    trainable=trainable,
+        #                    mem_saving=mem_saving,
+        #                    model_params=model_params,
+        #                    bn_decay=bn)
+
+        roi_features = concat_features
         roi_coors = coors
         roi_num_list = num_list
 
@@ -148,7 +148,7 @@ def stage1_model(input_coors,
         roi_conf_logits = roi_logits[:, 7]
 
         # roi_conf = tf.nn.sigmoid(roi_conf_logits)
-        # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.9, nms_conf_thres=0.3)
+        # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.3)
         # roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
         # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
         # roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
@@ -244,7 +244,7 @@ def stage1_loss(roi_coors,
                                                           bboxes=bbox_labels,
                                                           input_num_list=roi_num_list,
                                                           anchor_size=anchor_size,
-                                                          expand_ratio=0.15,
+                                                          expand_ratio=0.2,
                                                           diff_thres=config.diff_thres,
                                                           cls_thres=config.cls_thres)
     # gt_roi_logits = roi_attrs_to_logits(roi_coors, gt_roi_attrs, anchor_size)

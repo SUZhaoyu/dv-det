@@ -18,10 +18,10 @@ from models import kitti_model as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 hvd.init()
 
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-thrust/test/model_0.35062718668203774'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
-task = 'validation'
+task = 'training'
 
 input_coors_stack = np.load(join(data_home, 'input_coors_{}.npy'.format(task)), allow_pickle=True)
 input_features_stack = np.load(join(data_home, 'input_features_{}.npy'.format(task)), allow_pickle=True)
@@ -39,7 +39,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
-                       mem_saving=True,
+                       mem_saving=False,
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
@@ -59,10 +59,11 @@ roi_attrs, roi_num_list, roi_idx = roi_filter(input_roi_attrs=roi_attrs,
                                               input_roi_conf=roi_conf,
                                               input_roi_ious=roi_ious,
                                               input_num_list=roi_num_list,
-                                              conf_thres=config.roi_thres,
+                                              min_conf_thres=config.min_roi_thres,
+                                              max_conf_thres=config.max_roi_thres,
                                               iou_thres=config.iou_thres,
                                               max_length=config.max_length,
-                                              with_negative=False)
+                                              with_negative=True)
 # roi_attrs = tf.gather(roi_attrs, roi_idx)
 roi_conf = tf.gather(roi_conf, roi_idx)
 roi_coors = tf.gather(roi_coors, roi_idx)

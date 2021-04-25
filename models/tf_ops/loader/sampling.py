@@ -15,12 +15,10 @@ def grid_sampling(input_coors,
                   resolution,
                   dimension,
                   offset):
-    base_resolution = resolution / 2.
     output_idx, output_num_list = grid_sampling_exe.grid_sampling_op(input_coors=input_coors + offset,
                                                                      input_num_list=input_num_list,
                                                                      dimension=dimension,
-                                                                     resolution=resolution,
-                                                                     base_resolution=base_resolution)
+                                                                     resolution=resolution)
     output_coors = tf.gather(input_coors, output_idx, axis=0)
     return output_coors, output_num_list, output_idx
 
@@ -141,16 +139,18 @@ def voxel_sampling_idx(input_coors,
                        dimension,
                        offset,
                        grid_buffer_size,
-                       output_pooling_size):
-    output_idx = voxel_sampling_idx_exe.voxel_sampling_idx_op(input_coors=input_coors + offset,
-                                                              input_num_list=input_num_list,
-                                                              center_coors=center_coors + offset,
-                                                              center_num_list=center_num_list,
-                                                              dimension=dimension,
-                                                              resolution=resolution,
-                                                              grid_buffer_size=grid_buffer_size,
-                                                              output_pooling_size=output_pooling_size)
-    return output_idx, input_features
+                       output_pooling_size,
+                       with_rpn=False):
+    output_idx, valid_idx = voxel_sampling_idx_exe.voxel_sampling_idx_op(input_coors=input_coors + offset,
+                                                                         input_num_list=input_num_list,
+                                                                         center_coors=center_coors + offset,
+                                                                         center_num_list=center_num_list,
+                                                                         dimension=dimension,
+                                                                         resolution=resolution,
+                                                                         grid_buffer_size=grid_buffer_size,
+                                                                         output_pooling_size=output_pooling_size,
+                                                                         with_rpn=with_rpn)
+    return output_idx, valid_idx, input_features
 
 
 ops.NoGradient("VoxelSamplingIdxOp")
@@ -251,7 +251,8 @@ def voxel_sampling_idx_binary(input_coors,
                               dimension,
                               offset,
                               grid_buffer_size,
-                              output_pooling_size):
+                              output_pooling_size,
+                              with_rpn=False):
 
     npoint = tf.shape(input_coors)[0]
     batch_size = tf.shape(input_num_list)[0]
@@ -275,15 +276,16 @@ def voxel_sampling_idx_binary(input_coors,
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
     sorted_features = tf.gather(input_features, sorted_args, axis=0)
     # XXX: Need to pay attention to the back-propagation implementation.
-    output_idx = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
-                                                                            input_voxel_idx=sorted_voxel_ids,
-                                                                            input_num_list=input_num_list,
-                                                                            center_coors=center_coors + offset,
-                                                                            center_num_list=center_num_list,
-                                                                            dimension=dimension,
-                                                                            resolution=resolution,
-                                                                            grid_buffer_size=grid_buffer_size,
-                                                                            output_pooling_size=output_pooling_size)
-    return output_idx, sorted_features
+    output_idx, valid_idx = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
+                                                                                       input_voxel_idx=sorted_voxel_ids,
+                                                                                       input_num_list=input_num_list,
+                                                                                       center_coors=center_coors + offset,
+                                                                                       center_num_list=center_num_list,
+                                                                                       dimension=dimension,
+                                                                                       resolution=resolution,
+                                                                                       grid_buffer_size=grid_buffer_size,
+                                                                                       output_pooling_size=output_pooling_size,
+                                                                                       with_rpn=with_rpn)
+    return output_idx, valid_idx, sorted_features
 
 ops.NoGradient("VoxelSamplingIdxBinaryOp")
