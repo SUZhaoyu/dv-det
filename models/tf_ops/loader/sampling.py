@@ -289,3 +289,4 @@ def voxel_sampling_idx_binary(input_coors,
     return output_idx, valid_idx, sorted_features
 
 ops.NoGradient("VoxelSamplingIdxBinaryOp")
+
