@@ -77,7 +77,7 @@ def la_roi_pooling_fast(input_coors, input_features, roi_attrs, input_num_list, 
     return output_features
 # ops.NoGradient("LaRoiPoolingFastOp")
 
-@ops.RegisterGradient("LaRoiPoolingFastOp")
+# @ops.RegisterGradient("LaRoiPoolingFastOp")
 def la_roi_pooling_fast_grad(op, grad, _, __):
     input_features = op.inputs[1]
     output_idx = op.outputs[1]

@@ -23,17 +23,18 @@ def get_rgbs_from_coors_tf(coors, repeat=5):
 
 
 def fetch_instance(input_list, num_list, id=0):
-    accu_num_list = np.cumsum(num_list)
+    accu_num_list = np.cumsum(deepcopy(num_list))
     if id == 0:
         return input_list[:num_list[0], ...]
     else:
         return input_list[accu_num_list[id - 1]:accu_num_list[id], ...]
 
 
-def plot_points(coors, intensity=None, rgb=None, name='test'):
+def plot_points(coors, intensity=None, rgb=None, bboxes=None, name='test'):
     Converter.compile(coors=convert_threejs_coors(coors),
                       intensity=intensity,
                       default_rgb=rgb,
+                      bbox_params=convert_threejs_bbox(bboxes),
                       task_name=name)
 
 

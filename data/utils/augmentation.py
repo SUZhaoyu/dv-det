@@ -76,7 +76,7 @@ def rotate(rotate_range, mode, angle=None, T=None):
         if mode == 'g':
             angle = gauss_dist(0., rotate_range)
         elif mode == 'u':
-            angle = np.random.uniform(0., rotate_range)
+            angle = np.random.uniform(-rotate_range, rotate_range)
         else:
             raise ValueError("Undefined rotate mode: {}".format(mode))
 
