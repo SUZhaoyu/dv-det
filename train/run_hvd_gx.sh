@@ -19,6 +19,7 @@ rsync -avz -W -e ssh --progress \
                      --exclude='img_*.npy' \
                      --exclude='*_testing.npy' \
                      --exclude='waymo_npy' \
+                     --exclude='ckpt-arxiv' \
                      --exclude='.nv' \
                      $root_gx4/$HOME tan@$ip_gx8:$root_gx8
 

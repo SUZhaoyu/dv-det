@@ -91,13 +91,13 @@ def la_roi_pooling_fast_grad(op, grad, _, __):
 
 bev_projection_exe = tf.load_op_library(join(CWD, '../build', 'bev_projection.so'))
 def bev_projection(input_coors, input_features, input_num_list, resolution, dimension, offset, buffer_size=5):
-    output_features, output_idx = bev_projection_exe.bev_projection_op(input_coors=input_coors + offset,
+    output_features, _ = bev_projection_exe.bev_projection_op(input_coors=input_coors + offset,
                                                               input_features=input_features,
                                                               input_num_list=input_num_list,
                                                               dimension=dimension,
                                                               resolution=resolution,
                                                               buffer_size=buffer_size)
-    return output_features, output_idx
+    return output_features
 
 @ops.RegisterGradient("BevProjectionOp")
 def bev_projection_grad(op, grad, _):

@@ -281,6 +281,82 @@ def conv_3d_wrapper(inputs,
     return outputs
 
 
+def conv_2d_wrapper(inputs,
+                    num_output_channels,
+                    stride,
+                    output_shape=None,
+                    kernel_size=3,
+                    transposed=False,
+                    scope='default',
+                    use_xavier=True,
+                    stddev=1e-3,
+                    activation='relu',
+                    bn_decay=None,
+                    is_training=True,
+                    trainable=True,
+                    histogram=False,
+                    summary=False):
+    if scope == 'default':
+        logging.warning("Scope name was not given and has been assigned as 'default'. ")
+        l2_loss_collection = 'default'
+    else:
+        l2_loss_collection = scope.split('_')[0] + "_l2"
+
+    with tf.variable_scope(scope):
+        num_input_channels = inputs.get_shape()[-1].value
+        if not transposed:
+            kernel_shape = [kernel_size, kernel_size, num_input_channels, num_output_channels]
+        else:
+            kernel_shape = [kernel_size, kernel_size, num_output_channels, num_input_channels]
+        kernel = _variable_with_l2_loss(name='weight',
+                                        shape=kernel_shape,
+                                        use_xavier=use_xavier,
+                                        stddev=stddev,
+                                        l2_loss_collection=l2_loss_collection,
+                                        trainable=trainable)
+
+        biases = _variable_with_l2_loss(name='biases',
+                                        shape=[num_output_channels],
+                                        initializer=tf.constant_initializer(0.0),
+                                        with_l2_loss=False,
+                                        l2_loss_collection=None,
+                                        trainable=trainable)
+
+        if histogram:
+            tf.summary.histogram('kernel', kernel)
+        if summary:
+            tf.summary.scalar('kernel_l2', tf.nn.l2_loss(kernel))
+
+        if not transposed:
+            outputs = tf.nn.conv2d(input=inputs,
+                                   filter=kernel,
+                                   strides=stride,
+                                   padding="SAME")
+        else:
+
+            outputs = tf.nn.conv2d_transpose(input=inputs,
+                                             filter=kernel,
+                                             output_shape=output_shape,
+                                             strides=stride,
+                                             padding="SAME")
+
+        if bn_decay is None:
+            outputs = tf.nn.bias_add(outputs, biases)
+        else:
+            outputs = batch_norm_template(inputs=outputs,
+                                          is_training=is_training,
+                                          bn_decay=bn_decay,
+                                          name='bn')
+        if activation is not None:
+            activation_fn_dict = {'relu': tf.nn.relu,
+                                  'elu': tf.nn.elu,
+                                  'leaky_relu': tf.nn.leaky_relu}
+            activation_fn = activation_fn_dict[activation]
+            outputs = activation_fn(outputs)
+
+    return outputs
+
+
 def get_roi_attrs(input_logits, base_coors, anchor_size, is_eval=False):
     method = roi_logits_to_attrs if is_eval else roi_logits_to_attrs_tf
     roi_attrs = method(input_logits=input_logits,

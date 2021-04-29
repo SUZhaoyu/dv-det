@@ -163,6 +163,11 @@ def main():
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
         step = 0
+
+        best_result = save_best_sess(mon_sess, best_result, 0.,
+                                     log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
+                                     save_anyway=True)
+
         # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
 
         for epoch in range(config.total_epoch):
@@ -174,7 +179,7 @@ def main():
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
                                                  log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
-                                                 save_anyway=False)
+                                                 save_anyway=True)
 
 
 if __name__ == '__main__':

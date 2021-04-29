@@ -18,10 +18,10 @@ from models import kitti_model as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 hvd.init()
 
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.0'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
-task = 'training'
+task = 'validation'
 
 input_coors_stack = np.load(join(data_home, 'input_coors_{}.npy'.format(task)), allow_pickle=True)
 input_features_stack = np.load(join(data_home, 'input_features_{}.npy'.format(task)), allow_pickle=True)
@@ -59,8 +59,7 @@ roi_attrs, roi_num_list, roi_idx = roi_filter(input_roi_attrs=roi_attrs,
                                               input_roi_conf=roi_conf,
                                               input_roi_ious=roi_ious,
                                               input_num_list=roi_num_list,
-                                              min_conf_thres=config.min_roi_thres,
-                                              max_conf_thres=config.max_roi_thres,
+                                              conf_thres=config.roi_thres,
                                               iou_thres=config.iou_thres,
                                               max_length=config.max_length,
                                               with_negative=True)
@@ -98,14 +97,14 @@ if __name__ == '__main__':
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     input_bbox_p: batch_input_bboxes,
-                                    is_training_p: False})
-                         # options=run_options,
-                         # run_metadata=run_metadata)
+                                    is_training_p: False},
+                         options=run_options,
+                         run_metadata=run_metadata)
 
-            # tl = timeline.Timeline(run_metadata.step_stats)
-            # ctf = tl.generate_chrome_trace_format()
-            # with open('timeline-stage1.json', 'w') as f:
-            #     f.write(ctf)
+            tl = timeline.Timeline(run_metadata.step_stats)
+            ctf = tl.generate_chrome_trace_format()
+            with open('timeline-stage1.json', 'w') as f:
+                f.write(ctf)
 
             # output_idx = output_conf > 0.3
             # output_bboxes = output_bboxes[output_idx]
