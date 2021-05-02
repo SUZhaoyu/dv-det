@@ -291,7 +291,7 @@ def voxel_sampling_idx_binary(input_coors,
 ops.NoGradient("VoxelSamplingIdxBinaryOp")
 
 
-def get_bev_features(bev_img, resolution, offset, z_base_coor=-1.):
+def get_bev_features(bev_img, resolution, offset):
     batch_size = bev_img.shape[0]
     img_w = bev_img.shape[1]
     img_l = bev_img.shape[2]
@@ -306,7 +306,6 @@ def get_bev_features(bev_img, resolution, offset, z_base_coor=-1.):
     bev_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32)
     bev_coors = tf.expand_dims(bev_coors, axis=0)
     bev_coors = tf.cast(tf.tile(bev_coors, [batch_size, 1, 1]), dtype=tf.float32) * resolution + resolution / 2. - tf.expand_dims(offset[0:2], axis=0)
-    bev_coors = tf.concat([bev_coors, tf.ones(shape=[bev_coors.shape[0], bev_coors.shape[1], 1], dtype=tf.float32) * z_base_coor], axis=-1)
 
     bev_img_reshape = tf.reshape(bev_img, shape=[batch_size, -1, channels])
     bev_coors = tf.gather_nd(bev_coors, activate_idx)

@@ -91,10 +91,9 @@ def stage1_model(input_coors,
         # =============================== STAGE-1 [rpn] ================================
 
         bev_features = tf.concat(concat_features, axis=-1)
-        bbox_coors, bbox_features, bbox_num_list = get_bev_features(bev_img=bev_features,
-                                                                    resolution=model_params['bev_resolution'],
-                                                                    offset=dimension_params['offset'],
-                                                                    z_base_coor=-1.)
+        bev_coors, bbox_features, bbox_num_list = get_bev_features(bev_img=bev_features,
+                                                                   resolution=model_params['bev_resolution'],
+                                                                   offset=dimension_params['offset'])
 
         # roi_features = conv_1d(input_points=roi_features,
         #                        num_output_channels=256,
@@ -121,28 +120,28 @@ def stage1_model(input_coors,
                          is_training=is_training,
                          trainable=trainable,
                          last_layer=True)
-        logits = tf.stack(tf.split(logits, 2, axis=1), axis=0) # [2, n, f]
+        logits = tf.stack(tf.split(logits, 2, axis=1), axis=1) # [n, 2, f]
 
-        bbox_attrs = logits_to_attrs(anchor_coors=bbox_coors,
+        bbox_attrs = logits_to_attrs(anchor_coors=bev_coors,
                                      input_logits=logits,
-                                     anchor_param_list=anchor_param_list) # [2n, f]
+                                     anchor_param_list=anchor_param_list) # [n, 2, f]
 
-        conf_logits = tf.reshape(logits[..., 7], shape=[-1])
-
-
-        return bbox_coors, bbox_attrs, conf_logits, bbox_num_list
+        conf_logits = logits[..., 7] # [n, 2]
 
 
-def stage1_loss(roi_coors,
-                pred_roi_attrs,
-                roi_conf_logits,
-                roi_num_list,
+        return bev_coors, bbox_attrs, conf_logits, bbox_num_list
+
+
+def stage1_loss(bev_coors,
+                pred_attrs,
+                conf_logits,
+                num_list,
                 bbox_labels,
                 wd):
-    pred_roi_conf = tf.clip_by_value(tf.nn.sigmoid(roi_conf_logits), eps, 1 - eps)
-    gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=roi_coors,
+    pred_roi_conf = tf.clip_by_value(tf.nn.sigmoid(conf_logits), eps, 1 - eps)
+    gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=bev_coors,
                                                           bboxes=bbox_labels,
-                                                          input_num_list=roi_num_list,
+                                                          input_num_list=num_list,
                                                           anchor_size=anchor_size,
                                                           expand_ratio=0.2,
                                                           diff_thres=config.diff_thres,
@@ -152,17 +151,17 @@ def stage1_loss(roi_coors,
     # gt_roi_attrs = roi_logits_to_attrs_tf(roi_coors, gt_roi_logits, anchor_size)
     # pred_roi_attrs = roi_logits_to_attrs_tf(roi_coors, pred_roi_logits, anchor_size)
 
-    roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
+    roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_attrs, clip=False)
     roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
     roi_iou_loss = get_masked_average(1. - roi_ious, roi_iou_masks)
     tf.summary.scalar('stage1_iou_loss', roi_iou_loss)
     averaged_iou = get_masked_average(roi_ious, roi_iou_masks)
 
-    roi_l1_loss = smooth_l1_loss(predictions=pred_roi_attrs[:, 6], labels=gt_roi_attrs[:, 6], delta=1./9.)
+    roi_l1_loss = smooth_l1_loss(predictions=pred_attrs[:, 6], labels=gt_roi_attrs[:, 6], delta=1. / 9.)
     roi_l1_loss = get_masked_average(roi_l1_loss, roi_iou_masks)
     tf.summary.scalar('stage1_l1_loss', roi_l1_loss)
-    tf.summary.scalar('roi_angle_sin_bias', get_masked_average(tf.abs(tf.sin(gt_roi_attrs[:, 6] - pred_roi_attrs[:, 6])), roi_iou_masks))
-    tf.summary.scalar('roi_angle_bias', get_masked_average(tf.abs(gt_roi_attrs[:, 6] - pred_roi_attrs[:, 6]), roi_iou_masks))
+    tf.summary.scalar('roi_angle_sin_bias', get_masked_average(tf.abs(tf.sin(gt_roi_attrs[:, 6] - pred_attrs[:, 6])), roi_iou_masks))
+    tf.summary.scalar('roi_angle_bias', get_masked_average(tf.abs(gt_roi_attrs[:, 6] - pred_attrs[:, 6]), roi_iou_masks))
 
     roi_conf_masks = tf.cast(tf.greater(gt_roi_conf, -1), dtype=tf.float32)  # [-1, 0, 1] -> [0, 1, 1]
     roi_conf_target = tf.cast(gt_roi_conf, dtype=tf.float32) * roi_conf_masks  # [-1, 0, 1] * [0, 1, 1] -> [0, 0, 1]
