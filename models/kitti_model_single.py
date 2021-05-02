@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 import train.kitti.kitti_config as config
-from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
+from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox, logits_to_attrs
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
 from models.tf_ops.loader.sampling import get_bev_features
@@ -14,6 +14,9 @@ from models.utils.layers_wrapper import get_roi_attrs, get_bbox_attrs
 
 anchor_size = config.anchor_size
 eps = tf.constant(1e-6)
+
+anchor_param_list = tf.constant([[1.6, 3.9, 1.5, -1.0, 0],
+                                 [1.6, 3.9, 1.5, -1.0, np.pi / 2]])
 
 model_params = {
                 'xavier': config.xavier,
@@ -88,11 +91,10 @@ def stage1_model(input_coors,
         # =============================== STAGE-1 [rpn] ================================
 
         bev_features = tf.concat(concat_features, axis=-1)
-        roi_coors, roi_features, roi_num_list = get_bev_features(bev_img=bev_features,
-                                                                 resolution=model_params['bev_resolution'],
-                                                                 offset=dimension_params['offset'],
-                                                                 z_base_coor=-1.)
-
+        bbox_coors, bbox_features, bbox_num_list = get_bev_features(bev_img=bev_features,
+                                                                    resolution=model_params['bev_resolution'],
+                                                                    offset=dimension_params['offset'],
+                                                                    z_base_coor=-1.)
 
         # roi_features = conv_1d(input_points=roi_features,
         #                        num_output_channels=256,
@@ -111,24 +113,24 @@ def stage1_model(input_coors,
         #                        trainable=trainable,
         #                        second_last_layer=True)
 
-        roi_logits = conv_1d(input_points=roi_features,
-                             num_output_channels=config.output_attr,
-                             drop_rate=0.,
-                             model_params=model_params,
-                             scope='stage1_rpn_fc_2',
-                             is_training=is_training,
-                             trainable=trainable,
-                             last_layer=True)
+        logits = conv_1d(input_points=bbox_features,
+                         num_output_channels=config.output_attr * 2,
+                         drop_rate=0.,
+                         model_params=model_params,
+                         scope='stage1_rpn_fc_2',
+                         is_training=is_training,
+                         trainable=trainable,
+                         last_layer=True)
+        logits = tf.stack(tf.split(logits, 2, axis=1), axis=0) # [2, n, f]
 
-        roi_attrs = get_roi_attrs(input_logits=roi_logits,
-                                  base_coors=roi_coors,
-                                  anchor_size=anchor_size,
-                                  is_eval=is_eval)
+        bbox_attrs = logits_to_attrs(anchor_coors=bbox_coors,
+                                     input_logits=logits,
+                                     anchor_param_list=anchor_param_list) # [2n, f]
 
-        roi_conf_logits = roi_logits[:, 7]
+        conf_logits = tf.reshape(logits[..., 7], shape=[-1])
 
 
-        return coors, concat_features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list
+        return bbox_coors, bbox_attrs, conf_logits, bbox_num_list
 
 
 def stage1_loss(roi_coors,
@@ -162,8 +164,8 @@ def stage1_loss(roi_coors,
     tf.summary.scalar('roi_angle_sin_bias', get_masked_average(tf.abs(tf.sin(gt_roi_attrs[:, 6] - pred_roi_attrs[:, 6])), roi_iou_masks))
     tf.summary.scalar('roi_angle_bias', get_masked_average(tf.abs(gt_roi_attrs[:, 6] - pred_roi_attrs[:, 6]), roi_iou_masks))
 
-    roi_conf_masks = tf.cast(tf.greater(gt_roi_conf, -1), dtype=tf.float32) # [-1, 0, 1] -> [0, 1, 1]
-    roi_conf_target = tf.cast(gt_roi_conf, dtype=tf.float32) * roi_conf_masks # [-1, 0, 1] * [0, 1, 1] -> [0, 0, 1]
+    roi_conf_masks = tf.cast(tf.greater(gt_roi_conf, -1), dtype=tf.float32)  # [-1, 0, 1] -> [0, 1, 1]
+    roi_conf_target = tf.cast(gt_roi_conf, dtype=tf.float32) * roi_conf_masks  # [-1, 0, 1] * [0, 1, 1] -> [0, 0, 1]
     roi_conf_loss = get_masked_average(focal_loss(label=roi_conf_target, pred=pred_roi_conf, alpha=0.75), roi_conf_masks)
     tf.summary.scalar('stage1_conf_loss', roi_conf_loss)
 

@@ -1,6 +1,6 @@
 import os
 from os.path import join
-
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import ops
 
@@ -67,3 +67,38 @@ def bbox_logits_to_attrs(input_roi_attrs, input_logits):
                                                                     input_logits=input_logits)
     return output_attrs
 ops.NoGradient("BboxLogitsToAttrs")
+
+
+def get_anchor_attrs(anchor_coors, anchor_param_list):
+    anchor_param_list = tf.expand_dims(anchor_param_list, axis=1)
+    anchor_param_list = tf.tile(anchor_param_list, [1, tf.shape(anchor_coors)[0], 1])
+    output_anchor_attrs = []
+    for k in range(anchor_param_list.shape[0]):
+        anchor_param = anchor_param_list[k]
+        anchor_attrs = tf.stack([anchor_param[:, 0],
+                                 anchor_param[:, 1],
+                                 anchor_param[:, 2],
+                                 anchor_coors[:, 0],
+                                 anchor_coors[:, 1],
+                                 anchor_param[:, 3],
+                                 anchor_param[:, 4]], axis=-1)
+        output_anchor_attrs.append(anchor_attrs)
+
+    return tf.concat(output_anchor_attrs, axis=0)
+
+
+def logits_to_attrs(anchor_coors, input_logits, anchor_param_list):
+    output_attrs = []
+    for k in range(anchor_param_list.shape[0]):
+        anchor_param = anchor_param_list[k]
+        anchor_diag = tf.sqrt(tf.pow(anchor_param[0], 2.) + tf.pow(anchor_param[1], 2.))
+        w = tf.clip_by_value(tf.exp(input_logits[k, :, 0]) * anchor_param[0], 0., 1e7)
+        l = tf.clip_by_value(tf.exp(input_logits[k, :, 1]) * anchor_param[1], 0., 1e7)
+        h = tf.clip_by_value(tf.exp(input_logits[k, :, 2]) * anchor_param[2], 0., 1e7)
+        x = tf.clip_by_value(input_logits[k, :, 3] * anchor_diag + anchor_coors[:, 0], -1e7, 1e7)
+        y = tf.clip_by_value(input_logits[k, :, 4] * anchor_diag + anchor_coors[:, 1], -1e7, 1e7)
+        z = tf.clip_by_value(input_logits[k, :, 5] * anchor_param[2] + anchor_param[3], -1e7, 1e7)
+        r = tf.clip_by_value((input_logits[k, :, 6] + anchor_param[4]) * np.pi, -1e7, 1e7)
+        output_attrs.append(tf.stack([w, l, h, x, y, z, r], axis=-1))
+    return tf.concat(output_attrs, axis=0)
+

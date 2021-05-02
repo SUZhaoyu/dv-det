@@ -11,7 +11,7 @@ import train.kitti.kitti_config as config
 # tf.enable_eager_execution()
 from models.tf_ops.loader.sampling import grid_sampling, get_bev_features
 from models.tf_ops.loader.pooling import bev_projection
-from models.tf_ops.loader.bbox_utils import get_roi_bbox
+from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
 
@@ -22,6 +22,9 @@ epoch = 2
 dimension = [100., 140., 9.]
 offset = [10., 70., 5.]
 anchor_size = [1.6, 3.9, 1.5]
+
+anchor_param_list = tf.constant([[1.6, 3.9, 1.5, -1.0, 0],
+                                 [1.6, 3.9, 1.5, -1.0, np.pi / 2]])
 
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
@@ -74,6 +77,9 @@ if __name__ == '__main__':
                                                           diff_thres=config.diff_thres,
                                                           cls_thres=config.cls_thres)
 
+    anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
+                                    anchor_param_list=anchor_param_list)
+
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = False
@@ -86,7 +92,7 @@ if __name__ == '__main__':
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         run_metadata = tf.RunMetadata()
         for i in tqdm(range(epoch)):
-            output_coors, output_num_list, output_img, output_attrs = sess.run([bev_coors, bev_num_list, bev_img, gt_roi_attrs],
+            output_coors, output_num_list, output_img, output_attrs = sess.run([bev_coors, bev_num_list, bev_img, anchor_attrs],
                                                       feed_dict={coors_p: input_coors[i],
                                                                  features_p: input_features[i],
                                                                  num_list_p: input_num_list[i],
