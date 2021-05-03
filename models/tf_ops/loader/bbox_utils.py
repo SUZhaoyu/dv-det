@@ -54,14 +54,14 @@ ops.NoGradient("GetBboxOp")
 
 get_bev_gt_bbox_exe = tf.load_op_library(join(CWD, '../build', 'get_bev_gt_bbox.so'))
 def get_bev_gt_bbox(input_coors, label_bbox, input_num_list, anchor_param_list, expand_ratio=0.15, diff_thres=4, cls_thres=1):
-    bbox_attrs, bbox_conf = get_bev_gt_bbox_exe.get_bev_gt_bbox_op(input_coors=input_coors,
-                                                                   label_bbox=label_bbox,
-                                                                   input_num_list=input_num_list,
-                                                                   anchor_param_list=anchor_param_list,
-                                                                   expand_ratio=expand_ratio,
-                                                                   diff_thres=diff_thres,
-                                                                   cls_thres=cls_thres)
-    return bbox_attrs, bbox_conf
+    bbox_attrs, bbox_conf, label_idx = get_bev_gt_bbox_exe.get_bev_gt_bbox_op(input_coors=input_coors,
+                                                                              label_bbox=label_bbox,
+                                                                              input_num_list=input_num_list,
+                                                                              anchor_param_list=anchor_param_list,
+                                                                              expand_ratio=expand_ratio,
+                                                                              diff_thres=diff_thres,
+                                                                              cls_thres=cls_thres)
+    return bbox_attrs, bbox_conf, label_idx
 ops.NoGradient("GetBevGtBboxOp")
 
 # =============================================Roi Logits To Attrs===============================================

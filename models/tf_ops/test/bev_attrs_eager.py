@@ -6,6 +6,7 @@ tf.compat.v1.enable_eager_execution()
 from tensorflow.python.client import timeline
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 from data.kitti_generator import Dataset
 import train.kitti.kitti_config as config
@@ -16,6 +17,8 @@ from models.tf_ops.loader.others import anchor_iou3d
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs, get_bev_gt_bbox
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
+from models.utils.iou_utils import cal_bev_iou
+
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -25,8 +28,8 @@ dimension = [100., 140., 9.]
 offset = [10., 70., 5.]
 anchor_size = [1.6, 3.9, 1.5]
 
-anchor_param_list = tf.constant([[1.6, 3.9, 1.5, -1.0, np.pi/6],
-                                 [1.6, 3.9, 1.5, -1.0, np.pi/4]])
+anchor_param_list = tf.constant([[1.6, 3.9, 1.5, -1.0, 0.],
+                                 [1.6, 3.9, 1.5, -1.0, np.pi/2]])
 
 if __name__ == '__main__':
     Dataset = Dataset(task='training',
@@ -39,19 +42,19 @@ if __name__ == '__main__':
     Dataset.stop()
 
     coors = tf.cast(coors, dtype=tf.float32)
-    coors, num_list, idx = grid_sampling(coors, num_list, 0.4, offset=offset, dimension=dimension)
+    coors, num_list, idx = grid_sampling(coors, num_list, 0.2, offset=offset, dimension=dimension)
     features = tf.gather(features, idx)
 
     bev_img = bev_projection(input_coors=coors,
                              input_features=features,
                              input_num_list=num_list,
-                             resolution=0.4,
+                             resolution=0.2,
                              dimension=dimension,
                              offset=offset,
                              buffer_size=10)
 
     bev_coors, bev_features, bev_num_list = get_bev_features(bev_img=bev_img,
-                                                             resolution=0.4,
+                                                             resolution=0.2,
                                                              offset=offset)
 
     # gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=bev_coors,
@@ -62,18 +65,21 @@ if __name__ == '__main__':
     #                                                       diff_thres=config.diff_thres,
     #                                                       cls_thres=config.cls_thres)
 
-    gt_attrs, gt_conf = get_bev_gt_bbox(input_coors=bev_coors,
-                                        label_bbox=labels,
-                                        input_num_list=bev_num_list,
-                                        anchor_param_list=anchor_param_list,
-                                        expand_ratio=0.15,
-                                        diff_thres=4,
-                                        cls_thres=1)
+    gt_attrs, gt_conf, gt_idx = get_bev_gt_bbox(input_coors=bev_coors,
+                                                label_bbox=labels,
+                                                input_num_list=bev_num_list,
+                                                anchor_param_list=anchor_param_list,
+                                                expand_ratio=0.15,
+                                                diff_thres=4,
+                                                cls_thres=1)
 
     anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
                                     anchor_param_list=anchor_param_list)
 
-    ious = anchor_iou3d(anchor_attrs, labels, bev_num_list)
+    gt_attrs = tf.reshape(gt_attrs, [-1, tf.shape(gt_attrs)[2]])
+    anchor_attrs = tf.reshape(anchor_attrs, [-1, tf.shape(anchor_attrs)[2]])
+    bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
+
 
 
     # config = tf.ConfigProto()
@@ -102,24 +108,28 @@ if __name__ == '__main__':
     #
     #         print("finished.")
     #
-    # id = 4
-    # input_coors = fetch_instance(input_coors[i], input_num_list[i], id=id)
-    # input_rgbs = np.zeros_like(input_coors) + [255, 255, 255]
-    #
-    # output_coors = fetch_instance(output_coors, output_num_list, id=id)
-    # output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
-    #
-    # plot_coors = np.concatenate([input_coors, output_coors], axis=0)
-    # plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
-    #
-    # output_attrs = fetch_instance(output_attrs, output_num_list, id=id)
-    # output_attrs = output_attrs[output_attrs[:, 0] > 0.2, :]
-    #
-    #
-    # plot_points(coors=plot_coors,
-    #             rgb=plot_rgbs,
-    #             name='bev_coors',
-    #             bboxes=output_attrs)
-    #
-    # # output_img = np.sum(output_idx >= 0, axis=-1)
-    # plt.imsave(join('/home/tan/tony/threejs/html', "bev_img.png"), output_img[id, :, :, 0])
+    input_coors = coors
+    output_coors = np.concatenate([bev_coors.numpy(), np.zeros([bev_coors.numpy().shape[0], 1]) + -1.0], axis=-1)
+
+    id = 0
+    input_coors = fetch_instance(coors, num_list, id=id)
+    input_rgbs = np.zeros_like(input_coors) + [255, 255, 255]
+
+
+    output_coors = fetch_instance(output_coors, bev_num_list, id=id)
+    output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
+
+    plot_coors = np.concatenate([input_coors, output_coors], axis=0)
+    plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
+
+    output_attrs = fetch_instance(anchor_attrs, deepcopy(bev_num_list)*2, id=id).numpy()
+    bev_iou = fetch_instance(bev_iou, deepcopy(bev_num_list)*2, id=id).numpy()
+    output_attrs = output_attrs[bev_iou > 0.1, :]
+
+
+    plot_points(coors=input_coors,
+                rgb=input_rgbs,
+                name='bev_coors',
+                bboxes=output_attrs)
+
+    # output_img = np.sum(output_idx >= 0, axis=-1)

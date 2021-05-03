@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 aug_config = {'nbbox': 128,
-              'rotate_range': np.pi / 4,
+              'rotate_range': np.pi / 12,
               # 'rotate_range': 0,
               'rotate_mode': 'u',
               'scale_range': 0.05,

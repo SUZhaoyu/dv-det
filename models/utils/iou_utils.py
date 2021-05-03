@@ -254,6 +254,16 @@ def get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersectio
         iou = tf.where(tf.is_nan(iou), tf.zeros_like(iou), iou)
     return iou
 
+def get_bev_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, clip):
+    gt_area = gt_attrs[:, 0] * gt_attrs[:, 1]
+    pred_area = pred_attrs[:, 0] * pred_attrs[:, 1]
+    iou = tf.math.divide_no_nan(intersection_2d_area, gt_area + pred_area - intersection_2d_area)
+    # tf.summary.scalar('iou_nan_sum',
+    #                   hvd.allreduce(tf.reduce_sum(tf.cast(tf.is_nan(iou), dtype=tf.float32)), average=False))
+    if clip:
+        iou = tf.where(tf.is_nan(iou), tf.zeros_like(iou), iou)
+    return iou
+
 
 def cal_3d_iou(gt_attrs, pred_attrs, clip=False):
     gt_v, rel_rot_pred_v, rel_rot_gt_v, rel_xy, rel_r = get_2d_vertex_points(gt_attrs, pred_attrs)
@@ -272,6 +282,25 @@ def cal_3d_iou(gt_attrs, pred_attrs, clip=False):
     intersection_2d_area = shoelace_intersection_area(sorted_points, sorted_masks)
     intersection_height = get_intersection_height(gt_attrs, pred_attrs)
     ious = get_3d_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, intersection_height, clip)
+
+    return ious
+
+def cal_bev_iou(gt_attrs, pred_attrs, clip=False):
+    gt_v, rel_rot_pred_v, rel_rot_gt_v, rel_xy, rel_r = get_2d_vertex_points(gt_attrs, pred_attrs)
+    intersection_points = get_2d_intersection_points(gt_attrs=gt_attrs, rel_rot_pred_v=rel_rot_pred_v)
+    gt_vertex_points_inside_pred = get_interior_vertex_points_mask(target_attrs=pred_attrs, input_points=rel_rot_gt_v)
+    pred_vertex_points_inside_gt = get_interior_vertex_points_mask(target_attrs=gt_attrs, input_points=rel_rot_pred_v)
+    pred_intersect_with_gt = get_intersection_points_mask(target_attrs=gt_attrs, input_points=intersection_points)
+    intersection_points_inside_pred = get_intersection_points_mask(target_attrs=pred_attrs,
+                                                                   input_points=intersection_points, rel_xy=rel_xy,
+                                                                   rel_r=rel_r)
+    total_points = tf.concat([gt_v, rel_rot_pred_v, intersection_points], axis=1)
+    total_masks = tf.concat([gt_vertex_points_inside_pred, pred_vertex_points_inside_gt,
+                             pred_intersect_with_gt * intersection_points_inside_pred], axis=1)
+    sorted_points, sorted_masks = clockwise_sorting(input_points=total_points, masks=total_masks)
+
+    intersection_2d_area = shoelace_intersection_area(sorted_points, sorted_masks)
+    ious = get_bev_iou_from_area(gt_attrs, pred_attrs, intersection_2d_area, clip)
 
     return ious
 

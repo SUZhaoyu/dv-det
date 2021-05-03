@@ -298,7 +298,7 @@ def get_bev_features(bev_img, resolution, offset):
     channels = bev_img.shape[3]
 
     bev_max = tf.reduce_max(bev_img, axis=-1)
-    bev_activate_mask = tf.greater(bev_max, 1e-6)
+    bev_activate_mask = tf.greater(bev_max, -1e-6)
     bev_num_list = tf.reduce_sum(tf.cast(bev_activate_mask, dtype=tf.int32), axis=[1, 2])
     activate_idx = tf.where(tf.reshape(bev_activate_mask, shape=[batch_size, -1]))
 

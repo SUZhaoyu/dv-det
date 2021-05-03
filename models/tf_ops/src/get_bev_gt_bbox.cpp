@@ -23,6 +23,7 @@ REGISTER_OP("GetBevGtBboxOp")
     .Input("anchor_param_list: float32")
     .Output("gt_bbox: float32")
     .Output("gt_conf: int32")
+    .Output("label_idx: int32")
     .Attr("expand_ratio: float")
     .Attr("diff_thres: int")
     .Attr("cls_thres: int")
@@ -37,8 +38,10 @@ REGISTER_OP("GetBevGtBboxOp")
         DimensionHandle num_anchor = c->Dim(anchor_param_list_shape, 0);
         ShapeHandle gt_bbox_shape = c->MakeShape({npoint, num_anchor, 7});
         ShapeHandle gt_conf_shape = c->MakeShape({npoint, num_anchor});
+        ShapeHandle label_idx_shape = c->MakeShape({npoint, num_anchor});
         c->set_output(0, gt_bbox_shape);
         c->set_output(1, gt_conf_shape);
+        c->set_output(2, label_idx_shape);
 
         return Status::OK();
 
@@ -53,7 +56,8 @@ void get_bev_gt_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbo
                                   const float* anchor_param_list,
                                   int* input_accu_list,
                                   float* gt_bbox,
-                                  int* gt_conf);
+                                  int* gt_conf,
+                                  int* label_idx);
 
 class GetBevGtBboxOp: public OpKernel {
 public:
@@ -109,6 +113,12 @@ public:
         int* gt_conf_ptr = gt_conf->template flat<int>().data();
         cudaMemset(gt_conf_ptr, 0, npoint * num_anchor * sizeof(int));
 
+        Tensor* label_idx = nullptr;
+        auto label_idx_shape = TensorShape({npoint, num_anchor});
+        OP_REQUIRES_OK(context, context->allocate_output(2, label_idx_shape, &label_idx));
+        int* label_idx_ptr = label_idx->template flat<int>().data();
+        cudaMemset(label_idx_ptr, 0, npoint * num_anchor * sizeof(int));
+
         get_bev_gt_bbox_gpu_launcher(batch_size, npoint, nbbox, bbox_attr,
                                      num_anchor, anchor_attr,
                                      diff_thres, cls_thres, expand_ratio,
@@ -118,7 +128,8 @@ public:
                                      anchor_param_list_ptr,
                                      input_accu_list_ptr,
                                      gt_bbox_ptr,
-                                     gt_conf_ptr);
+                                     gt_conf_ptr,
+                                     label_idx_ptr);
 
     }
 private:

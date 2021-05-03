@@ -18,7 +18,8 @@ __global__ void get_bev_gt_bbox_gpu_kernel(int batch_size, int npoint, int nbbox
                                            const float* anchor_param_list,
                                            int* input_accu_list,
                                            float* gt_bbox,
-                                           int* gt_conf) {
+                                           int* gt_conf,
+                                           int* label_idx) {
     if (batch_size * nbbox * bbox_attr <=0 || npoint <=0) {
 //        printf("Get RoI Logits Op exited unexpectedly.\n");
         return;
@@ -36,25 +37,27 @@ __global__ void get_bev_gt_bbox_gpu_kernel(int batch_size, int npoint, int nbbox
             for (int k=0; k<num_anchor; k++) {
                 float point_x = input_coors[input_accu_list[b]*2 + i*2 + 0];
                 float point_y = input_coors[input_accu_list[b]*2 + i*2 + 1];
-                float point_z = anchor_param_list[k*num_anchor + 3];
+                float point_z = anchor_param_list[k*anchor_attr + 3];
 
                 gt_bbox[input_accu_list[b]*num_anchor*7 + i*num_anchor*7 + k*7 + 0] = 0.1;
                 gt_bbox[input_accu_list[b]*num_anchor*7 + i*num_anchor*7 + k*7 + 1] = 0.1;
                 gt_bbox[input_accu_list[b]*num_anchor*7 + i*num_anchor*7 + k*7 + 2] = 0.1;
                 gt_conf[input_accu_list[b]*num_anchor + i*num_anchor + k] = 0;
+                label_idx[input_accu_list[b]*num_anchor + i*num_anchor + k] = -1;
 
                 for (int j=0; j<nbbox; j++) {
                 // [w, l, h, x, y, z, r, cls, diff_idx]
                 //  0  1  2  3  4  5  6   7      8
-                    float bbox_w = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 0];
-                    float bbox_l = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 1];
-                    float bbox_h = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 2];
-                    float bbox_x = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 3];
-                    float bbox_y = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 4];
-                    float bbox_z = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 5];
-                    float bbox_r = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 6];
-                    float bbox_cls = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 7];
-                    float bbox_diff = gt_bbox[b*nbbox*bbox_attr + j*bbox_attr + 8];
+                    float bbox_w = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 0];
+                    float bbox_l = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 1];
+                    float bbox_h = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 2];
+                    float bbox_x = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 3];
+                    float bbox_y = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 4];
+                    float bbox_z = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 5];
+                    float bbox_r = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 6];
+                    float bbox_cls = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 7];
+                    float bbox_diff = label_bbox[b*nbbox*bbox_attr + j*bbox_attr + 8];
+//                    printf("bbox:[%.2f,%.2f,%.2f], point:[%.2f,%.2f,%.2f]\n",bbox_w,bbox_l,bbox_h,point_x,point_y,point_z);
                     if (bbox_l*bbox_h*bbox_w > 0) {
                         float rel_point_x = point_x - bbox_x;
                         float rel_point_y = point_y - bbox_y;
@@ -77,6 +80,7 @@ __global__ void get_bev_gt_bbox_gpu_kernel(int batch_size, int npoint, int nbbox
                                 // Here we only take cars into consideration, while vans are excluded and give the foreground labels as -1 (ignored).
                                 // TODO: need to change the category class accordingly to the expected detection target.
                                 gt_conf[input_accu_list[b]*num_anchor + i*num_anchor + k] = 1;
+                                label_idx[input_accu_list[b]*num_anchor + i*num_anchor + k] = j;
                             }else{
                                 gt_conf[input_accu_list[b]*num_anchor + i*num_anchor + k] = -1;
                             }
@@ -104,7 +108,8 @@ void get_bev_gt_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbo
                                   const float* anchor_param_list,
                                   int* input_accu_list,
                                   float* gt_bbox,
-                                  int* gt_conf) {
+                                  int* gt_conf,
+                                  int* label_idx) {
     long long dt = dtime_usec(0);
     get_bev_gt_bbox_gpu_kernel<<<32,512>>>(batch_size, npoint, nbbox, bbox_attr,
                                            num_anchor, anchor_attr,
@@ -115,7 +120,8 @@ void get_bev_gt_bbox_gpu_launcher(int batch_size, int npoint, int nbbox, int bbo
                                            anchor_param_list,
                                            input_accu_list,
                                            gt_bbox,
-                                           gt_conf);
+                                           gt_conf,
+                                           label_idx);
     dt = dtime_usec(dt);
 //	std::cout << "Voxel Sample (forward) CUDA time: " << dt/(float)USECPSEC << "s" << std::endl;
 }
