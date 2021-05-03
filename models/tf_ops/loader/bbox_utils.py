@@ -49,6 +49,21 @@ def get_bbox(roi_attrs, bboxes, input_num_list, expand_ratio=0.15, diff_thres=4,
     return bbox_attrs, bbox_conf, bbox_diff
 ops.NoGradient("GetBboxOp")
 
+
+# =============================================Get Bev Ground Truth===============================================
+
+get_bev_gt_bbox_exe = tf.load_op_library(join(CWD, '../build', 'get_bev_gt_bbox.so'))
+def get_bev_gt_bbox(input_coors, label_bbox, input_num_list, anchor_param_list, expand_ratio=0.15, diff_thres=4, cls_thres=1):
+    bbox_attrs, bbox_conf = get_bev_gt_bbox_exe.get_bev_gt_bbox_op(input_coors=input_coors,
+                                                                   label_bbox=label_bbox,
+                                                                   input_num_list=input_num_list,
+                                                                   anchor_param_list=anchor_param_list,
+                                                                   expand_ratio=expand_ratio,
+                                                                   diff_thres=diff_thres,
+                                                                   cls_thres=cls_thres)
+    return bbox_attrs, bbox_conf
+ops.NoGradient("GetBevGtBboxOp")
+
 # =============================================Roi Logits To Attrs===============================================
 
 roi_logits_to_attrs_exe = tf.load_op_library(join(CWD, '../build', 'roi_logits_to_attrs.so'))
@@ -57,7 +72,7 @@ def roi_logits_to_attrs(base_coors, input_logits, anchor_size):
                                                                   input_logits=input_logits,
                                                                   anchor_size=anchor_size)
     return output_attrs
-ops.NoGradient("RoiLogitsToAttrs")
+ops.NoGradient("RoiLogitsToAttrsOp")
 
 # =============================================Bbox Logits To Attrs===============================================
 
@@ -66,7 +81,9 @@ def bbox_logits_to_attrs(input_roi_attrs, input_logits):
     output_attrs = bbox_logits_to_attrs_exe.bbox_logits_to_attrs_op(input_roi_attrs=input_roi_attrs,
                                                                     input_logits=input_logits)
     return output_attrs
-ops.NoGradient("BboxLogitsToAttrs")
+ops.NoGradient("BboxLogitsToAttrsOp")
+
+
 
 
 def get_anchor_attrs(anchor_coors, anchor_param_list):  # [n, 2], [k, f]

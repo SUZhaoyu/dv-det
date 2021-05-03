@@ -142,6 +142,14 @@ def stage1_loss(bev_coors,
     anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
                                     anchor_param_list=anchor_param_list) # [n, k, f]
 
+    anchor_gt_attrs = get_bev_gt_attrs(input_coors=bev_coors,
+                                       label_bbox=bbox_labels,
+                                       input_num_list=num_list,
+                                       anchor_param_list=anchor_param_list,
+                                       offset_ratio=0.2,
+                                       diff_thres=config.diff_thres,
+                                       cls_thres=config.cls_thres) # [n, k, f]
+
 
 
 

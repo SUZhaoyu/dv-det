@@ -13,7 +13,7 @@ import train.kitti.kitti_config as config
 from models.tf_ops.loader.sampling import grid_sampling, get_bev_features
 from models.tf_ops.loader.pooling import bev_projection
 from models.tf_ops.loader.others import anchor_iou3d
-from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs
+from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs, get_bev_gt_bbox
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
 
@@ -61,6 +61,14 @@ if __name__ == '__main__':
     #                                                       expand_ratio=0.2,
     #                                                       diff_thres=config.diff_thres,
     #                                                       cls_thres=config.cls_thres)
+
+    gt_attrs, gt_conf = get_bev_gt_bbox(input_coors=bev_coors,
+                                        label_bbox=labels,
+                                        input_num_list=bev_num_list,
+                                        anchor_param_list=anchor_param_list,
+                                        expand_ratio=0.15,
+                                        diff_thres=4,
+                                        cls_thres=1)
 
     anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
                                     anchor_param_list=anchor_param_list)
