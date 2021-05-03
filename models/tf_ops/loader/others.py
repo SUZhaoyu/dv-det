@@ -86,9 +86,35 @@ def rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres)
     output_idx = tf.gather(sorted_idx, output_keep_index[:output_num_to_keep[0]])
 
     return output_idx
-
-
 ops.NoGradient("RotatedNms3d")
+
+def anchor_iou3d(anchor_attrs, label_attrs, num_list):
+    npoint = tf.shape(anchor_attrs)[0]
+    nanchor = tf.shape(anchor_attrs)[1]
+    nattrs = tf.shape(anchor_attrs)[2]
+    batch_size = tf.shape(num_list)[0]
+    label_attrs = label_attrs[..., :7] # [b, p, f]
+    attr_offset = tf.expand_dims(tf.expand_dims(tf.constant([0., 0., 0., 0., 0., 10., 0.]), axis=0), axis=0) # [1, 1, f]
+
+    point_ids = tf.range(npoint) + 1
+    point_ids_array = tf.cast(tf.tile(tf.expand_dims(point_ids, axis=0), [batch_size, 1]), dtype=tf.float32)
+    accu_num_list = tf.cast(tf.cumsum(num_list), dtype=tf.float32)
+    masks = tf.cast(tf.greater(point_ids_array / tf.expand_dims(accu_num_list, axis=-1), 1.0), dtype=tf.float32)
+    anchor_offset_masks = tf.expand_dims(tf.expand_dims(tf.reduce_sum(masks, axis=0), axis=-1), axis=-1) # [n, 1, 1]
+    anchor_offset = tf.tile(attr_offset, [npoint, 1, 1]) * anchor_offset_masks # [n, 1, f]
+    anchor_attrs += anchor_offset
+    anchor_attrs = tf.reshape(anchor_attrs, shape=[-1, nattrs]) # [n*k, f]
+
+    label_offset_masks = tf.expand_dims(tf.expand_dims(tf.cast(tf.range(batch_size), dtype=tf.float32), axis=-1), axis=-1) # [b, 1, 1]
+    label_offset = tf.tile(attr_offset, [batch_size, 1, 1]) * label_offset_masks # [b, 1, f]
+    label_attrs += label_offset
+    label_attrs = tf.reshape(label_attrs, shape=[-1, nattrs])
+
+    ious = iou3d_kernel_gpu_exe.boxes_iou3d(anchor_attrs, label_attrs)
+    ious = tf.reduce_max(ious, axis=1)
+    ious = tf.reshape(ious, shape=[npoint, -1]) # [n, k]
+    return ious
+ops.NoGradient("BoxesIou3d")
 
 def iou_filtering(attrs, coors, conf_logits, num_list, nms_overlap_thresh, nms_conf_thres, offset):
     conf = tf.nn.sigmoid(conf_logits)

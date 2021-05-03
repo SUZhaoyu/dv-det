@@ -69,22 +69,22 @@ def bbox_logits_to_attrs(input_roi_attrs, input_logits):
 ops.NoGradient("BboxLogitsToAttrs")
 
 
-def get_anchor_attrs(anchor_coors, anchor_param_list):
-    anchor_param_list = tf.expand_dims(anchor_param_list, axis=1)
-    anchor_param_list = tf.tile(anchor_param_list, [1, tf.shape(anchor_coors)[0], 1])
+def get_anchor_attrs(anchor_coors, anchor_param_list):  # [n, 2], [k, f]
+    anchor_param_list = tf.expand_dims(anchor_param_list, axis=0)  # [1, k, f]
+    anchor_param_list = tf.tile(anchor_param_list, [tf.shape(anchor_coors)[0], 1, 1])  # [n, k, f]
     output_anchor_attrs = []
-    for k in range(anchor_param_list.shape[0]):
-        anchor_param = anchor_param_list[k]
+    for k in range(anchor_param_list.shape[1]):
+        anchor_param = anchor_param_list[:, k, :] # [n, f] (w, l, h, z, r)
         anchor_attrs = tf.stack([anchor_param[:, 0],
                                  anchor_param[:, 1],
                                  anchor_param[:, 2],
                                  anchor_coors[:, 0],
                                  anchor_coors[:, 1],
                                  anchor_param[:, 3],
-                                 anchor_param[:, 4]], axis=-1)
+                                 anchor_param[:, 4]], axis=-1) # [n, f]
         output_anchor_attrs.append(anchor_attrs)
 
-    return tf.concat(output_anchor_attrs, axis=0)
+    return tf.stack(output_anchor_attrs, axis=1) # [n, k, f]
 
 
 def logits_to_attrs(anchor_coors, input_logits, anchor_param_list): # [n, k, f]

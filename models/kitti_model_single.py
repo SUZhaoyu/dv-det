@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 import train.kitti.kitti_config as config
-from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox, logits_to_attrs
+from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox, logits_to_attrs, get_anchor_attrs
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
 from models.tf_ops.loader.sampling import get_bev_features
@@ -138,6 +138,13 @@ def stage1_loss(bev_coors,
                 num_list,
                 bbox_labels,
                 wd):
+
+    anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
+                                    anchor_param_list=anchor_param_list) # [n, k, f]
+
+
+
+
     pred_roi_conf = tf.clip_by_value(tf.nn.sigmoid(conf_logits), eps, 1 - eps)
     gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=bev_coors,
                                                           bboxes=bbox_labels,

@@ -2,6 +2,7 @@ import os
 from os.path import join
 import numpy as np
 import tensorflow as tf
+# tf.compat.v1.enable_eager_execution()
 from tensorflow.python.client import timeline
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -11,6 +12,7 @@ import train.kitti.kitti_config as config
 # tf.enable_eager_execution()
 from models.tf_ops.loader.sampling import grid_sampling, get_bev_features
 from models.tf_ops.loader.pooling import bev_projection
+from models.tf_ops.loader.others import anchor_iou3d
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
@@ -66,19 +68,20 @@ if __name__ == '__main__':
 
     bev_coors, bev_features, bev_num_list = get_bev_features(bev_img=bev_img,
                                                              resolution=0.4,
-                                                             offset=offset,
-                                                             z_base_coor=-1.0)
+                                                             offset=offset)
 
-    gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=bev_coors,
-                                                          bboxes=labels_p,
-                                                          input_num_list=bev_num_list,
-                                                          anchor_size=anchor_size,
-                                                          expand_ratio=0.2,
-                                                          diff_thres=config.diff_thres,
-                                                          cls_thres=config.cls_thres)
+    # gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=bev_coors,
+    #                                                       bboxes=labels_p,
+    #                                                       input_num_list=bev_num_list,
+    #                                                       anchor_size=anchor_size,
+    #                                                       expand_ratio=0.2,
+    #                                                       diff_thres=config.diff_thres,
+    #                                                       cls_thres=config.cls_thres)
 
     anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
                                     anchor_param_list=anchor_param_list)
+
+    ious = anchor_iou3d(anchor_attrs, labels_p, bev_num_list)
 
 
     config = tf.ConfigProto()
@@ -92,13 +95,14 @@ if __name__ == '__main__':
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         run_metadata = tf.RunMetadata()
         for i in tqdm(range(epoch)):
-            output_coors, output_num_list, output_img, output_attrs = sess.run([bev_coors, bev_num_list, bev_img, anchor_attrs],
-                                                      feed_dict={coors_p: input_coors[i],
-                                                                 features_p: input_features[i],
-                                                                 num_list_p: input_num_list[i],
-                                                                 labels_p: input_labels[i]},
-                                                      options=run_options,
-                                                      run_metadata=run_metadata)
+            output_coors, output_num_list, output_img, output_attrs, output_ious = \
+                sess.run([bev_coors, bev_num_list, bev_img, anchor_attrs, ious],
+                         feed_dict={coors_p: input_coors[i],
+                                    features_p: input_features[i],
+                                    num_list_p: input_num_list[i],
+                                    labels_p: input_labels[i]},
+                         options=run_options,
+                         run_metadata=run_metadata)
             tl = timeline.Timeline(run_metadata.step_stats)
             ctf = tl.generate_chrome_trace_format()
             with open('bev_proj_{}.json'.format(i), 'w') as f:

@@ -8,13 +8,13 @@ All Rights Reserved 2018.
 #define THREADS_PER_BLOCK 16
 #define DIVUP(m, n) ((m) / (n) + ((m) % (n) > 0))
 
-// #define DEBUG
+//#define DEBUG
 const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8; 
 const float EPS = 1e-8;
 struct Point {
     float x, y;
     __device__ Point() {}
-    __device__ Point(double _x, double _y){
+    __device__ Point(float _x, float _y){
         x = _x, y = _y;
     }
 
@@ -59,7 +59,7 @@ __device__ inline int check_in_box2d(const float *box, const Point &p){
 #ifdef DEBUG
     printf("box: (%.3f, %.3f, %.3f, %.3f, %.3f)\n", box[0], box[1], box[2], box[3], box[4]);
     printf("center: (%.3f, %.3f), cossin(%.3f, %.3f), src(%.3f, %.3f), rot(%.3f, %.3f)\n", center_x, center_y,
-            angle_cos, angle_sin, p.x, p.y, rot_x, rot_y);
+            angle_cos, angle_sin, p.x, p.y, (p.x - center_x) * angle_cos + (p.y - center_y) * angle_sin + center_x, rot_y);
 #endif
     return (rot_x > box[0] - MARGIN && rot_x < box[2] + MARGIN && rot_y > box[1] - MARGIN && rot_y < box[3] + MARGIN);
 }
@@ -358,6 +358,14 @@ __global__ void nms3d_kernel(const int boxes_num, const float nms_overlap_thresh
         const int col_blocks = DIVUP(boxes_num, THREADS_PER_BLOCK_NMS);
         mask[cur_box_idx * col_blocks + col_start] = t;
     }
+}
+
+void boxesIou3dGPUKernelLauncher(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou){
+
+    dim3 blocks(DIVUP(num_b, THREADS_PER_BLOCK), DIVUP(num_a, THREADS_PER_BLOCK));  // blockIdx.x(col), blockIdx.y(row)
+    dim3 threads(THREADS_PER_BLOCK, THREADS_PER_BLOCK);
+
+    boxes_iou_3d_kernel<<<blocks, threads>>>(num_a, boxes_a, num_b, boxes_b, ans_iou);
 }
 
 

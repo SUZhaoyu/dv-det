@@ -146,6 +146,7 @@ def bboxes_normalization(bboxes, length=64, diff_thres=None):
     if bboxes.shape[0] > length:
         print("WARNING: number of bboxes {} exceeds the buffer limition: {}".format(bboxes.shape[0], length))
     padding_bboxes = np.zeros((length, bbox_attr_num))
+    # padding_bboxes[:, :3] = np.ones_like(padding_bboxes[:, :3]) * 1e-2
     if len(bboxes) != 0:
         padding_bboxes[:len(bboxes), ...] = bboxes
     return padding_bboxes

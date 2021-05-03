@@ -28,6 +28,111 @@ using ::tensorflow::shape_inference::ShapeHandle;
 
 const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8;
 
+
+REGISTER_OP("BoxesIou3d")
+    .Input("input_boxes_a: float32")
+    .Input("input_boxes_b: float32")
+    .Output("output_iou_3d: float32")
+    // .Attr("npoints: float")
+    // .Attr("batchSize: int")
+    // .Attr("nFeatures: int")
+    .SetShapeFn([](InferenceContext* c){
+        // ShapeHandle input_features_shape;
+        // TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 2, &input_features_shape));
+        // ShapeHandle roi_attrs_shape;
+        // TF_RETURN_IF_ERROR(c->WithRank(c->input(2), 2, &roi_attrs_shape));
+
+        // int kernel_size;
+        // TF_RETURN_IF_ERROR(c->GetAttr("kernel_size", &kernel_size));
+
+        // DimensionHandle kernel_number = c->Dim(roi_attrs_shape, 0);
+        // DimensionHandle channels = c->Dim(input_features_shape, 1);
+
+        // // The output shape during the shape inference stage is pseudo.
+        // ShapeHandle output_shape = c->MakeShape({kernel_number, kernel_size * kernel_size * kernel_size, channels});
+
+        // c->set_output(0, output_shape); // output_features
+        // c->set_output(1, output_shape); // output_idx
+
+        return Status::OK();
+    }); // InferenceContext
+
+void boxesIou3dGPUKernelLauncher(
+    const int num_a,
+    const float *boxes_a,
+    const int num_b,
+    const float *boxes_b,
+    float *ans_iou);
+
+class BoxesIou3d: public OpKernel {
+public:
+    explicit BoxesIou3d(OpKernelConstruction* context): OpKernel(context) {
+
+
+        // OP_REQUIRES_OK(context, context->GetAttr("batchSize", &batchSize));
+        // OP_REQUIRES_OK(context, context->GetAttr("nPoints", &nPoints));
+        // OP_REQUIRES_OK(context, context->GetAttr("nFeatures", &nFeatures));
+
+        // OP_REQUIRES(context, batchSize > 0,
+                    // errors::InvalidArgument("Batch Size has to be larger than 0"));
+        // OP_REQUIRES(context, nPoints > 0,
+                    // errors::InvalidArgument("Number of points has to be larger than 0"));
+        // OP_REQUIRES(context, nFeatures >= 3,
+        //             errors::InvalidArgument("Number of features has to be larger than 3"));
+    }
+    void Compute(OpKernelContext* context) override {
+        // printf("1");
+
+        const Tensor& input_boxes_a = context->input(0);
+        auto input_boxes_a_ptr = input_boxes_a.template flat<float>().data();
+        OP_REQUIRES(context, input_boxes_a.dims()==2 && input_boxes_a.shape().dim_size(1)==7,
+                    errors::InvalidArgument("BoxesIou3d expects boxes_a in shape: [M, 7]."));
+
+        const Tensor& input_boxes_b = context->input(1);
+        auto input_boxes_b_ptr = input_boxes_b.template flat<float>().data();
+        OP_REQUIRES(context, input_boxes_b.dims()==2 && input_boxes_b.shape().dim_size(1)==7,
+                    errors::InvalidArgument("BoxesIou3d expects boxes_b in shape: [N, 7]."));
+
+        const int num_a = input_boxes_a.dim_size(0);
+        const int num_b = input_boxes_b.dim_size(0);
+
+
+        Tensor* output_iou3d = nullptr;
+        auto output_iou3d_shape = TensorShape({num_a, num_b});
+        OP_REQUIRES_OK(context, context->allocate_output(0, output_iou3d_shape, &output_iou3d));
+        float* output_iou3d_ptr = output_iou3d->template flat<float>().data();
+
+        // printf("1");
+        boxesIou3dGPUKernelLauncher(
+            num_a,
+            input_boxes_a_ptr,
+            num_b,
+            input_boxes_b_ptr,
+            output_iou3d_ptr);
+        // printf("1");
+        // printf(std::to_string(output_bev_overlap_area_ptr[0]));
+    }
+private:
+    // float padding_value;
+    // int kernel_size, pooling_size;
+}; // OpKernel
+REGISTER_KERNEL_BUILDER(Name("BoxesIou3d").Device(DEVICE_GPU), BoxesIou3d);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // params input_boxes: (N, 5) [x1, y1, x2, y2, ry]
 // params output_keep_index: (N) 
 // params output_num_to_keep: (1)
