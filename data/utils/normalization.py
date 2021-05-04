@@ -187,7 +187,10 @@ def convert_threejs_bbox_with_prob(bboxes, color=None):
         if box[0] * box[1] * box[2] > 0:
             threejs_bbox = [0] * 9
             threejs_bbox[:7] = box[:7]
-            threejs_bbox[-1] = "%0.2f"%box[-1]
+            if color is not None:
+                threejs_bbox[-1] = "%0.2f" % color[i]
+            else:
+                threejs_bbox[-1] = " "
             # threejs_bbox[-1] = "%0.2f" % box[6]
             if color is not None:
                 if math.isnan(box[-1]):

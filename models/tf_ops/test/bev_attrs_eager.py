@@ -32,17 +32,17 @@ anchor_param_list = tf.constant([[1.6, 3.9, 1.5, -1.0, 0.],
                                  [1.6, 3.9, 1.5, -1.0, np.pi/2]])
 
 if __name__ == '__main__':
-    Dataset = Dataset(task='training',
+    Dataset = Dataset(task='validation',
                       batch_size=batch_size,
                       config=config.aug_config,
                       num_worker=6,
                       hvd_size=1,
                       hvd_id=0)
-    coors, features, num_list, labels = next(Dataset.train_generator())
+    coors, features, num_list, labels = next(Dataset.valid_generator(start_idx=71))
     Dataset.stop()
 
     coors = tf.cast(coors, dtype=tf.float32)
-    coors, num_list, idx = grid_sampling(coors, num_list, 0.2, offset=offset, dimension=dimension)
+    coors, num_list, idx = grid_sampling(coors, num_list, 0.1, offset=offset, dimension=dimension)
     features = tf.gather(features, idx)
 
     bev_img = bev_projection(input_coors=coors,
@@ -80,52 +80,32 @@ if __name__ == '__main__':
     anchor_attrs = tf.reshape(anchor_attrs, [-1, tf.shape(anchor_attrs)[2]])
     bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
 
-
-
-    # config = tf.ConfigProto()
-    # config.gpu_options.allow_growth = False
-    # config.allow_soft_placement = False
-    # config.log_device_placement = False
-    # config.gpu_options.visible_device_list = '0'
-    # init_op = tf.initialize_all_variables()
-    # with tf.Session(config=config) as sess:
-    #     # sess.run(init_op)
-    #     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-    #     run_metadata = tf.RunMetadata()
-    #     for i in tqdm(range(epoch)):
-    #         output_coors, output_num_list, output_img, output_attrs, output_ious = \
-    #             sess.run([bev_coors, bev_num_list, bev_img, anchor_attrs, ious],
-    #                      feed_dict={coors_p: input_coors[i],
-    #                                 features_p: input_features[i],
-    #                                 num_list_p: input_num_list[i],
-    #                                 labels_p: input_labels[i]},
-    #                      options=run_options,
-    #                      run_metadata=run_metadata)
-    #         tl = timeline.Timeline(run_metadata.step_stats)
-    #         ctf = tl.generate_chrome_trace_format()
-    #         with open('bev_proj_{}.json'.format(i), 'w') as f:
-    #             f.write(ctf)
-    #
-    #         print("finished.")
-    #
     input_coors = coors
     output_coors = np.concatenate([bev_coors.numpy(), np.zeros([bev_coors.numpy().shape[0], 1]) + -1.0], axis=-1)
+    bev_num_list = bev_num_list.numpy()
 
     id = 0
     input_coors = fetch_instance(coors, num_list, id=id)
     input_rgbs = np.zeros_like(input_coors) + [255, 255, 255]
 
 
-    output_coors = fetch_instance(output_coors, bev_num_list, id=id)
+    output_coors = fetch_instance(output_coors, num_list, id=id)
     output_rgbs = np.zeros_like(output_coors) + [255, 0, 0]
 
     plot_coors = np.concatenate([input_coors, output_coors], axis=0)
     plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
 
-    output_attrs = fetch_instance(anchor_attrs, deepcopy(bev_num_list)*2, id=id).numpy()
-    bev_iou = fetch_instance(bev_iou, deepcopy(bev_num_list)*2, id=id).numpy()
-    output_attrs = output_attrs[bev_iou > 0.1, :]
+    # output_attrs = fetch_instance(gt_attrs.numpy(), bev_num_list*2, id=id)
+    # bev_iou = fetch_instance(bev_iou.numpy(), bev_num_list*2, id=id)
+    gt_attrs = gt_attrs.numpy()
+    anchor_attrs = anchor_attrs.numpy()
+    bev_iou = bev_iou.numpy()
+    gt_attrs = gt_attrs[bev_iou > 0.5, :]
+    anchor_attrs = anchor_attrs[bev_iou > 0.5, :]
 
+    gt_attrs = gt_attrs[200:205, :]
+    anchor_attrs = anchor_attrs[200:205, :]
+    output_attrs = np.concatenate([gt_attrs, anchor_attrs], axis=0)
 
     plot_points(coors=input_coors,
                 rgb=input_rgbs,

@@ -5,7 +5,7 @@ from point_viz.converter import PointvizConverter
 from tqdm import tqdm
 from copy import deepcopy
 
-from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox
+from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox, convert_threejs_bbox_with_prob
 import time
 Converter = PointvizConverter("/home/tan/tony/threejs")
 
@@ -30,11 +30,11 @@ def fetch_instance(input_list, num_list, id=0):
         return input_list[accu_num_list[id - 1]:accu_num_list[id], ...]
 
 
-def plot_points(coors, intensity=None, rgb=None, bboxes=None, name='test'):
+def plot_points(coors, intensity=None, rgb=None, bboxes=None, prob=None, name='test'):
     Converter.compile(coors=convert_threejs_coors(coors),
                       intensity=intensity,
                       default_rgb=rgb,
-                      bbox_params=convert_threejs_bbox(bboxes),
+                      bbox_params=convert_threejs_bbox_with_prob(bboxes, color=prob),
                       task_name=name)
 
 

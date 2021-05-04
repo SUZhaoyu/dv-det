@@ -265,7 +265,8 @@ def ground_align(points, bbox, ground, trans_list):
 def object_points_shift(point, bbox, offset=5):
     center_xy = np.array(bbox[3:5])
     point[:, :2] -= center_xy
-    random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
+    # random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
+    random_r = 0.
     T = np.array([[np.cos(random_r), -np.sin(random_r)],
                   [np.sin(random_r), np.cos(random_r)]])
 
