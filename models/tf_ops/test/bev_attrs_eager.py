@@ -1,4 +1,6 @@
 import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from os.path import join
 import numpy as np
 import tensorflow as tf
@@ -48,13 +50,13 @@ if __name__ == '__main__':
     bev_img = bev_projection(input_coors=coors,
                              input_features=features,
                              input_num_list=num_list,
-                             resolution=0.2,
+                             resolution=0.4,
                              dimension=dimension,
                              offset=offset,
                              buffer_size=10)
 
     bev_coors, bev_features, bev_num_list = get_bev_features(bev_img=bev_img,
-                                                             resolution=0.2,
+                                                             resolution=0.4,
                                                              offset=offset)
 
     # gt_roi_attrs, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=bev_coors,
@@ -78,7 +80,18 @@ if __name__ == '__main__':
 
     gt_attrs = tf.reshape(gt_attrs, [-1, tf.shape(gt_attrs)[2]])
     anchor_attrs = tf.reshape(anchor_attrs, [-1, tf.shape(anchor_attrs)[2]])
+
+    start = 0
+    span = 1500
+
+    idx = tf.squeeze(tf.where(tf.greater(gt_attrs[:, 0], 1.)))
+
+    gt_attrs = tf.gather(gt_attrs, idx)[start:start+span, :]
+    anchor_attrs = tf.gather(anchor_attrs, idx)[start:start+span, :]
+
     bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
+
+
 
     input_coors = coors
     output_coors = np.concatenate([bev_coors.numpy(), np.zeros([bev_coors.numpy().shape[0], 1]) + -1.0], axis=-1)
@@ -100,16 +113,23 @@ if __name__ == '__main__':
     gt_attrs = gt_attrs.numpy()
     anchor_attrs = anchor_attrs.numpy()
     bev_iou = bev_iou.numpy()
-    gt_attrs = gt_attrs[bev_iou > 0.5, :]
-    anchor_attrs = anchor_attrs[bev_iou > 0.5, :]
+    thres = 0.6
+    print(np.sum(bev_iou > thres))
+    gt_attrs = gt_attrs[bev_iou > thres, :]
+    anchor_attrs = anchor_attrs[bev_iou > thres, :]
+    bev_iou = bev_iou[bev_iou > thres]
 
-    gt_attrs = gt_attrs[200:205, :]
-    anchor_attrs = anchor_attrs[200:205, :]
+    start = 20
+    span = 1
+
+    # gt_attrs = gt_attrs[start:start+span, :]
+    # anchor_attrs = anchor_attrs[start:start+span, :]
     output_attrs = np.concatenate([gt_attrs, anchor_attrs], axis=0)
 
     plot_points(coors=input_coors,
                 rgb=input_rgbs,
-                name='bev_coors',
-                bboxes=output_attrs)
+                name='bev_coors_iou',
+                bboxes=anchor_attrs,
+                prob=bev_iou)
 
-    # output_img = np.sum(output_idx >= 0, axis=-1)
+
