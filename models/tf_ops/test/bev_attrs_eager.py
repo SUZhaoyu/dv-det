@@ -34,13 +34,13 @@ anchor_param_list = tf.constant([[1.6, 3.9, 1.5, -1.0, 0.],
                                  [1.6, 3.9, 1.5, -1.0, np.pi/2]])
 
 if __name__ == '__main__':
-    Dataset = Dataset(task='validation',
+    Dataset = Dataset(task='training',
                       batch_size=batch_size,
                       config=config.aug_config,
                       num_worker=6,
                       hvd_size=1,
                       hvd_id=0)
-    coors, features, num_list, labels = next(Dataset.valid_generator(start_idx=71))
+    coors, features, num_list, labels = next(Dataset.train_generator())
     Dataset.stop()
 
     coors = tf.cast(coors, dtype=tf.float32)
@@ -85,9 +85,8 @@ if __name__ == '__main__':
     span = 1500
 
     idx = tf.squeeze(tf.where(tf.greater(gt_attrs[:, 0], 1.)))
-
-    gt_attrs = tf.gather(gt_attrs, idx)[start:start+span, :]
-    anchor_attrs = tf.gather(anchor_attrs, idx)[start:start+span, :]
+    gt_attrs = tf.gather(gt_attrs, idx)#[start:start+span, :]
+    anchor_attrs = tf.gather(anchor_attrs, idx)#[start:start+span, :]
 
     bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
 
