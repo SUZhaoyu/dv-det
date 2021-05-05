@@ -297,19 +297,19 @@ def get_bev_features(bev_img, resolution, offset):
     img_l = bev_img.shape[2]
     channels = bev_img.shape[3]
 
-    bev_max = tf.reduce_max(bev_img, axis=-1)
-    bev_activate_mask = tf.greater(bev_max, -1e-6)
-    bev_num_list = tf.reduce_sum(tf.cast(bev_activate_mask, dtype=tf.int32), axis=[1, 2])
-    activate_idx = tf.where(tf.reshape(bev_activate_mask, shape=[batch_size, -1]))
+    bev_max = tf.reduce_max(bev_img, axis=-1) # [b, w, l]
+    bev_activate_mask = tf.greater(bev_max, -1e-6) # [b, w, l]
+    bev_num_list = tf.reduce_sum(tf.cast(bev_activate_mask, dtype=tf.int32), axis=[1, 2]) # [b]
+    activate_idx = tf.where(tf.reshape(bev_activate_mask, shape=[batch_size, -1])) # [b, n]
 
-    bev_idx = tf.range(img_w * img_l)
-    bev_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32)
-    bev_coors = tf.expand_dims(bev_coors, axis=0)
-    bev_coors = tf.cast(tf.tile(bev_coors, [batch_size, 1, 1]), dtype=tf.float32) * resolution + resolution / 2. - tf.expand_dims(offset[0:2], axis=0)
+    bev_idx = tf.range(img_w * img_l) # [w*l]
+    bev_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32) # [w*l, 2]
+    bev_coors = tf.expand_dims(bev_coors, axis=0) # [1, w*l, 2]
+    bev_coors = tf.cast(tf.tile(bev_coors, [batch_size, 1, 1]), dtype=tf.float32) * resolution + resolution / 2. - tf.expand_dims(offset[0:2], axis=0) # [b, w*l, 2]
 
-    bev_img_reshape = tf.reshape(bev_img, shape=[batch_size, -1, channels])
-    bev_coors = tf.gather_nd(bev_coors, activate_idx)
-    bev_features = tf.gather_nd(bev_img_reshape, activate_idx)
+    bev_img_reshape = tf.reshape(bev_img, shape=[batch_size, -1, channels]) # [b, w*l, c]
+    bev_coors = tf.gather_nd(bev_coors, activate_idx) # [b, n, c]
+    bev_features = tf.gather_nd(bev_img_reshape, activate_idx) # [b, n, 2]
 
     return bev_coors, bev_features, bev_num_list
 

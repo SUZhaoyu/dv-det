@@ -15,7 +15,7 @@ import train.kitti.kitti_config as config
 # tf.enable_eager_execution()
 from models.tf_ops.loader.sampling import grid_sampling, get_bev_features
 from models.tf_ops.loader.pooling import bev_projection
-from models.tf_ops.loader.others import anchor_iou3d
+from models.tf_ops.loader.others import anchor_iou3d, anchor_iou_filter
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs, get_bev_gt_bbox
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 
@@ -73,22 +73,28 @@ if __name__ == '__main__':
                                                 anchor_param_list=anchor_param_list,
                                                 expand_ratio=0.15,
                                                 diff_thres=4,
-                                                cls_thres=1)
+                                                cls_thres=0)
 
     anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
                                     anchor_param_list=anchor_param_list)
 
     gt_attrs = tf.reshape(gt_attrs, [-1, tf.shape(gt_attrs)[2]])
     anchor_attrs = tf.reshape(anchor_attrs, [-1, tf.shape(anchor_attrs)[2]])
+    gt_conf = tf.reshape(gt_conf, [-1])
+    gt_idx = tf.reshape(gt_idx, [-1])
 
-    start = 0
-    span = 1500
+    idx = tf.squeeze(tf.where(tf.greater_equal(gt_conf, 1)))
+    gt_attrs = tf.gather(gt_attrs, idx)
+    gt_idx = tf.gather(gt_idx, idx)
+    anchor_attrs = tf.gather(anchor_attrs, idx)
 
-    idx = tf.squeeze(tf.where(tf.greater(gt_attrs[:, 0], 1.)))
-    gt_attrs = tf.gather(gt_attrs, idx)#[start:start+span, :]
-    anchor_attrs = tf.gather(anchor_attrs, idx)#[start:start+span, :]
+
 
     bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
+    gt_conf = anchor_iou_filter(bev_iou, gt_idx, labels, gt_conf, idx)
+    gt_conf = tf.gather(gt_conf, idx)
+    bev_iou = tf.cast(gt_conf, dtype=tf.float32) * bev_iou
+
 
 
 
@@ -112,7 +118,7 @@ if __name__ == '__main__':
     gt_attrs = gt_attrs.numpy()
     anchor_attrs = anchor_attrs.numpy()
     bev_iou = bev_iou.numpy()
-    thres = 0.6
+    thres = 0.3
     print(np.sum(bev_iou > thres))
     gt_attrs = gt_attrs[bev_iou > thres, :]
     anchor_attrs = anchor_attrs[bev_iou > thres, :]
@@ -127,7 +133,7 @@ if __name__ == '__main__':
 
     plot_points(coors=input_coors,
                 rgb=input_rgbs,
-                name='bev_coors_iou',
+                name='bev_coors_iou_filter',
                 bboxes=anchor_attrs,
                 prob=bev_iou)
 

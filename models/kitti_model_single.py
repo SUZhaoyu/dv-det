@@ -139,6 +139,47 @@ def stage1_loss(bev_coors,
                 bbox_labels,
                 wd):
 
+    gt_attrs, gt_conf, gt_idx = get_bev_gt_bbox(input_coors=bev_coors,
+                                                label_bbox=bbox_labels,
+                                                input_num_list=num_list,
+                                                anchor_param_list=anchor_param_list,
+                                                expand_ratio=0.15,
+                                                diff_thres=4,
+                                                cls_thres=1)
+
+    anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
+                                    anchor_param_list=anchor_param_list)
+
+    gt_attrs = tf.reshape(gt_attrs, [-1, tf.shape(gt_attrs)[2]])
+    anchor_attrs = tf.reshape(anchor_attrs, [-1, tf.shape(anchor_attrs)[2]])
+    gt_conf = tf.reshape(gt_conf, [-1])
+    gt_idx = tf.reshape(gt_idx, [-1])
+
+    idx = tf.squeeze(tf.where(tf.greater_equal(gt_conf, 1)))
+    anchor_attrs = tf.gather(anchor_attrs, idx)
+    gt_attrs = tf.gather(gt_attrs, idx)
+    gt_idx = tf.gather(gt_idx, idx)
+    gt_conf = tf.gather(gt_conf, idx)
+
+    bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
+    iou_mask = anchor_iou_filter(bev_iou, gt_idx, bbox_labels)
+    bev_iou = tf.cast(iou_mask, dtype=tf.float32) * bev_iou
+
+    target_conf = tf.cast(tf.)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     anchor_attrs = get_anchor_attrs(anchor_coors=bev_coors,
                                     anchor_param_list=anchor_param_list) # [n, k, f]
 

@@ -80,7 +80,7 @@ __global__ void get_bev_gt_bbox_gpu_kernel(int batch_size, int npoint, int nbbox
                                 // Here we only take cars into consideration, while vans are excluded and give the foreground labels as -1 (ignored).
                                 // TODO: need to change the category class accordingly to the expected detection target.
                                 gt_conf[input_accu_list[b]*num_anchor + i*num_anchor + k] = 1;
-                                label_idx[input_accu_list[b]*num_anchor + i*num_anchor + k] = j;
+                                label_idx[input_accu_list[b]*num_anchor + i*num_anchor + k] = b * nbbox + j;
                             }else{
                                 gt_conf[input_accu_list[b]*num_anchor + i*num_anchor + k] = -1;
                             }

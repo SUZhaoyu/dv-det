@@ -42,6 +42,21 @@ def roi_filter(input_roi_attrs, input_roi_conf, input_roi_ious, input_num_list, 
 ops.NoGradient("RoiFilterOp")
 
 
+# =============================================Anchor IoU Filter===============================================
+
+anchor_iou_filter_exe = tf.load_op_library(join(CWD, '../build', 'anchor_iou_filter.so'))
+def anchor_iou_filter(anchor_iou, iou_idx, label_bbox, gt_conf, valid_idx, thres_high=0.6, thres_low=0.3):
+    gt_conf = anchor_iou_filter_exe.anchor_iou_filter_op(anchor_iou=anchor_iou,
+                                                         iou_idx=iou_idx,
+                                                         label_bbox=label_bbox,
+                                                         gt_conf=gt_conf,
+                                                         valid_idx=tf.cast(valid_idx, tf.int32),
+                                                         thres_high=thres_high,
+                                                         thres_low=thres_low)
+    return gt_conf
+ops.NoGradient("AnchorIouFilterOp")
+
+
 # ============================================= NMS ===============================================
 
 iou3d_kernel_gpu_exe = tf.load_op_library(join(CWD, '../build', 'nms.so'))
