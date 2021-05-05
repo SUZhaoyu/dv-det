@@ -13,7 +13,11 @@ Converter = PointvizConverter(home='/home/tan/tony/threejs')
 logging.basicConfig(level=logging.INFO)
 CAM = 2
 category_dict = {"car": 0,
-                 "van": 1}
+                 "van": 1,
+                 "truck": 1,
+                 "tram": 1,
+                 "misc": 1,
+                 }
 range_x = [0., 70.4]
 range_y = [-40., 40.]
 range_z = [-3., 1.]
