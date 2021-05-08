@@ -24,7 +24,7 @@ from models.utils.iou_utils import cal_bev_iou
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-batch_size = 1
+batch_size = 6
 epoch = 2
 dimension = [100., 140., 9.]
 offset = [10., 70., 5.]
@@ -92,8 +92,8 @@ if __name__ == '__main__':
 
     bev_iou = cal_bev_iou(gt_attrs, anchor_attrs)
     gt_conf = anchor_iou_filter(bev_iou, gt_idx, labels, gt_conf, idx)
-    gt_conf = tf.gather(gt_conf, idx)
-    bev_iou = tf.cast(gt_conf, dtype=tf.float32) * bev_iou
+    # gt_conf = tf.gather(gt_conf, idx)
+    # bev_iou = tf.cast(gt_conf, dtype=tf.float32) * bev_iou
 
 
 
@@ -101,6 +101,8 @@ if __name__ == '__main__':
     input_coors = coors
     output_coors = np.concatenate([bev_coors.numpy(), np.zeros([bev_coors.numpy().shape[0], 1]) + -1.0], axis=-1)
     bev_num_list = bev_num_list.numpy()
+    gt_conf = gt_conf.numpy()
+    anchor_attrs = anchor_attrs.numpy()
 
     id = 0
     input_coors = fetch_instance(coors, num_list, id=id)
@@ -113,8 +115,8 @@ if __name__ == '__main__':
     plot_coors = np.concatenate([input_coors, output_coors], axis=0)
     plot_rgbs = np.concatenate([input_rgbs, output_rgbs], axis=0)
 
-    # output_attrs = fetch_instance(gt_attrs.numpy(), bev_num_list*2, id=id)
-    # bev_iou = fetch_instance(bev_iou.numpy(), bev_num_list*2, id=id)
+    output_attrs = fetch_instance(gt_attrs.numpy(), bev_num_list*2, id=id)
+    bev_iou = fetch_instance(bev_iou.numpy(), bev_num_list*2, id=id)
     gt_attrs = gt_attrs.numpy()
     anchor_attrs = anchor_attrs.numpy()
     bev_iou = bev_iou.numpy()

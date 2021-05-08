@@ -12,7 +12,7 @@ from shutil import rmtree, copyfile
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import kitti_model as model
+from models import kitti_model_single as model
 from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
@@ -74,7 +74,7 @@ stage1_lr, stage1_bn, stage1_wd = set_training_controls(config=config,
                                                         prefix='stage1')
 stage1_loader = tf.train.Saver()
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+bev_coors, bbox_attrs, conf_logits, bbox_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -84,10 +84,10 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        mem_saving=True,
                        bn=stage1_bn)
 
-stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
-                                                  pred_roi_attrs=roi_attrs,
-                                                  roi_conf_logits=roi_conf_logits,
-                                                  roi_num_list=roi_num_list,
+stage1_loss, averaged_roi_iou = model.stage1_loss(bev_coors=bev_coors,
+                                                  pred_attrs=bbox_attrs,
+                                                  conf_logits=conf_logits,
+                                                  num_list=bbox_num_list,
                                                   bbox_labels=input_bbox_p,
                                                   wd=stage1_wd)
 
@@ -164,9 +164,9 @@ def main():
         best_result = 0.
         step = 0
 
-        best_result = save_best_sess(mon_sess, best_result, 0.,
-                                     log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
-                                     save_anyway=True)
+        # best_result = save_best_sess(mon_sess, best_result, 0.,
+        #                              log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
+        #                              save_anyway=True)
 
         # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
 
@@ -179,7 +179,7 @@ def main():
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
                                                  log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
-                                                 save_anyway=False)
+                                                 save_anyway=True)
 
 
 if __name__ == '__main__':

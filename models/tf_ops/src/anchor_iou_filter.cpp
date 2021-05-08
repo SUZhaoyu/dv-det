@@ -96,9 +96,9 @@ public:
                                                        &iou_mask_temp));
         int* iou_mask_temp_ptr = iou_mask_temp.template flat<int>().data();
         memset(iou_mask_temp_ptr, -1, n_anchor * sizeof(int));
-        for (int i=0; i<n_anchor; ++i) {
-            printf("%d\n", iou_mask_temp_ptr[i]);
-        }
+//        for (int i=0; i<n_anchor; ++i) {
+//            printf("%d\n", iou_mask_temp_ptr[i]);
+//        }
 
         Tensor* output_gt_conf = nullptr;
         auto output_gt_conf_shape = TensorShape({gt_length});

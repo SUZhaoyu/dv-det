@@ -152,6 +152,7 @@ def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         gradients = optimizer.compute_gradients(loss)
+        # tf.summary.histogram("gradients", gradients)
         clipped_gradients = []
         for grad, var in gradients:
             if var in var_list:

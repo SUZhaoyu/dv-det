@@ -122,7 +122,7 @@ class Dataset(object):
                     batch_bbox = np.zeros((self.batch_size, self.nbbox, 9), dtype=np.float32)
 
                     for i in range(self.batch_size):
-                        idx = np.random.randint(self.hvd_data_length)
+                        idx = np.random.randint(self.total_data_length)
                         points = deepcopy(self.points[idx])
                         bboxes = np.array(deepcopy(self.bboxes[idx]))
 

@@ -339,6 +339,7 @@ def conv_2d_wrapper(inputs,
                                              output_shape=output_shape,
                                              strides=stride,
                                              padding="SAME")
+            # outputs = tf.reshape(outputs, output_shape)
 
         if bn_decay is None:
             outputs = tf.nn.bias_add(outputs, biases)
