@@ -1,6 +1,6 @@
 import os
 from os.path import join
-
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import ops
 
@@ -313,3 +313,50 @@ def get_bev_features(bev_img, resolution, offset):
 
     return bev_coors, bev_features, bev_num_list
 
+
+def bev_occupy(input_coors, input_num_list, resolution, dimension, offset):
+    bev_occupy_exe = tf.load_op_library(join(CWD, '../build', 'bev_occupy.so'))
+    output_occupy = bev_occupy_exe.bev_occupy_op(input_coors=input_coors + offset,
+                                                 input_num_list=input_num_list,
+                                                 resolution=resolution,
+                                                 dimension=dimension)
+    return output_occupy
+
+def get_bev_anchor_point(bev_occupy, resolution, kernel_resolution, offset, height):
+    batch_size = tf.shape(bev_occupy)[0]
+    img_w = tf.shape(bev_occupy)[1]
+    img_l = tf.shape(bev_occupy)[2]
+
+    conv_kernel_size = int(np.ceil(kernel_resolution / resolution) * 3)
+    conv_kernel_size += (conv_kernel_size - 1) % 2
+    conv_kernel_shape = [conv_kernel_size, conv_kernel_size, 1, 1]
+    conv_kernel = tf.ones(conv_kernel_shape, dtype=tf.float32)
+    bev_occupy = tf.nn.conv2d(input=tf.cast(bev_occupy, dtype=tf.float32),
+                              filter=conv_kernel,
+                              strides=1,
+                              padding='SAME') # [b, w, l, 1]
+
+    bev_idx = tf.range(img_w * img_l)  # [w*l]
+    bev_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32)  # [w*l, 2]
+    bev_coors = tf.expand_dims(bev_coors, axis=0)  # [1, w*l, 2]
+    bev_coors = tf.cast(tf.tile(bev_coors, [batch_size, 1, 1]),
+                        dtype=tf.float32) * resolution + resolution / 2. - tf.expand_dims(offset[0:2],
+                                                                                          axis=0)  # [b, w*l, 2]
+
+    bev_occupy = tf.reshape(bev_occupy, [batch_size, -1])
+    activate_mask = tf.greater(bev_occupy, 1e-6)
+    activate_idx = tf.where(activate_mask)
+    bev_num_list = tf.reduce_sum(tf.cast(activate_mask, dtype=tf.int32), axis=[1])
+    bev_coors = tf.gather_nd(bev_coors, activate_idx) # [n, 2]
+
+    anchor_coors = []
+    anchor_num_list = bev_num_list * len(height)
+
+    for h in height:
+        bev_height = tf.ones(tf.shape(activate_idx)[0], dtype=tf.float32) * h
+        anchor_coors.append(tf.concat([bev_coors, tf.expand_dims(bev_height, -1)], axis=-1))
+
+    anchor_coors = tf.stack(anchor_coors, axis=1)
+    anchor_coors = tf.reshape(anchor_coors, [-1, 3])
+
+    return anchor_coors, anchor_num_list

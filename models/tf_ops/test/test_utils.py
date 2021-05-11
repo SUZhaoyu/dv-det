@@ -34,7 +34,7 @@ def plot_points(coors, intensity=None, rgb=None, bboxes=None, prob=None, name='t
     Converter.compile(coors=convert_threejs_coors(coors),
                       intensity=intensity,
                       default_rgb=rgb,
-                      bbox_params=convert_threejs_bbox_with_prob(bboxes, color=prob),
+                      # bbox_params=convert_threejs_bbox_with_prob(bboxes, color=prob),
                       task_name=name)
 
 

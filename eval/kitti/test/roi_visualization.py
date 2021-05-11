@@ -14,11 +14,11 @@ import train.kitti.kitti_config as config
 os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-stage1'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-stage1')
 
-from models import kitti_model as model
+from models import kitti_model_anchor as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 hvd.init()
 
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.0'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.6689853344446504'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 task = 'validation'
@@ -43,11 +43,11 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
-nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.9, nms_conf_thres=0.3)
-roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
-roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
-roi_conf = tf.gather(roi_conf, nms_idx, axis=0)
-roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.9, nms_conf_thres=0.5)
+# roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
+# roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+# roi_conf = tf.gather(roi_conf, nms_idx, axis=0)
+# roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
 
 
 roi_ious = model.get_roi_iou(roi_coors=roi_coors,
@@ -55,17 +55,17 @@ roi_ious = model.get_roi_iou(roi_coors=roi_coors,
                              roi_num_list=roi_num_list,
                              bbox_labels=input_bbox_p)
 
-roi_attrs, roi_num_list, roi_idx = roi_filter(input_roi_attrs=roi_attrs,
-                                              input_roi_conf=roi_conf,
-                                              input_roi_ious=roi_ious,
-                                              input_num_list=roi_num_list,
-                                              conf_thres=config.roi_thres,
-                                              iou_thres=config.iou_thres,
-                                              max_length=config.max_length,
-                                              with_negative=True)
-# roi_attrs = tf.gather(roi_attrs, roi_idx)
-roi_conf = tf.gather(roi_conf, roi_idx)
-roi_coors = tf.gather(roi_coors, roi_idx)
+# roi_attrs, roi_num_list, roi_idx = roi_filter(input_roi_attrs=roi_attrs,
+#                                               input_roi_conf=roi_conf,
+#                                               input_roi_ious=roi_ious,
+#                                               input_num_list=roi_num_list,
+#                                               conf_thres=config.roi_thres,
+#                                               iou_thres=config.iou_thres,
+#                                               max_length=config.max_length,
+#                                               with_negative=True)
+# # roi_attrs = tf.gather(roi_attrs, roi_idx)
+# roi_conf = tf.gather(roi_conf, roi_idx)
+# roi_coors = tf.gather(roi_coors, roi_idx)
 
 
 init_op = tf.initialize_all_variables()
@@ -89,27 +89,27 @@ if __name__ == '__main__':
             batch_input_features = input_features_stack[frame_id]
             batch_input_num_list = input_num_list_stack[frame_id]
             batch_input_bboxes = input_bboxes_stack[frame_id]
-            anchor_coors, output_bboxes, output_coors, output_conf, output_idx = \
-                sess.run([coors, roi_attrs, roi_coors, roi_conf, nms_idx],
-            # output_bboxes, output_coors, output_conf = \
-            #     sess.run([roi_attrs, roi_coors, roi_conf],
+            # , output_bboxes, output_coors, output_conf, output_idx = \
+            #     sess.run([coors, roi_attrs, roi_coors, roi_conf, nms_idx],
+            anchor_coors, output_bboxes, output_coors, output_conf = \
+                sess.run([coors, roi_attrs, roi_coors, roi_conf],
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     input_bbox_p: batch_input_bboxes,
-                                    is_training_p: False},
-                         options=run_options,
-                         run_metadata=run_metadata)
+                                    is_training_p: False})
+                         # options=run_options,
+                         # run_metadata=run_metadata)
 
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format()
-            with open('timeline-stage1.json', 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format()
+            # with open('timeline-stage1.json', 'w') as f:
+            #     f.write(ctf)
 
-            # output_idx = output_conf > 0.3
-            # output_bboxes = output_bboxes[output_idx]
-            # output_conf = output_conf[output_idx]
-            # output_coors = output_coors[output_idx]
+            output_idx = output_conf > 0.7
+            output_bboxes = output_bboxes[output_idx]
+            output_conf = output_conf[output_idx]
+            output_coors = output_coors[output_idx]
 
             input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
             anchor_rgbs = np.zeros_like(anchor_coors) + [255, 0, 0]

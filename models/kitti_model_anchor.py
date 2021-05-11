@@ -5,9 +5,10 @@ import train.kitti.kitti_config as config
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
+from models.tf_ops.loader.sampling import bev_occupy, get_bev_anchor_point
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss, get_dir_cls
-from models.utils.model_blocks import point_conv, conv_1d, conv_3d, point_conv_res, conv_3d_res, point_conv_concat
+from models.utils.model_blocks import rpn_point_conv, conv_1d, conv_3d, point_conv_res, conv_3d_res, point_conv_concat
 from models.utils.layers_wrapper import get_roi_attrs, get_bbox_attrs
 
 anchor_size = config.anchor_size
@@ -61,7 +62,7 @@ def stage1_model(input_coors,
     # rpn_params = config.rpn_params_inference if not is_eval else config.rpn_params_inference
 
     base_params = config.base_params_inference
-    # rpn_params = config.rpn_params_inference
+    rpn_params = config.rpn_params
 
     coors, features, num_list = input_coors, input_features, input_num_list
     concat_features = features
@@ -110,9 +111,37 @@ def stage1_model(input_coors,
         #                    model_params=model_params,
         #                    bn_decay=bn)
 
-        roi_features = concat_features
-        roi_coors = coors
-        roi_num_list = num_list
+        bev_occupy_maps = bev_occupy(input_coors=coors,
+                                     input_num_list=num_list,
+                                     resolution=0.8,
+                                     dimension=dimension_params['dimension'],
+                                     offset=dimension_params['offset'])
+
+        roi_coors, roi_num_list = get_bev_anchor_point(bev_occupy=bev_occupy_maps,
+                                                       resolution=0.8,
+                                                       kernel_resolution=1.6,
+                                                       offset=dimension_params['offset'],
+                                                       height=[-1., -0.5])
+
+        roi_features = rpn_point_conv(input_coors=coors,
+                                      input_features=features,
+                                      input_num_list=num_list,
+                                      center_coors=roi_coors,
+                                      center_num_list=roi_num_list,
+                                      layer_params=rpn_params['rpn_conv'],
+                                      dimension_params=dimension_params,
+                                      grid_buffer_size=config.grid_buffer_size,
+                                      output_pooling_size=config.output_pooling_size,
+                                      scope="rpn_conv",
+                                      is_training=is_training,
+                                      trainable=trainable,
+                                      mem_saving=mem_saving,
+                                      model_params=model_params,
+                                      bn_decay=bn)
+
+        # roi_features = concat_features
+        # roi_coors = coors
+        # roi_num_list = num_list
 
         # roi_features = conv_1d(input_points=roi_features,
         #                        num_output_channels=256,

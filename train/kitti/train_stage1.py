@@ -12,7 +12,7 @@ from shutil import rmtree, copyfile
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import kitti_model as model
+from models import kitti_model_anchor as model
 from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
@@ -154,7 +154,6 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
         writer.add_summary(summary, step)
         print("Validation: Total IoU={:0.2f}".format(iou))
     return iou
-
 
 
 def main():

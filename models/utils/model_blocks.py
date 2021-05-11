@@ -86,6 +86,65 @@ def point_conv(input_coors,
     return kernel_center_coors, output_features, center_num_list, voxel_idx, center_idx
 
 
+def rpn_point_conv(input_coors,
+                   input_features,
+                   input_num_list,
+                   center_coors,
+                   center_num_list,
+                   layer_params,
+                   dimension_params,
+                   grid_buffer_size,
+                   output_pooling_size,
+                   scope,
+                   is_training,
+                   mem_saving,
+                   model_params,
+                   trainable=True,
+                   bn_decay=None,
+                   histogram=False,
+                   summary=False,
+                   second_last_layer=False,
+                   last_layer=False):
+
+
+    activation = model_params['activation'] if not last_layer else None
+    # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    grid_sampling_method = grid_sampling
+    voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
+
+
+    voxel_idx, _, features = voxel_sampling_idx_method(input_coors=input_coors,
+                                                       input_features=input_features,
+                                                       input_num_list=input_num_list,
+                                                       center_coors=center_coors,
+                                                       center_num_list=center_num_list,
+                                                       resolution=layer_params['kernel_res'],
+                                                       dimension=dimension_params['dimension'],
+                                                       offset=dimension_params['offset'],
+                                                       grid_buffer_size=grid_buffer_size,
+                                                       output_pooling_size=output_pooling_size)
+
+
+    voxel_features = voxel_sampling_feature(input_features=features,
+                                            output_idx=voxel_idx,
+                                            padding=model_params['padding'])
+
+
+    output_features = kernel_conv_wrapper(inputs=voxel_features,
+                                          num_output_channels=layer_params['c_out'],
+                                          scope=scope,
+                                          trainable=trainable,
+                                          use_xavier=model_params['xavier'],
+                                          stddev=model_params['stddev'],
+                                          activation=activation,
+                                          bn_decay=bn_decay,
+                                          is_training=is_training,
+                                          histogram=histogram,
+                                          summary=summary)
+
+    return output_features
+
+
 def point_conv_res(input_coors,
                    input_features,
                    input_num_list,
