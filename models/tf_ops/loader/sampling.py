@@ -141,6 +141,8 @@ def voxel_sampling_idx(input_coors,
                        grid_buffer_size,
                        output_pooling_size,
                        with_rpn=False):
+    if type(resolution) is float:
+        resolution = [resolution] * 3
     output_idx, valid_idx = voxel_sampling_idx_exe.voxel_sampling_idx_op(input_coors=input_coors + offset,
                                                                          input_num_list=input_num_list,
                                                                          center_coors=center_coors + offset,
@@ -254,11 +256,13 @@ def voxel_sampling_idx_binary(input_coors,
                               output_pooling_size,
                               with_rpn=False):
 
+    if type(resolution) is float:
+        resolution = [resolution] * 3
     npoint = tf.shape(input_coors)[0]
     batch_size = tf.shape(input_num_list)[0]
-    dim_w = tf.cast(tf.floor(dimension[0] / resolution), dtype=tf.int64)
-    dim_l = tf.cast(tf.floor(dimension[1] / resolution), dtype=tf.int64)
-    dim_h = tf.cast(tf.floor(dimension[2] / resolution), dtype=tf.int64)
+    dim_w = tf.cast(tf.floor(dimension[0] / resolution[0]), dtype=tf.int64)
+    dim_l = tf.cast(tf.floor(dimension[1] / resolution[1]), dtype=tf.int64)
+    dim_h = tf.cast(tf.floor(dimension[2] / resolution[2]), dtype=tf.int64)
     dim_offset = dim_w * dim_l * dim_h
 
     point_ids = tf.range(npoint) + 1

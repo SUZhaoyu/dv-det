@@ -47,16 +47,27 @@ if __name__ == '__main__':
     # coors_2, num_list_2, _ = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
 
 
-    voxel_idx, features = voxel_sampling_idx(input_coors=coors,
-                                             input_features=get_rgbs_from_coors_tf(coors),
-                                             input_num_list=num_list,
-                                             center_coors=coors_0,
-                                             center_num_list=num_list_0,
-                                             resolution=0.2,
-                                             dimension=[100, 160.0, 8.0],
-                                             offset=[10., 80.0, 4.0],
-                                             grid_buffer_size=3,
-                                             output_pooling_size=5)
+    # voxel_idx, _, features = voxel_sampling_idx(input_coors=coors,
+    #                                          input_features=get_rgbs_from_coors_tf(coors),
+    #                                          input_num_list=num_list,
+    #                                          center_coors=coors_0,
+    #                                          center_num_list=num_list_0,
+    #                                          resolution=0.2,
+    #                                          dimension=[100, 160.0, 8.0],
+    #                                          offset=[10., 80.0, 4.0],
+    #                                          grid_buffer_size=3,
+    #                                          output_pooling_size=5)
+
+    voxel_idx, _, features = voxel_sampling_idx_binary(input_coors=coors,
+                                                       input_features=get_rgbs_from_coors_tf(coors),
+                                                       input_num_list=num_list,
+                                                       center_coors=coors_0,
+                                                       center_num_list=num_list_0,
+                                                       resolution=0.2,
+                                                       dimension=[100, 160.0, 8.0],
+                                                       offset=[10., 80.0, 4.0],
+                                                       grid_buffer_size=3,
+                                                       output_pooling_size=5)
 
     voxels = voxel_sampling_feature(input_features=features,
                                     output_idx=voxel_idx,
@@ -88,17 +99,17 @@ if __name__ == '__main__':
                                                                         # output_voxels = sess.run(voxels,
                                                                         feed_dict={coors_p: input_coors[i],
                                                                                    features_p: get_rgbs_from_coors(input_coors[i]),
-                                                                                   num_list_p: input_num_list[i]},
-                                                                        options=run_options,
-                                                                        run_metadata=run_metadata)
+                                                                                   num_list_p: input_num_list[i]})
+                                                                        # options=run_options,
+                                                                        # run_metadata=run_metadata)
 
             # print(output_centers.shape)
             ## time.sleep(0.1)
             #
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format(show_memory=True)
-            with open('voxel_sampling_idx.json'.format(i), 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format(show_memory=True)
+            # with open('voxel_sampling_idx.json'.format(i), 'w') as f:
+            #     f.write(ctf)
 
             # print(i, num_list_d, output_centers.shape, output_num_list, np.sum(output_num_list))
     # for i in tqdm(range(output_idx.shape[0])):

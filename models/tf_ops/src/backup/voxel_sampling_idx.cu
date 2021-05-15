@@ -57,14 +57,15 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
                                               int kernel_size,
                                               int grid_dim_w, int grid_dim_l, int grid_dim_h,
                                               float resolution,
-                                              int grid_buffer_size, int output_pooling_size,
+                                              int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                               const float* input_coors,
                                               const float* center_coors,
                                               int* center_accu_list,
                                               int* grid_buffer,
                                               int* grid_buffer_count,
                                               int* output_idx,
-                                              int* output_idx_count) {
+                                              int* output_idx_count,
+                                              int* valid_idx) {
 
 	const int kernel_num = kernel_size * kernel_size * kernel_size;
 	const int half_kernel_size = (kernel_size - 1) / 2;
@@ -128,6 +129,8 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
                     int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
                     if (pooling_count < output_pooling_size) {
                         output_idx[voxel_coor*output_pooling_size + pooling_count] = point_id;
+                        if (with_rpn)
+                            atomicAdd(&valid_idx[center_id], 1);
                     }
                 }
             }
@@ -138,9 +141,8 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
 
 void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int center_num, int kernel_size,
-                                     int grid_dim_w, int grid_dim_l, int grid_dim_h,
-                                     float resolution,
-                                     int grid_buffer_size, int output_pooling_size,
+                                     int grid_dim_w, int grid_dim_l, int grid_dim_h, float resolution,
+                                     int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                      const float* input_coors,
                                      const int* input_num_list,
                                      const float* center_coors,
@@ -150,7 +152,8 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int* grid_buffer,
                                      int* grid_buffer_count,
                                      int* output_idx,
-                                     int* output_idx_count) {
+                                     int* output_idx_count,
+                                     int* valid_idx) {
     if (batch_size*input_point_num <=0 || center_num <= 0) {
         printf("VoxelSampleOp ERROR: Invalid CUDA input dimensions.\n");
         return;
@@ -183,12 +186,13 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
     voxel_sampling_idx_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num,
                                                            kernel_size,
                                                            grid_dim_w, grid_dim_l, grid_dim_h, resolution,
-                                                           grid_buffer_size, output_pooling_size,
+                                                           grid_buffer_size, output_pooling_size, with_rpn,
                                                            input_coors,
                                                            center_coors,
                                                            center_accu_list,
                                                            grid_buffer,
                                                            grid_buffer_count,
                                                            output_idx,
-                                                           output_idx_count);
+                                                           output_idx_count,
+                                                           valid_idx);
 }

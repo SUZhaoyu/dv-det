@@ -14,6 +14,30 @@
           </excludedPaths>
         </serverdata>
       </paths>
+      <paths name="tan@gx4:22 (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="checkpoints" />
+            <excludedPath path="dataset" />
+            <excludedPath path="models/tf_ops/build" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="tan@gx4:22 (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="checkpoints" />
+            <excludedPath path="dataset" />
+            <excludedPath path="models/tf_ops/build" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
     </serverData>
     <option name="myAutoUpload" value="ALWAYS" />
   </component>

@@ -27,10 +27,12 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
     .Input("center_coors: float32")
     .Input("center_num_list: int32")
     .Output("output_idx: int32") // [center_coors.shape[0], kernel_size ** 3, channels]
+    .Output("valid_idx: int32")
     .Attr("dimension: list(float)")
     .Attr("resolution: float")
     .Attr("grid_buffer_size: int")
     .Attr("output_pooling_size: int")
+    .Attr("with_rpn: bool")
     .SetShapeFn([](InferenceContext* c){
         ShapeHandle input_coors_shape;
         TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &input_coors_shape));
@@ -45,8 +47,10 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
 
         // The output shape during the shape inference stage is pseudo.
         ShapeHandle output_idx_shape = c->MakeShape({center_num, kernel_size*kernel_size*kernel_size, output_pooling_size});
+        ShapeHandle valid_idx_shape = c->MakeShape({center_num});
 
         c->set_output(0, output_idx_shape); // output_idx
+        c->set_output(1, valid_idx_shape);
 
         return Status::OK();
 
@@ -55,9 +59,8 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
 
 void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int center_num, int kernel_size,
-                                            float dim_w, float dim_l, float dim_h,
-                                            float resolution,
-                                            int grid_buffer_size, int output_pooling_size,
+                                            float dim_w, float dim_l, float dim_h, float resolution,
+                                            int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                             const float* input_coors,
                                             const long long* input_voxel_idx,
                                             const int* input_num_list,
@@ -66,12 +69,14 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int* input_accu_list,
                                             int* center_accu_list,
                                             int* output_idx,
-                                            int* output_idx_count);
+                                            int* output_idx_count,
+                                            int* valid_idx);
 
 class VoxelSamplingIdxBinaryOp: public OpKernel {
 public:
     explicit VoxelSamplingIdxBinaryOp(OpKernelConstruction* context): OpKernel(context) {
         OP_REQUIRES_OK(context, context->GetAttr("resolution", &resolution));
+        OP_REQUIRES_OK(context, context->GetAttr("with_rpn", &with_rpn));
         OP_REQUIRES_OK(context, context->GetAttr("dimension", &dimension));
         OP_REQUIRES_OK(context, context->GetAttr("grid_buffer_size", &grid_buffer_size));
         OP_REQUIRES_OK(context, context->GetAttr("output_pooling_size", &output_pooling_size));
@@ -134,7 +139,7 @@ public:
             count += center_num_list_ptr_host[b];
         }
         if (count != center_num)
-            printf("*****************Mismatch Dimension: %d vs. %d; input_npoint=%d\n", center_num, count, input_npoint);
+            printf("WARNING: VoxelSamplingIdxBinary Mismatch Dimension: input %d vs. output %d\n", center_num, count);
 
         Tensor input_accu_list;
         OP_REQUIRES_OK(context, context->allocate_temp(DataTypeToEnum<int>::value,
@@ -163,12 +168,18 @@ public:
                                                        &output_idx_count));
         int* output_idx_count_ptr = output_idx_count.template flat<int>().data();
         cudaMemset(output_idx_count_ptr, 0, center_num*kernel_num*sizeof(int));
-//        printf("Host: here\n");
+
+        Tensor* valid_idx = nullptr;
+        auto valid_idx_shape = TensorShape({center_num});
+        OP_REQUIRES_OK(context, context->allocate_output(1, valid_idx_shape, &valid_idx));
+        int* valid_idx_ptr = valid_idx->template flat<int>().data();
+        cudaMemset(valid_idx_ptr, 0, center_num*sizeof(int));
+
+
         voxel_sampling_idx_binary_gpu_launcher(batch_size, input_npoint,
                                                center_num, kernel_size,
-                                               dimension[0], dimension[1], dimension[2],
-                                               resolution,
-                                               grid_buffer_size, output_pooling_size,
+                                               dimension[0], dimension[1], dimension[2], resolution,
+                                               grid_buffer_size, output_pooling_size, with_rpn,
                                                input_coors_ptr,
                                                input_voxel_idx_ptr,
                                                input_num_list_ptr,
@@ -177,7 +188,8 @@ public:
                                                input_accu_list_ptr,
                                                center_accu_list_ptr,
                                                output_idx_ptr,
-                                               output_idx_count_ptr);
+                                               output_idx_count_ptr,
+                                               valid_idx_ptr);
 
         free(input_num_list_ptr_host);
         free(center_num_list_ptr_host);
@@ -186,6 +198,7 @@ public:
     }
 private:
     float resolution;
+    bool with_rpn;
     int output_pooling_size, grid_buffer_size;
     std::vector<float> dimension;
 }; // OpKernel

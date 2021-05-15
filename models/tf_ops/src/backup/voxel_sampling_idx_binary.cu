@@ -88,9 +88,8 @@ __device__ int stop_loc_search(const long long* input_voxel_idx,
 
 __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_npoint,
                                                      int center_num, int kernel_size,
-                                                     float dim_w, float dim_l, float dim_h,
-                                                     float resolution,
-                                                     int grid_buffer_size, int output_pooling_size,
+                                                     float dim_w, float dim_l, float dim_h, float resolution,
+                                                     int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                                      const float* input_coors,
                                                      const long long* input_voxel_idx,
                                                      const int* input_num_list,
@@ -99,7 +98,8 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                                      int* input_accu_list,
                                                      int* center_accu_list,
                                                      int* output_idx,
-                                                     int* output_idx_count) {
+                                                     int* output_idx_count,
+                                                     int* valid_idx) {
 
     if (batch_size*input_npoint <=0 || center_num <= 0) {
 //        printf("Voxel sample Op exited unexpectedly.\n");
@@ -204,6 +204,8 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                     int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
                                     if (pooling_count < output_pooling_size) {
                                         output_idx[voxel_coor*output_pooling_size + pooling_count] = id;
+                                        if (with_rpn)
+                                            valid_idx[center_accu_list[b] + i]++;
                                     }
                                 }
                             }
@@ -218,9 +220,8 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 
 void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int center_num, int kernel_size,
-                                            float dim_w, float dim_l, float dim_h,
-                                            float resolution,
-                                            int grid_buffer_size, int output_pooling_size,
+                                            float dim_w, float dim_l, float dim_h, float resolution,
+                                            int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                             const float* input_coors,
                                             const long long* input_voxel_idx,
                                             const int* input_num_list,
@@ -229,13 +230,13 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int* input_accu_list,
                                             int* center_accu_list,
                                             int* output_idx,
-                                            int* output_idx_count) {
+                                            int* output_idx_count,
+                                            int* valid_idx) {
 
     voxel_sampling_idx_binary_gpu_kernel<<<16,512>>>(batch_size, input_npoint,
                                                      center_num, kernel_size,
-                                                     dim_w, dim_l, dim_h,
-                                                     resolution,
-                                                     grid_buffer_size, output_pooling_size,
+                                                     dim_w, dim_l, dim_h, resolution,
+                                                     grid_buffer_size, output_pooling_size, with_rpn,
                                                      input_coors,
                                                      input_voxel_idx,
                                                      input_num_list,
@@ -244,5 +245,6 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                                      input_accu_list,
                                                      center_accu_list,
                                                      output_idx,
-                                                     output_idx_count);
+                                                     output_idx_count,
+                                                     valid_idx);
 }

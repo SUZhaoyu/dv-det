@@ -43,7 +43,7 @@ config_dir = os.path.join(model_file_dir, model_file_name)
 
 bbox_padding = aug_config['nbbox']
 batch_size = 4
-decay_epochs = 10
+decay_epochs = 5
 
 init_lr_stage1 = 1e-3
 lr_scale_stage1 = True
@@ -126,17 +126,20 @@ roi_voxel_size = 5
 #                          'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': 1.60, 'concat': False},
 #                          'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': 1.60, 'concat': True}}
 
-
 base_params_inference = {'base_00': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'concat': True},
-                         'base_01': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
-                         'base_02': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': 0.20, 'concat': True},
-                         'base_03': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
-                         'base_04': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': 0.40, 'concat': True},
-                         'base_05': {'subsample_res': None, 'c_out':  64, 'kernel_res': 0.80, 'concat': False},
-                         'base_06': {'subsample_res': 0.80, 'c_out':  64, 'kernel_res': 0.80, 'concat': True},
-                         'base_07': {'subsample_res': None, 'c_out': 128, 'kernel_res': 1.20, 'concat': False},
-                         'base_08': {'subsample_res': None, 'c_out': 128, 'kernel_res': 1.20, 'concat': True}}
-rpn_params = {'rpn_conv': {'c_out': 128, 'kernel_res': 1.20}}
+                         'base_02': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
+                         # 'base_03': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
+                         'base_04': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': 0.20, 'concat': True},
+                         'base_05': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
+                         # 'base_06': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
+                         'base_07': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': 0.40, 'concat': True},
+                         'base_08': {'subsample_res': None, 'c_out':  64, 'kernel_res': 0.80, 'concat': False},
+                         # 'base_09': {'subsample_res': None, 'c_out':  64, 'kernel_res': 0.80, 'concat': False},
+                         'base_10': {'subsample_res': 0.80, 'c_out':  64, 'kernel_res': 0.80, 'concat': True},
+                         'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
+                         # 'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': 1.60, 'concat': False},
+                         'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': True}}
+rpn_params = {'rpn_conv': {'c_out': 256, 'kernel_res': [1.60, 1.60, 0.80]}}
 
 
 # base_params_inference = {'base_00': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'concat': False},

@@ -18,7 +18,7 @@ from models import kitti_model_anchor as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 hvd.init()
 
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.6689853344446504'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/test-256/test/model_0.6770478007435619'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 task = 'validation'
@@ -105,57 +105,57 @@ if __name__ == '__main__':
             # ctf = tl.generate_chrome_trace_format()
             # with open('timeline-stage1.json', 'w') as f:
             #     f.write(ctf)
-
-            output_idx = output_conf > 0.7
-            output_bboxes = output_bboxes[output_idx]
-            output_conf = output_conf[output_idx]
-            output_coors = output_coors[output_idx]
-
-            input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
-            anchor_rgbs = np.zeros_like(anchor_coors) + [255, 0, 0]
-            output_rgbs = get_points_rgb_with_prob(output_conf)
-            plot_coors = np.concatenate([batch_input_coors, anchor_coors, output_coors], axis=0)
-            plot_rgbs = np.concatenate([input_rgbs, anchor_rgbs, output_rgbs], axis=0)
-
-            w = output_bboxes[:, 0]
-            l = output_bboxes[:, 1]
-            h = output_bboxes[:, 2]
-            x = output_bboxes[:, 3]
-            y = output_bboxes[:, 4]
-            z = output_bboxes[:, 5]
-            r = output_bboxes[:, 6]
-
-            c = np.zeros(len(w))
-            d = np.zeros(len(w))
-            pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
-            pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
-            prediction_output.append(pred_bboxes)
-
-            output_bboxes = input_bboxes_stack[frame_id][0]
-            output_bboxes = output_bboxes[output_bboxes[:, 0] != 0, :]
-            w = output_bboxes[:, 0]
-            l = output_bboxes[:, 1]
-            h = output_bboxes[:, 2]
-            x = output_bboxes[:, 3]
-            y = output_bboxes[:, 4]
-            z = output_bboxes[:, 5]
-            r = output_bboxes[:, 6]
-            c = np.zeros(len(w))
-            d = np.zeros(len(w))
-            p = np.ones(len(w))
-            label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
-
-
-
-            if visualization:
-                # pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
-                pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
-                label_bbox_params = convert_threejs_bbox_with_colors(label_bboxes, color='red') if len(label_bboxes) > 0 else []
-                task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
-
-                Converter.compile(task_name=task_name,
-                                  coors=convert_threejs_coors(plot_coors),
-                                  default_rgb=plot_rgbs,
-                                  bbox_params=pred_bbox_params + label_bbox_params)
-
-        print("Overall IoU={}".format(np.mean(overall_iou)))
+        #
+        #     output_idx = output_conf > 0.7
+        #     output_bboxes = output_bboxes[output_idx]
+        #     output_conf = output_conf[output_idx]
+        #     output_coors = output_coors[output_idx]
+        #
+        #     input_rgbs = np.zeros_like(batch_input_coors) + [255, 255, 255]
+        #     anchor_rgbs = np.zeros_like(anchor_coors) + [255, 0, 0]
+        #     output_rgbs = get_points_rgb_with_prob(output_conf)
+        #     plot_coors = np.concatenate([batch_input_coors, anchor_coors, output_coors], axis=0)
+        #     plot_rgbs = np.concatenate([input_rgbs, anchor_rgbs, output_rgbs], axis=0)
+        #
+        #     w = output_bboxes[:, 0]
+        #     l = output_bboxes[:, 1]
+        #     h = output_bboxes[:, 2]
+        #     x = output_bboxes[:, 3]
+        #     y = output_bboxes[:, 4]
+        #     z = output_bboxes[:, 5]
+        #     r = output_bboxes[:, 6]
+        #
+        #     c = np.zeros(len(w))
+        #     d = np.zeros(len(w))
+        #     pred_bboxes = np.stack([w, l, h, x, y, z, r, c, d], axis=-1)
+        #     pred_bboxes = np.concatenate([pred_bboxes, np.expand_dims(output_conf, axis=-1)], axis=-1)
+        #     prediction_output.append(pred_bboxes)
+        #
+        #     output_bboxes = input_bboxes_stack[frame_id][0]
+        #     output_bboxes = output_bboxes[output_bboxes[:, 0] != 0, :]
+        #     w = output_bboxes[:, 0]
+        #     l = output_bboxes[:, 1]
+        #     h = output_bboxes[:, 2]
+        #     x = output_bboxes[:, 3]
+        #     y = output_bboxes[:, 4]
+        #     z = output_bboxes[:, 5]
+        #     r = output_bboxes[:, 6]
+        #     c = np.zeros(len(w))
+        #     d = np.zeros(len(w))
+        #     p = np.ones(len(w))
+        #     label_bboxes = np.stack([w, l, h, x, y, z, r, c, d, p], axis=-1)
+        #
+        #
+        #
+        #     if visualization:
+        #         # pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
+        #         pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
+        #         label_bbox_params = convert_threejs_bbox_with_colors(label_bboxes, color='red') if len(label_bboxes) > 0 else []
+        #         task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
+        #
+        #         Converter.compile(task_name=task_name,
+        #                           coors=convert_threejs_coors(plot_coors),
+        #                           default_rgb=plot_rgbs,
+        #                           bbox_params=pred_bbox_params + label_bbox_params)
+        #
+        # print("Overall IoU={}".format(np.mean(overall_iou)))

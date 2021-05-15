@@ -29,7 +29,7 @@ REGISTER_OP("VoxelSamplingIdxOp")
     .Output("output_idx: int32") // [center_coors.shape[0], kernel_size ** 3, channels]
     .Output("valid_idx: int32")
     .Attr("dimension: list(float)")
-    .Attr("resolution: float")
+    .Attr("resolution: list(float)")
     .Attr("grid_buffer_size: int")
     .Attr("output_pooling_size: int")
     .Attr("with_rpn: bool")
@@ -57,7 +57,7 @@ REGISTER_OP("VoxelSamplingIdxOp")
 
 void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int center_num, int kernel_size,
-                                     int grid_dim_w, int grid_dim_l, int grid_dim_h, float resolution,
+                                     int grid_dim_w, int grid_dim_l, int grid_dim_h, std::vector<float> resolution,
                                      int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                      const float* input_coors,
                                      const int* input_num_list,
@@ -79,8 +79,8 @@ public:
         OP_REQUIRES_OK(context, context->GetAttr("dimension", &dimension));
         OP_REQUIRES_OK(context, context->GetAttr("grid_buffer_size", &grid_buffer_size));
         OP_REQUIRES_OK(context, context->GetAttr("output_pooling_size", &output_pooling_size));
-        OP_REQUIRES(context, resolution > 0,
-                    errors::InvalidArgument("Resolution has to be greater than 0"));
+        OP_REQUIRES(context, resolution.size() == 3 && resolution[0] * resolution[1] * resolution[2] > 0,
+                    errors::InvalidArgument("Resolution has to be in 3-D and greater than 0"));
         OP_REQUIRES(context, dimension.size() == 3,
                     errors::InvalidArgument("Dimension has to be 3-D for Voxel Sample Operation."));
     }
@@ -111,9 +111,9 @@ public:
         int center_num = center_coors.dim_size(0);
         int batch_size = input_num_list.dim_size(0);
         int kernel_num = kernel_size * kernel_size * kernel_size;
-        int grid_dim_w = (int)floor(dimension[0] / resolution);
-        int grid_dim_l = (int)floor(dimension[1] / resolution);
-        int grid_dim_h = (int)floor(dimension[2] / resolution);
+        int grid_dim_w = (int)floor(dimension[0] / resolution[0]);
+        int grid_dim_l = (int)floor(dimension[1] / resolution[1]);
+        int grid_dim_h = (int)floor(dimension[2] / resolution[2]);
         if (INT_MAX / grid_dim_h / grid_dim_l / grid_dim_w < batch_size){
             printf("VoxelSamplingOp ERROR: size of grid buffer %d x [%d x %d x %d] exceeds INT32 range: %d.\n",
 	                batch_size, grid_dim_w, grid_dim_l, grid_dim_h, INT_MAX);}
@@ -204,9 +204,9 @@ public:
         free(center_num_list_ptr_host);
     }
 private:
-    float resolution;
     bool with_rpn;
     int output_pooling_size, grid_buffer_size;
     std::vector<float> dimension;
+    std::vector<float> resolution;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("VoxelSamplingIdxOp").Device(DEVICE_GPU), VoxelSamplingIdxOp);
