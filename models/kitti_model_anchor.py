@@ -124,7 +124,7 @@ def stage1_model(input_coors,
                                                        height=[-1.])
 
         roi_features = rpn_point_conv(input_coors=coors,
-                                      input_features=features,
+                                      input_features=concat_features,
                                       input_num_list=num_list,
                                       center_coors=roi_coors,
                                       center_num_list=roi_num_list,
