@@ -132,7 +132,7 @@ def stage1_model(input_coors,
                                second_last_layer=True)
 
         roi_logits = conv_1d(input_points=roi_features,
-                             num_output_channels=43 + 1,
+                             num_output_channels=32 + 1,
                              drop_rate=0.,
                              model_params=model_params,
                              scope='stage1_rpn_fc_2',
@@ -202,10 +202,10 @@ def stage1_loss(roi_coors,
     tf.summary.scalar('stage1_l2_loss', roi_l2_loss)
 
     total_loss = roi_loss + roi_conf_loss + roi_l2_loss
-    total_loss_collection = hvd.allreduce(total_loss)
+    # total_loss_collection = hvd.allreduce(total_loss)
     averaged_iou_collection = hvd.allreduce(averaged_iou)
 
-    return total_loss_collection, averaged_iou_collection
+    return total_loss, averaged_iou_collection
 
 
 def get_roi_iou(roi_coors, pred_roi_attrs, roi_num_list, bbox_labels):

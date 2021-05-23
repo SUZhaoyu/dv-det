@@ -9,28 +9,28 @@ checkpoints="ckpt-$1"
 
 root_gx4="/home/tan/tony"
 root_gx8="/home/tan/tony"
-ip_gx4="192.168.1.54"
-ip_gx8="192.168.1.58"
+ip_gx4="192.168.69.54"
+ip_gx8="192.168.69.58"
 
-#rsync -avz -W -e ssh --progress \
-#                     --exclude='*.pyc' \
-#                     --exclude='build' \
-#                     --exclude='eval' \
-#                     --exclude='img_*.npy' \
-#                     --exclude='*_testing.npy' \
-#                     --exclude='waymo_npy' \
-#                     --exclude='ckpt-arxiv' \
-#                     --exclude='.nv' \
-#                     $root_gx4/$HOME tan@$ip_gx8:$root_gx8
-#
-#echo "Pushing Completed!"
+rsync -avz -W -e ssh --progress \
+                     --exclude='*.pyc' \
+                     --exclude='build' \
+                     --exclude='eval' \
+                     --exclude='img_*.npy' \
+                     --exclude='*_testing.npy' \
+                     --exclude='waymo_npy' \
+                     --exclude='ckpt-arxiv' \
+                     --exclude='.nv' \
+                     $root_gx4/$HOME tan@$ip_gx8:$root_gx8
+
+echo "Pushing Completed!"
 
 
 conda_env_gx4="/home/tan/anaconda3/envs/detection/bin/python"
 home_dir_gx4="$root_gx4/$HOME"
 exe_dir_gx4="$home_dir_gx4/train/$exe_file"
 #
-conda_env_gx8="/home/tan/miniconda3/envs/detection/bin/python"
+conda_env_gx8="/home/tan/anaconda3/envs/detection/bin/python"
 home_dir_gx8="$root_gx8/$HOME"
 exe_dir_gx8="$home_dir_gx8/train/$exe_file"
 
@@ -75,25 +75,18 @@ if [ -d "$log_dir" ]; then
 fi
 mkdir $log_dir
 
-#mpirun -np 8 \
-#       -H $ip_gx4:8\
-#       -bind-to none -map-by slot \
-#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-#       -mca pml ob1 -mca btl ^openib \
-#       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
-
-#mpirun -np 8 \
-#       -H $ip_gx4:8\
-#       -bind-to none -map-by slot \
-#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-#       -mca pml ob1 -mca btl ^openib \
-#       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
-#       -np 8 \
-#       -H $ip_gx8:8\
-#       -bind-to none -map-by slot \
-#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
-#       -mca pml ob1 -mca btl ^openib \
-#       $conda_env_gx8 $exe_dir_gx8
+mpirun -np 8 \
+       -H $ip_gx4:8\
+       -bind-to none -map-by slot \
+       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+       -mca pml ob1 -mca btl ^openib \
+       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
+       -np 8 \
+       -H $ip_gx8:8\
+       -bind-to none -map-by slot \
+       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+       -mca pml ob1 -mca btl ^openib \
+       $conda_env_gx8 $exe_dir_gx8
 
 #mpirun -np 1 \
 #       -H $ip_gx4:1\
@@ -108,8 +101,7 @@ mkdir $log_dir
 #       --mca btl ^vader --oversubscribe --mca pml ob1  \
 #       $conda_env_gx8 $exe_dir_gx8
 
-
-horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
+#horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
 
 # /usr/mpi/gcc/openmpi-4.0.3rc4/bin/
 # mpirun -np 6 \
