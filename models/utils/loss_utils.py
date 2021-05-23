@@ -38,16 +38,18 @@ def get_dir_cls(label, pred):
 
 
 def get_target_dimension_logits(label_dimension, anchor_size):
-    label_dimension = tf.clip_by_value(1e-6, 1e6, label_dimension)
+    label_dimension = tf.clip_by_value(label_dimension, 1e-6, 1e6)
     target_logits = tf.log(label_dimension / anchor_size)
     return target_logits
 
 def get_target_bin(point_coors, target_coors, scope, delta, name=None):
+    if name is not None:
+        tf.summary.histogram(name+"_offset", (target_coors - point_coors))
     num_bin = int(scope / delta) * 2
-    target_bin = tf.cast(tf.floor((target_coors - point_coors + scope) / delta), dtype=tf.int64)
-    target_bin = tf.clip_by_value(0, num_bin-1, target_bin)
+    target_bin = tf.cast(tf.floor((target_coors - point_coors + scope) / delta), dtype=tf.int32)
     if name is not None:
         tf.summary.histogram(name, target_bin)
+    target_bin = tf.clip_by_value(target_bin, 0, num_bin-1)
     return target_bin
 
 def get_residual(point_coors, target_coors, target_bin, scope, delta, name=None):
@@ -66,26 +68,27 @@ def get_bbox_loss(point_coors,
                   delta_bin_xy=0.5,
                   delta_bin_angle=np.pi / 6.): # [w, l, h, x, y, z, r]
     '''
-    pred_logits=[(w, l, h), (res_x, res_y, res_z), (cls_x, cls_y, cls_r) x 12]
-                  0, 1, 2 ,    3  ,   4  ,   5   ,   6-17, 18-29, 30-41
+    pred_logits=[(w, l, h), (res_x, res_y, res_z, res_r), (cls_x, cls_y, cls_r) x 12]
+                  0, 1, 2 ,    3  ,   4  ,   5   ,  6,     7-18,  19-30, 31-42
     '''
     target_bin_xy = get_target_bin(point_coors[:, :2], label_attrs[:, 3:5], scope, delta_bin_xy, name="cls_bin_xy") # [n, 2]
     target_bin_r = get_target_bin(tf.zeros_like(point_coors[:, :1]), label_attrs[:, 6:], np.pi, delta_bin_angle, name="cls_bin_r")
     target_residual_xy = get_residual(point_coors[:, :2], label_attrs[:, 3:5], target_bin_xy, scope, delta_bin_xy, name="res_bin_xy")
     target_residual_z = label_attrs[:, 5:6] - point_coors[:, 2:3]
+    target_residual_r = get_residual(tf.zeros_like(label_attrs[:, 6:7]), label_attrs[:, 6:7], target_bin_r, np.pi, delta_bin_angle, name="res_bin_r")
     target_residual_dimension = get_target_dimension_logits(label_attrs[:, :3], anchor_size)
 
     cls_target = tf.concat([target_bin_xy, target_bin_r], axis=-1)
-    res_target = tf.concat([target_residual_dimension, target_residual_xy, target_residual_z], axis=-1)
+    res_target = tf.concat([target_residual_dimension, target_residual_xy, target_residual_z, target_residual_r], axis=-1)
 
-    pred_cls_logits = tf.stack([pred_logits[:, 6:18], pred_logits[:, 18:30], pred_logits[:, 30:]], axis=1) # [n, 3, 12]
-    cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(cls_target, pred_cls_logits) # [n, 3]
+    pred_cls_logits = tf.stack([pred_logits[:, 7:19], pred_logits[:, 19:31], pred_logits[:, 31:43]], axis=1) # [n, 3, 12]
+    cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=cls_target, logits=pred_cls_logits) # [n, 3]
 
-    pred_res_logits = pred_logits[:, :6]
+    pred_res_logits = pred_logits[:, :7]
     reg_loss = smooth_l1_loss(pred_res_logits, res_target, with_sin=False) # [n, 6]
 
     bbox_loss = tf.concat([cls_loss, reg_loss], axis=-1) # [n, 9]
-    bbox_loss_sum = tf.reduce_sum(bbox_loss, axis=-1) # [n]
+    bbox_loss_sum = tf.reduce_mean(bbox_loss, axis=-1) * 3 # [n]
 
     return get_masked_average(bbox_loss_sum, foreground_masks)
 
@@ -96,5 +99,38 @@ def get_bbox_from_logits(point_coors,
                          scope=3.,
                          delta_bin_xy=0.5,
                          delta_bin_angle=np.pi / 6.):
-    pred_dim_w
+    pred_dim = tf.exp(pred_logits[:, :3]) * anchor_size
+    res_xy = pred_logits[:, 3:5] * delta_bin_xy
+    res_r = pred_logits[:, 6:7] * delta_bin_angle
+    pred_offset_z = pred_logits[:, 5:6]
+    cls_logits = tf.stack([pred_logits[:, 7:19], pred_logits[:, 19:31], pred_logits[:, 31:43]], axis=1)
+    bin_cls = tf.cast(tf.argmax(cls_logits, axis=-1), dtype=tf.float32)  # [n, 3]
+    pred_offset_xy = -scope + delta_bin_xy * bin_cls[:, :2] + res_xy
+    pred_angle = -np.pi + delta_bin_angle * bin_cls[:, 2:] + res_r
 
+    pred_coors = tf.concat([pred_offset_xy, pred_offset_z], axis=-1) + point_coors
+
+    return tf.concat([pred_dim, pred_coors, pred_angle], axis=-1)
+
+
+def get_bbox_target_params(point_coors,
+                          label_attrs,
+                          anchor_size,
+                          scope=3.,
+                          delta_bin_xy=0.5,
+                          delta_bin_angle=np.pi / 6.): # [w, l, h, x, y, z, r]
+    '''
+    pred_logits=[(w, l, h), (res_x, res_y, res_z), (cls_x, cls_y, cls_r) x 12]
+                  0, 1, 2 ,    3  ,   4  ,   5   ,   6-17, 18-29, 30-41
+    '''
+    target_bin_xy = get_target_bin(point_coors[:, :2], label_attrs[:, 3:5], scope, delta_bin_xy, name="cls_bin_xy") # [n, 2]
+    target_bin_r = get_target_bin(tf.zeros_like(point_coors[:, :1]), label_attrs[:, 6:], np.pi, delta_bin_angle, name="cls_bin_r")
+    target_residual_xy = get_residual(point_coors[:, :2], label_attrs[:, 3:5], target_bin_xy, scope, delta_bin_xy, name="res_bin_xy")
+    target_residual_z = label_attrs[:, 5:6] - point_coors[:, 2:3]
+    target_residual_r = get_residual(tf.zeros_like(label_attrs[:, 6:7]), label_attrs[:, 6:7], target_bin_r, np.pi, delta_bin_angle, name="res_bin_r")
+    target_residual_dimension = get_target_dimension_logits(label_attrs[:, :3], anchor_size)
+
+    cls_target = tf.concat([target_bin_xy, target_bin_r], axis=-1)
+    res_target = tf.concat([target_residual_dimension, target_residual_xy, target_residual_z, target_residual_r], axis=-1)
+
+    return cls_target, res_target

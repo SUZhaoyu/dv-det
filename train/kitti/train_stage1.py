@@ -1,5 +1,4 @@
 import tensorflow as tf
-
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import horovod.tensorflow as hvd
 import os
@@ -12,10 +11,12 @@ from shutil import rmtree, copyfile
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import kitti_model as model
+from models import kitti_model_cls_reg as model
 from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
+
+
 
 hvd.init()
 is_hvd_root = hvd.rank() == 0
@@ -74,7 +75,7 @@ stage1_lr, stage1_bn, stage1_wd = set_training_controls(config=config,
                                                         prefix='stage1')
 stage1_loader = tf.train.Saver()
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -85,7 +86,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=stage1_bn)
 
 stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
-                                                  pred_roi_attrs=roi_attrs,
+                                                  pred_roi_logits=roi_logits,
                                                   roi_conf_logits=roi_conf_logits,
                                                   roi_num_list=roi_num_list,
                                                   bbox_labels=input_bbox_p,
@@ -100,6 +101,8 @@ session_config = get_config(gpu=config.gpu_list[hvd.rank()])
 training_writer = tf.summary.FileWriter(os.path.join(log_dir, 'train'))
 validation_writer = tf.summary.FileWriter(os.path.join(log_dir, 'valid'))
 saver = tf.train.Saver(max_to_keep=None)
+
+
 
 def train_one_epoch(sess, step, dataset_generator, writer):
     iou_sum = 0

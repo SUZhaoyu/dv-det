@@ -9,8 +9,8 @@ checkpoints="ckpt-$1"
 
 root_gx4="/home/tan/tony"
 root_gx8="/home/tan/tony"
-ip_gx4="192.168.69.54"
-ip_gx8="192.168.69.58"
+ip_gx4="192.168.1.54"
+ip_gx8="192.168.1.58"
 
 #rsync -avz -W -e ssh --progress \
 #                     --exclude='*.pyc' \
@@ -29,7 +29,7 @@ ip_gx8="192.168.69.58"
 conda_env_gx4="/home/tan/anaconda3/envs/detection/bin/python"
 home_dir_gx4="$root_gx4/$HOME"
 exe_dir_gx4="$home_dir_gx4/train/$exe_file"
-
+#
 conda_env_gx8="/home/tan/miniconda3/envs/detection/bin/python"
 home_dir_gx8="$root_gx8/$HOME"
 exe_dir_gx8="$home_dir_gx8/train/$exe_file"
@@ -80,6 +80,13 @@ mkdir $log_dir
 #       -bind-to none -map-by slot \
 #       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
 #       -mca pml ob1 -mca btl ^openib \
+#       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
+
+#mpirun -np 8 \
+#       -H $ip_gx4:8\
+#       -bind-to none -map-by slot \
+#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+#       -mca pml ob1 -mca btl ^openib \
 #       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
 #       -np 8 \
 #       -H $ip_gx8:8\
@@ -87,6 +94,20 @@ mkdir $log_dir
 #       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
 #       -mca pml ob1 -mca btl ^openib \
 #       $conda_env_gx8 $exe_dir_gx8
+
+#mpirun -np 1 \
+#       -H $ip_gx4:1\
+#       -bind-to none -map-by slot \
+#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+#       --mca btl ^vader --oversubscribe --mca pml ob1  \
+#       $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir :\
+#       -np 1 \
+#       -H $ip_gx8:1\
+#       -bind-to none -map-by slot \
+#       -x NCCL_DEBUG=INFO -x LD_LIBRARY_PATH -x PATH \
+#       --mca btl ^vader --oversubscribe --mca pml ob1  \
+#       $conda_env_gx8 $exe_dir_gx8
+
 
 horovodrun -np 8 -H $ip_gx4:8 $conda_env_gx4 $exe_dir_gx4 --log_dir $log_dir
 

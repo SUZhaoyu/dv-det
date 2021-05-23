@@ -6,7 +6,7 @@ from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
 from models.utils.iou_utils import cal_3d_iou
-from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss, get_dir_cls, get_bbox_loss
+from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss, get_dir_cls, get_bbox_loss, get_bbox_from_logits
 from models.utils.model_blocks import point_conv, conv_1d, conv_3d, point_conv_res, conv_3d_res, point_conv_concat
 from models.utils.layers_wrapper import get_roi_attrs, get_bbox_attrs
 
@@ -132,7 +132,7 @@ def stage1_model(input_coors,
                                second_last_layer=True)
 
         roi_logits = conv_1d(input_points=roi_features,
-                             num_output_channels=42 + 1,
+                             num_output_channels=43 + 1,
                              drop_rate=0.,
                              model_params=model_params,
                              scope='stage1_rpn_fc_2',
@@ -157,81 +157,6 @@ def stage1_model(input_coors,
         return coors, concat_features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_num_list
 
 
-def stage2_model(coors,
-                 features,
-                 num_list,
-                 roi_attrs,
-                 roi_conf_logits,
-                 roi_ious,
-                 roi_num_list,
-                 is_training,
-                 trainable,
-                 is_eval,
-                 mem_saving,
-                 bn):
-
-    roi_conf = tf.nn.sigmoid(roi_conf_logits)
-    with tf.variable_scope("stage2"):
-        bbox_roi_attrs, bbox_num_list, bbox_idx = roi_filter(input_roi_attrs=roi_attrs,
-                                                             input_roi_conf=roi_conf,
-                                                             input_roi_ious=roi_ious,
-                                                             input_num_list=roi_num_list,
-                                                             conf_thres=config.roi_thres,
-                                                             iou_thres=config.iou_thres,
-                                                             max_length=config.max_length,
-                                                             with_negative=not is_eval)
-
-        bbox_voxels = la_roi_pooling_fast(input_coors=coors,
-                                          input_features=features,
-                                          roi_attrs=bbox_roi_attrs,
-                                          input_num_list=num_list,
-                                          roi_num_list=bbox_num_list,
-                                          voxel_size=config.roi_voxel_size,
-                                          grid_buffer_size=4,
-                                          grid_buffer_resolution=1.,
-                                          pooling_size=4,
-                                          dimension=config.dimension_training,
-                                          offset=config.offset_training)
-
-        for i in range((config.roi_voxel_size - (config.roi_voxel_size + 1) % 2) // 2):
-            bbox_voxels = conv_3d(input_voxels=bbox_voxels,
-                                  layer_params=config.refine_params,
-                                  scope="stage2_refine_conv_{}".format(i),
-                                  is_training=is_training,
-                                  trainable=trainable,
-                                  model_params=model_params,
-                                  mem_saving=mem_saving,
-                                  bn_decay=bn)
-
-        bbox_features = tf.reduce_mean(bbox_voxels, axis=[1])
-
-        bbox_features = conv_1d(input_points=bbox_features,
-                              num_output_channels=256,
-                              drop_rate=0.,
-                              model_params=model_params,
-                              scope='stage2_refine_fc_0',
-                              is_training=is_training,
-                              trainable=trainable,
-                              second_last_layer=True)
-
-        bbox_logits = conv_1d(input_points=bbox_features,
-                              num_output_channels=config.output_attr + 1,
-                              drop_rate=0.,
-                              model_params=model_params,
-                              scope='stage2_refine_fc_1',
-                              is_training=is_training,
-                              trainable=trainable,
-                              last_layer=True)
-
-        bbox_attrs = get_bbox_attrs(input_logits=bbox_logits,
-                                    input_roi_attrs=bbox_roi_attrs,
-                                    is_eval=is_eval)
-
-        bbox_conf_logits = bbox_logits[:, 7]
-        bbox_dir_logits = bbox_logits[:, 8]
-
-    return bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx
-
 
 def stage1_loss(roi_coors,
                 pred_roi_logits,
@@ -252,7 +177,14 @@ def stage1_loss(roi_coors,
     # gt_roi_attrs = roi_logits_to_attrs_tf(roi_coors, gt_roi_logits, anchor_size)
     # pred_roi_attrs = roi_logits_to_attrs_tf(roi_coors, pred_roi_logits, anchor_size)
 
-    roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
+    pred_roi_attrs = get_bbox_from_logits(point_coors=roi_coors,
+                                          pred_logits=pred_roi_logits,
+                                          anchor_size=anchor_size,
+                                          )
+    roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
+    roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32)  # [-1, 0, 1] -> [0, 0, 1]
+    averaged_iou = get_masked_average(roi_ious, roi_iou_masks)
+
     roi_loss = get_bbox_loss(point_coors=roi_coors,
                              pred_logits=pred_roi_logits,
                              label_attrs=gt_roi_attrs,
@@ -270,7 +202,6 @@ def stage1_loss(roi_coors,
     tf.summary.scalar('stage1_l2_loss', roi_l2_loss)
 
     total_loss = roi_loss + roi_conf_loss + roi_l2_loss
-    # total_loss = roi_iou_loss + roi_conf_loss + roi_l2_loss
     total_loss_collection = hvd.allreduce(total_loss)
     averaged_iou_collection = hvd.allreduce(averaged_iou)
 
@@ -287,63 +218,4 @@ def get_roi_iou(roi_coors, pred_roi_attrs, roi_num_list, bbox_labels):
                                                           cls_thres=config.cls_thres)
     roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
     return roi_ious
-
-
-def stage2_loss(roi_attrs,
-                pred_bbox_attrs,
-                bbox_conf_logits,
-                bbox_dir_logits,
-                bbox_num_list,
-                bbox_labels,
-                bbox_idx,
-                roi_ious,
-                wd):
-    pred_bbox_conf = tf.clip_by_value(tf.nn.sigmoid(bbox_conf_logits), eps, 1 - eps)
-    filtered_roi_attrs = tf.gather(roi_attrs, bbox_idx, axis=0)
-    filtered_roi_ious = tf.gather(roi_ious, bbox_idx, axis=0)
-    gt_bbox_attrs, gt_bbox_conf, gt_bbox_diff = get_bbox(roi_attrs=filtered_roi_attrs,
-                                                         bboxes=bbox_labels,
-                                                         input_num_list=bbox_num_list,
-                                                         expand_ratio=0.2,
-                                                         diff_thres=config.diff_thres,
-                                                         cls_thres=config.cls_thres)
-    bbox_ious = cal_3d_iou(gt_attrs=gt_bbox_attrs, pred_attrs=pred_bbox_attrs, clip=False)
-    bbox_iou_masks = tf.cast(tf.logical_and(tf.equal(gt_bbox_conf, 1), tf.greater(filtered_roi_ious, 0.5)), dtype=tf.float32) # [-1, 0, 1] -> [0, 0, 1]
-    bbox_iou_loss = get_masked_average(1. - bbox_ious, bbox_iou_masks)
-    averaged_iou = get_masked_average(bbox_ious, bbox_iou_masks)
-    tf.summary.scalar('stage2_iou_loss', bbox_iou_loss)
-    tf.summary.scalar('positive_stage2_roi', tf.reduce_sum(bbox_iou_masks))
-
-    bbox_l1_loss = smooth_l1_loss(predictions=pred_bbox_attrs[:, 6], labels=gt_bbox_attrs[:, 6], delta=1./9.)
-    bbox_l1_loss = get_masked_average(bbox_l1_loss, bbox_iou_masks)
-    tf.summary.scalar('stage2_l1_loss', bbox_l1_loss)
-    tf.summary.scalar('bbox_angle_sin_bias', get_masked_average(tf.abs(tf.sin(gt_bbox_attrs[:, 6] - pred_bbox_attrs[:, 6])), bbox_iou_masks))
-    tf.summary.scalar('bbox_angle_bias', get_masked_average(tf.abs(gt_bbox_attrs[:, 6] - pred_bbox_attrs[:, 6]), bbox_iou_masks))
-
-    bbox_dir_cls = get_dir_cls(label=gt_bbox_attrs[:, 6], pred=filtered_roi_attrs[:, 6])
-    bbox_dir_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=bbox_dir_cls, logits=bbox_dir_logits)
-    bbox_dir_loss = get_masked_average(bbox_dir_loss, bbox_iou_masks)
-    tf.summary.scalar('stage2_dir_loss', bbox_dir_loss)
-
-    bbox_conf_masks = tf.cast(tf.greater(gt_bbox_conf, -1), dtype=tf.float32) # [-1, 0, 1] -> [0, 1, 1]
-    hard_neg_bbox_conf_masks = tf.logical_and(tf.equal(gt_bbox_conf, 0), tf.greater(pred_bbox_conf, 0.8))
-    hard_pos_bbox_conf_masks = tf.logical_and(tf.equal(gt_bbox_conf, 1), tf.less(pred_bbox_conf, 0.2))
-    hard_bbox_conf_masks = tf.cast(tf.logical_or(hard_neg_bbox_conf_masks, hard_pos_bbox_conf_masks), dtype=tf.float32)
-    hard_bbox_conf_masks = tf.ones_like(hard_bbox_conf_masks) + hard_bbox_conf_masks * 2
-    tf.summary.scalar('hard_neg_roi_examples', tf.reduce_sum(tf.cast(hard_neg_bbox_conf_masks, dtype=tf.int32)))
-    tf.summary.scalar('hard_pos_roi_examples', tf.reduce_sum(tf.cast(hard_pos_bbox_conf_masks, dtype=tf.int32)))
-    bbox_conf_target = tf.minimum(tf.maximum(2. * tf.identity(filtered_roi_ious) - 0.5, 0.), 1.) * bbox_conf_masks
-    bbox_conf_loss = -bbox_conf_target * tf.log(pred_bbox_conf) - (1 - bbox_conf_target) * tf.log(1 - pred_bbox_conf)
-    bbox_conf_loss = get_masked_average(bbox_conf_loss, bbox_conf_masks * hard_bbox_conf_masks)
-    tf.summary.scalar('stage2_conf_loss', bbox_conf_loss)
-
-    bbox_l2_loss = wd * tf.add_n(tf.get_collection("stage2_l2"))
-    tf.summary.scalar('stage2_l2_loss', bbox_l2_loss)
-
-    total_loss = bbox_iou_loss + bbox_l1_loss + bbox_conf_loss + bbox_dir_loss + bbox_l2_loss
-    # total_loss = bbox_iou_loss + bbox_conf_loss + bbox_l2_loss
-    total_loss_collection = hvd.allreduce(total_loss)
-    averaged_iou_collection = hvd.allreduce(averaged_iou)
-
-    return total_loss_collection, averaged_iou_collection
 
