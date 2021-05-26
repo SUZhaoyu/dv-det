@@ -75,7 +75,7 @@ stage1_lr, stage1_bn, stage1_wd = set_training_controls(config=config,
                                                         prefix='stage1')
 stage1_loader = tf.train.Saver()
 
-coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,

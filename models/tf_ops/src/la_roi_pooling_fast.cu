@@ -154,15 +154,15 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
 
 //                        float dist_2 = pow(point_x - act_roi_grid_x, 2.) + pow(point_y - act_roi_grid_y, 2.) + pow(point_z - act_roi_grid_z, 2.);
 //                        if (dist_2 < pow(radius, 2.)) {
-                        if (abs(rel_rot_point_x) <= roi_grid_length_x * 1. &&
-                            abs(rel_rot_point_y) <= roi_grid_length_y * 1. &&
-                            abs(rel_point_z) <= roi_grid_length_z * 1.) {
+                        if (abs(rel_rot_point_x) <= roi_grid_length_x * 1.2 &&
+                            abs(rel_rot_point_y) <= roi_grid_length_y * 1.2 &&
+                            abs(rel_point_z) <= roi_grid_length_z * 1.2) {
             //                printf("Yes\n");
                             float dist_2 = pow(point_x - act_roi_grid_x, 2.) + pow(point_y - act_roi_grid_y, 2.) + pow(point_z - act_roi_grid_z, 2.);
                             float dist = sqrt(dist_2);
                             float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z) / 2.;
-//                            float weight = 2.71828 / expf(dist / radius);
-                            float weight = 1.;
+                            float weight = expf(-dist / radius);
+//                            float weight = 1.;
 
                             int pool_count = temp_count[voxel_coor];
                             if (pool_count < pooling_size) {
@@ -192,16 +192,16 @@ __global__ void roi_pooling_fill_gpu_kernel(int roi_num, int voxel_num, int chan
         int pool_count = min(temp_count[thread_id], pooling_size);
         if (pool_count > 0) {
             float weight_sum = 0;
-//            int pool_id;
+            int pool_id;
             for (int p=0; p<pool_count; p++) {
-//                pool_id = thread_id * pooling_size + p;
-//                weight_sum += output_weight[pool_id];
-                weight_sum += 1;
+                pool_id = thread_id * pooling_size + p;
+                weight_sum += output_weight[pool_id];
+//                weight_sum += 1;
             }
             for (int p=0; p<pool_count; p++) {
                 int pool_id = thread_id * pooling_size + p;
                 int input_id = output_idx[pool_id];
-                float weight = output_weight[pool_id] / weight_sum;
+                float weight = output_weight[pool_id] * output_weight[pool_id] / weight_sum;
 //                float weight = output_weight[pool_id];
 //                printf("%d, %d, %f\n", input_id, pool_count, weight);
                 output_weight[pool_id] = weight;

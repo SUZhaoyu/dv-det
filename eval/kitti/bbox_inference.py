@@ -1,22 +1,21 @@
 import os
 from os.path import join
-
+import sys
+sys.path.append("/home/tan/tony/dv-det")
 import numpy as np
 import tensorflow as tf
 from point_viz.converter import PointvizConverter
 
 from tqdm import tqdm
-import horovod.tensorflow as hvd
 
 os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-stage2'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-stage2')
 
-from models import kitti_model as model
+from models import kitti_model_cls_reg as model
 from models.tf_ops.loader.others import rotated_nms3d_idx
 from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors, convert_threejs_bbox_with_prob
 from train.kitti import kitti_config as config
 
-hvd.init()
 
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage1/test/best_model_0.6461553027390907'
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
@@ -24,7 +23,7 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test/test/model_0.6544429995613766'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.779647423180832'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 # ******** Easy: 91.15, Moderate: 81.23, Hard: 74.94 ********
 visualization = True
@@ -41,7 +40,7 @@ input_coors_p, input_features_p, input_num_list_p, _ = model.stage1_inputs_place
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -52,10 +51,11 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.3)
-# roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
-# roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
-# roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
+nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.999, nms_conf_thres=0.3)
+roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
+roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
+roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
 
 bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
 
-            output_idx = output_conf > 0.5
+            # output_idx = output_conf > 0.3
             # output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]

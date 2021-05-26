@@ -6,7 +6,7 @@
 #include <numeric>
 #include <strings.h>
 #include <assert.h>
-
+// g++ -O3 -DNDEBUG -o evaluate_object evaluate_object.cpp
 #include <dirent.h>
 
 #include <boost/numeric/ublas/matrix.hpp>
@@ -28,6 +28,7 @@ using namespace std;
 
 /*=======================================================================
 STATIC EVALUATION PARAMETERS
+// g++ -O3 -DNDEBUG -o evaluate_object evaluate_object.cpp
 =======================================================================*/
 
 // holds the number of test images on the server
@@ -60,7 +61,7 @@ vector<string> CLASS_NAMES_CAP;
 const double MIN_OVERLAP[3][3] = {{0.7, 0.5, 0.5}, {0.7, 0.5, 0.5}, {0.7, 0.5, 0.5}};
 
 // no. of recall steps that should be evaluated (discretized)
-const double N_SAMPLE_PTS = 40;
+const double N_SAMPLE_PTS = 11;
 
 // initialize class names
 void initGlobals () {

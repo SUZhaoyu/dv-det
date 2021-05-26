@@ -87,8 +87,9 @@ def get_bbox_loss(point_coors,
     pred_res_logits = pred_logits[:, :6]
 
     pred_angle = pred_logits[:, 6:7] * np.pi
-    angle_loss = smooth_l1_loss(pred_angle, label_attrs[6:7], with_sin=True)
+    angle_loss = smooth_l1_loss(pred_angle, label_attrs[:, 6:7], with_sin=True)
     reg_loss = smooth_l1_loss(pred_res_logits, res_target, with_sin=False) # [n, 6]
+
 
     bbox_loss = tf.concat([cls_loss, reg_loss, angle_loss], axis=-1) # [n, 9]
     bbox_loss_sum = tf.reduce_mean(bbox_loss, axis=-1) * 3 # [n]

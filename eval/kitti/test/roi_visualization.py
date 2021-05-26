@@ -1,6 +1,7 @@
 import os
 from os.path import join
-
+import sys
+sys.path.append("/home/tan/tony/dv-det")
 import numpy as np
 import tensorflow as tf
 from data.utils.normalization import convert_threejs_coors, convert_threejs_bbox_with_colors, convert_threejs_bbox_with_prob, get_points_rgb_with_prob
@@ -17,9 +18,8 @@ Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-stage1')
 from models import kitti_model_cls_reg as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 from models.utils.loss_utils import get_bbox_from_logits
-hvd.init()
 anchor_size = config.anchor_size
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.6506832426644825'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-cls-1.6/test/model_0.6981716556304554'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 task = 'validation'
@@ -33,7 +33,7 @@ input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_i
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -44,14 +44,12 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
+
 # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.9, nms_conf_thres=0.5)
 # roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
 # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
 # roi_conf = tf.gather(roi_conf, nms_idx, axis=0)
 # roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
-roi_attrs = get_bbox_from_logits(point_coors=roi_coors,
-                                 pred_logits=roi_attrs,
-                                 anchor_size=anchor_size)
 
 
 # roi_ious = model.get_roi_iou(roi_coors=roi_coors,
@@ -109,8 +107,8 @@ if __name__ == '__main__':
             # ctf = tl.generate_chrome_trace_format()
             # with open('timeline-stage1.json', 'w') as f:
             #     f.write(ctf)
-        #
-            output_idx = output_conf > 0.7
+
+            output_idx = output_conf > 0.3
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
             output_coors = output_coors[output_idx]

@@ -14,10 +14,11 @@ from shutil import rmtree
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import kitti_model as model
+from models import kitti_model_cls_reg as model
 from train.kitti import kitti_config as config
 from data.kitti_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
+from models.utils.loss_utils import get_bbox_from_logits
 from models.tf_ops.loader.others import rotated_nms3d_idx
 
 hvd.init()
@@ -87,7 +88,7 @@ stage2_lr, stage2_bn, stage2_wd = set_training_controls(config=config,
 
 
 stage1_output_coors, stage1_output_features, stage1_output_num_list, \
-    output_roi_coors, output_roi_attrs, output_roi_conf_logits, output_roi_num_list = \
+    output_roi_coors, output_roi_logits, output_roi_conf_logits, output_roi_attrs, output_roi_num_list = \
     model.stage1_model(input_coors=stage1_input_coors_p,
                        input_features=stage1_input_features_p,
                        input_num_list=stage1_input_num_list_p,
@@ -96,7 +97,6 @@ stage1_output_coors, stage1_output_features, stage1_output_num_list, \
                        trainable=False,
                        mem_saving=True,
                        bn=1.)
-
 
 roi_ious = model.get_roi_iou(roi_coors=input_roi_coors_p,
                              pred_roi_attrs=input_roi_attrs_p,
@@ -116,9 +116,6 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
                        is_eval=False,
                        mem_saving=True,
                        bn=stage2_bn)
-
-
-
 
 stage2_loss, averaged_bbox_iou = model.stage2_loss(roi_attrs=input_roi_attrs_p,
                                                    pred_bbox_attrs=bbox_attrs,
@@ -228,7 +225,8 @@ def valid_one_epoch(sess, step, dataset_generator, writer):
 def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
         # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-eval/test/model_0.76285055631128')
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173')
+        # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-cls-1.6/test/model_0.6981716556304554')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

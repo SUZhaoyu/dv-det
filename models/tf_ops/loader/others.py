@@ -57,6 +57,14 @@ def anchor_iou_filter(anchor_iou, iou_idx, label_bbox, gt_conf, valid_idx, thres
 ops.NoGradient("AnchorIouFilterOp")
 
 
+arg_sort_exe = tf.load_op_library(join(CWD, '../build', 'arg_sort.so'))
+def arg_sort(inputs, descending=True):
+    ret_idx = arg_sort_exe.arg_sort_op(input=inputs,
+                                       descending=descending)
+    return ret_idx
+ops.NoGradient("ArgSortOp")
+
+
 # ============================================= NMS ===============================================
 
 iou3d_kernel_gpu_exe = tf.load_op_library(join(CWD, '../build', 'nms.so'))
@@ -75,12 +83,12 @@ def rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres)
 
     valid_count = tf.reduce_sum(tf.cast(tf.greater(bbox_conf, nms_conf_thres), dtype=tf.int32))
     # valid_idx = tf.where(tf.greater(bbox_conf, nms_conf_thres))[:, 0]
-    #
-    # bbox_attrs = tf.gather(bbox_attrs, valid_idx, axis=0)
     # bbox_conf = tf.gather(bbox_conf, valid_idx, axis=0)
-
+    # bbox_attrs = tf.gather(bbox_attrs, valid_idx, axis=0)
 
     sorted_idx = tf.argsort(bbox_conf, direction='DESCENDING')
+    # sorted_idx = tf.argsort(bbox_conf, direction='ASCENDING')
+    # sorted_idx = arg_sort(bbox_conf)
     sorted_bbox_attrs = tf.gather(bbox_attrs, sorted_idx, axis=0)[:valid_count, :]
 
     # bbox_dimensions = sorted_bbox_attrs[:, :3]
