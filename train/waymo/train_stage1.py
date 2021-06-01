@@ -1,8 +1,9 @@
+import os
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 import tensorflow as tf
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import horovod.tensorflow as hvd
-import os
 from tqdm import tqdm
 from os.path import join, dirname
 import sys
@@ -12,7 +13,7 @@ from shutil import rmtree, copyfile
 HOME = join(dirname(os.getcwd()))
 sys.path.append(HOME)
 
-from models import waymo_model as model
+from models import waymo_model_cls_reg as model
 from train.waymo import waymo_config as config
 from data.waymo_generator import Dataset
 from train.train_utils import get_train_op, get_config, save_best_sess, set_training_controls
@@ -49,7 +50,7 @@ DatasetTrain = Dataset(task="train",
 
 DatasetValid = Dataset(task="val",
                        validation=True,
-                       batch_size=config.batch_size,
+                       batch_size=1,
                        hvd_size=hvd.size(),
                        hvd_id=hvd.rank())
 # DatasetValid.stop()
@@ -68,12 +69,13 @@ stage1_lr, stage1_bn, stage1_wd = set_training_controls(config=config,
                                                         lr=config.init_lr_stage1,
                                                         scale=config.lr_scale_stage1,
                                                         decay_batch=decay_batch,
+                                                        lr_warm_up=config.lr_warm_up,
                                                         step=stage1_step,
                                                         hvd_size=hvd.size(),
                                                         prefix='stage1')
 stage1_loader = tf.train.Saver()
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -84,7 +86,7 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=stage1_bn)
 
 stage1_loss, averaged_roi_iou = model.stage1_loss(roi_coors=roi_coors,
-                                                  pred_roi_attrs=roi_attrs,
+                                                  pred_roi_logits=roi_logits,
                                                   roi_conf_logits=roi_conf_logits,
                                                   roi_num_list=roi_num_list,
                                                   bbox_labels=input_bbox_p,
@@ -162,7 +164,7 @@ def main():
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.
         step = 0
-        # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
+        valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
 
         for epoch in range(config.total_epoch):
             if is_hvd_root:

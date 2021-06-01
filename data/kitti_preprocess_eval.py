@@ -14,8 +14,7 @@ from data.utils.normalization import get_union_sets
 Converter = PointvizConverter(home='/home/tan/tony/threejs')
 logging.basicConfig(level=logging.INFO)
 CAM = 2
-category_dict = {"car": 0,
-                 "van": 1}
+
 range_x = [0., 70.4]
 range_y = [-40., 40.]
 range_z = [-3., 1.]

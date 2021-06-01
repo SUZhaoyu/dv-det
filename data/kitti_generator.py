@@ -250,7 +250,7 @@ class Dataset(object):
 
 
 if __name__ == '__main__':
-    aug_config = {'nbbox': 128,
+    aug_config = {'nbbox': 256,
                   'rotate_range': np.pi / 4,
                   'rotate_mode': 'u',
                   'scale_range': 0.05,
@@ -259,7 +259,7 @@ if __name__ == '__main__':
                   'flip': False,
                   'shuffle': True,
                   'paste_augmentation': True,
-                  'paste_instance_num': 64,
+                  'paste_instance_num': 128,
                   'maximum_interior_points': 100,
                   'normalization': None}
 
@@ -296,7 +296,7 @@ if __name__ == '__main__':
     bboxes = bboxes[batch_id]
 
     Converter = PointvizConverter(home='/home/tan/tony/threejs')
-    Converter.compile(task_name="Pc_Generator_valid",
+    Converter.compile(task_name="kitti_generator",
                       coors=convert_threejs_coors(coors),
                       intensity=features,
                       default_rgb=None,

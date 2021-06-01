@@ -8,7 +8,7 @@ All Rights Reserved 2018.
 #define THREADS_PER_BLOCK 16
 #define DIVUP(m, n) ((m) / (n) + ((m) % (n) > 0))
 
-//#define DEBUG
+#define DEBUG
 const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8; 
 const float EPS = 1e-8;
 struct Point {
@@ -56,11 +56,11 @@ __device__ inline int check_in_box2d(const float *box, const Point &p){
     float angle_cos = cos(box[4]), angle_sin = sin(box[4]);  // rotate the point in the opposite direction of box
     float rot_x = (p.x - center_x) * angle_cos + (p.y - center_y) * angle_sin + center_x;
     float rot_y = -(p.x - center_x) * angle_sin + (p.y - center_y) * angle_cos + center_y;
-#ifdef DEBUG
-    printf("box: (%.3f, %.3f, %.3f, %.3f, %.3f)\n", box[0], box[1], box[2], box[3], box[4]);
-    printf("center: (%.3f, %.3f), cossin(%.3f, %.3f), src(%.3f, %.3f), rot(%.3f, %.3f)\n", center_x, center_y,
-            angle_cos, angle_sin, p.x, p.y, (p.x - center_x) * angle_cos + (p.y - center_y) * angle_sin + center_x, rot_y);
-#endif
+//#ifdef DEBUG
+//    printf("box: (%.3f, %.3f, %.3f, %.3f, %.3f)\n", box[0], box[1], box[2], box[3], box[4]);
+//    printf("center: (%.3f, %.3f), cossin(%.3f, %.3f), src(%.3f, %.3f), rot(%.3f, %.3f)\n", center_x, center_y,
+//            angle_cos, angle_sin, p.x, p.y, (p.x - center_x) * angle_cos + (p.y - center_y) * angle_sin + center_x, rot_y);
+//#endif
     return (rot_x > box[0] - MARGIN && rot_x < box[2] + MARGIN && rot_y > box[1] - MARGIN && rot_y < box[3] + MARGIN);
 }
 
@@ -114,11 +114,11 @@ __device__ inline float box_overlap(const float *box_a, const float *box_b){
 
     Point center_a((a_x1 + a_x2) / 2, (a_y1 + a_y2) / 2);
     Point center_b((b_x1 + b_x2) / 2, (b_y1 + b_y2) / 2);
-#ifdef DEBUG
-    printf("a: (%.3f, %.3f, %.3f, %.3f, %.3f), b: (%.3f, %.3f, %.3f, %.3f, %.3f)\n", a_x1, a_y1, a_x2, a_y2, a_angle,
-           b_x1, b_y1, b_x2, b_y2, b_angle);
-    printf("center a: (%.3f, %.3f), b: (%.3f, %.3f)\n", center_a.x, center_a.y, center_b.x, center_b.y);
-#endif
+//#ifdef DEBUG
+//    printf("a: (%.3f, %.3f, %.3f, %.3f, %.3f), b: (%.3f, %.3f, %.3f, %.3f, %.3f)\n", a_x1, a_y1, a_x2, a_y2, a_angle,
+//           b_x1, b_y1, b_x2, b_y2, b_angle);
+//    printf("center a: (%.3f, %.3f), b: (%.3f, %.3f)\n", center_a.x, center_a.y, center_b.x, center_b.y);
+//#endif
 
     Point box_a_corners[5];
     box_a_corners[0].set(a_x1, a_y1);
@@ -137,14 +137,14 @@ __device__ inline float box_overlap(const float *box_a, const float *box_b){
     float b_angle_cos = cos(b_angle), b_angle_sin = sin(b_angle);
 
     for (int k = 0; k < 4; k++){
-#ifdef DEBUG
-        printf("before corner %d: a(%.3f, %.3f), b(%.3f, %.3f) \n", k, box_a_corners[k].x, box_a_corners[k].y, box_b_corners[k].x, box_b_corners[k].y);
-#endif
+//#ifdef DEBUG
+//        printf("before corner %d: a(%.3f, %.3f), b(%.3f, %.3f) \n", k, box_a_corners[k].x, box_a_corners[k].y, box_b_corners[k].x, box_b_corners[k].y);
+//#endif
         rotate_around_center(center_a, a_angle_cos, a_angle_sin, box_a_corners[k]);
         rotate_around_center(center_b, b_angle_cos, b_angle_sin, box_b_corners[k]);
-#ifdef DEBUG
-        printf("corner %d: a(%.3f, %.3f), b(%.3f, %.3f) \n", k, box_a_corners[k].x, box_a_corners[k].y, box_b_corners[k].x, box_b_corners[k].y);
-#endif
+//#ifdef DEBUG
+//        printf("corner %d: a(%.3f, %.3f), b(%.3f, %.3f) \n", k, box_a_corners[k].x, box_a_corners[k].y, box_b_corners[k].x, box_b_corners[k].y);
+//#endif
     }
 
     box_a_corners[4] = box_a_corners[0];
@@ -195,12 +195,12 @@ __device__ inline float box_overlap(const float *box_a, const float *box_b){
         }
     }
 
-#ifdef DEBUG
-    printf("cnt=%d\n", cnt);
-    for (int i = 0; i < cnt; i++){
-        printf("All cross point %d: (%.3f, %.3f)\n", i, cross_points[i].x, cross_points[i].y);
-    }
-#endif
+//#ifdef DEBUG
+//    printf("cnt=%d\n", cnt);
+//    for (int i = 0; i < cnt; i++){
+//        printf("All cross point %d: (%.3f, %.3f)\n", i, cross_points[i].x, cross_points[i].y);
+//    }
+//#endif
 
     // get the overlap areas
     float area = 0;
@@ -230,9 +230,9 @@ __device__ inline float iou3d(const float *box_a, const float *box_b, const floa
     float vol_b = sb * (box_b_z[1] - box_b_z[0]);
     float vol_overlap = s_overlap * intersection_height;
     
-#ifdef DEBUG
-    printf("sa, sb, s_overlap, vol_a, vol_b, vol_overlap: (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n", sa, sb, s_overlap, vol_a, vol_b, vol_overlap);
-#endif
+//#ifdef DEBUG
+//    printf("sa, sb, s_overlap, vol_a, vol_b, vol_overlap: (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n", sa, sb, s_overlap, vol_a, vol_b, vol_overlap);
+//#endif
 
     return vol_overlap / fmaxf(vol_a + vol_b - vol_overlap, EPS);
 }
@@ -258,28 +258,25 @@ __global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const
     float box_a_z_tmp[2];
     float box_b_z_tmp[2];
 
-
     // [x, y, z, w, l ,h, r]
 
-    box_a_tmp[0] = cur_box_a[0] - cur_box_a[3] / 2; // x1,
-    box_a_tmp[1] = cur_box_a[1] - cur_box_a[4] / 2; // y1
-    box_a_tmp[2] = cur_box_a[0] + cur_box_a[3] / 2; // x2
-    box_a_tmp[3] = cur_box_a[1] + cur_box_a[4] / 2; // y2
+    box_a_tmp[0] = cur_box_a[3] - cur_box_a[0] / 2; // x1,
+    box_a_tmp[1] = cur_box_a[4] - cur_box_a[1] / 2; // y1
+    box_a_tmp[2] = cur_box_a[3] + cur_box_a[0] / 2; // x2
+    box_a_tmp[3] = cur_box_a[4] + cur_box_a[1] / 2; // y2
     box_a_tmp[4] = cur_box_a[6]; // ry
 
-    box_a_z_tmp[0] = cur_box_a[2] - cur_box_a[5] / 2; // z1min
-    box_a_z_tmp[1] = cur_box_a[2] + cur_box_a[5] / 2; // z1max
+    box_a_z_tmp[0] = cur_box_a[5] - cur_box_a[2] / 2; // z1min
+    box_a_z_tmp[1] = cur_box_a[5] + cur_box_a[2] / 2; // z1max
 
-
-    box_b_tmp[0] = cur_box_b[0] - cur_box_b[3] / 2; // x1,
-    box_b_tmp[1] = cur_box_b[1] - cur_box_b[4] / 2; // y1
-    box_b_tmp[2] = cur_box_b[0] + cur_box_b[3] / 2; // x2
-    box_b_tmp[3] = cur_box_b[1] + cur_box_b[4] / 2; // y2
+    box_b_tmp[0] = cur_box_b[3] - cur_box_b[0] / 2; // x1,
+    box_b_tmp[1] = cur_box_b[4] - cur_box_b[1] / 2; // y1
+    box_b_tmp[2] = cur_box_b[3] + cur_box_b[0] / 2; // x2
+    box_b_tmp[3] = cur_box_b[4] + cur_box_b[1] / 2; // y2
     box_b_tmp[4] = cur_box_b[6]; // ry
 
-    box_b_z_tmp[0] = cur_box_b[2] - cur_box_b[5] / 2; // z1min
-    box_b_z_tmp[1] = cur_box_b[2] + cur_box_b[5] / 2; // z1max
-
+    box_b_z_tmp[0] = cur_box_b[5] - cur_box_b[2] / 2; // z1min
+    box_b_z_tmp[1] = cur_box_b[5] + cur_box_b[2] / 2; // z1max
 
     float cur_iou_3d = iou3d(&box_a_tmp[0], &box_b_tmp[0], &box_a_z_tmp[0], &box_b_z_tmp[0]);
     ans_iou[a_idx * num_b + b_idx] = cur_iou_3d;
@@ -363,7 +360,7 @@ __global__ void nms3d_kernel(const int boxes_num, const float nms_overlap_thresh
 void boxesIou3dGPUKernelLauncher(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou){
 
     dim3 blocks(DIVUP(num_b, THREADS_PER_BLOCK), DIVUP(num_a, THREADS_PER_BLOCK));  // blockIdx.x(col), blockIdx.y(row)
-    dim3 threads(THREADS_PER_BLOCK, THREADS_PER_BLOCK);
+    dim3 threads(THREADS_PER_BLOCK, THREADS_PER_BLOCK); // (256, 256)
 
     boxes_iou_3d_kernel<<<blocks, threads>>>(num_a, boxes_a, num_b, boxes_b, ans_iou);
 }

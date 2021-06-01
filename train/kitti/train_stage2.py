@@ -42,7 +42,7 @@ else:
 #     copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
 
 DatasetTrain = Dataset(task="training",
-                       batch_size=config.batch_size,
+                       batch_size=config.batch_size_stage2,
                        config=config.aug_config,
                        num_worker=config.num_worker,
                        hvd_size=hvd.size(),
@@ -51,7 +51,7 @@ DatasetTrain = Dataset(task="training",
 
 DatasetValid = Dataset(task="validation",
                        validation=True,
-                       batch_size=config.batch_size,
+                       batch_size=config.batch_size_stage2,
                        hvd_size=hvd.size(),
                        hvd_id=hvd.rank())
 # DatasetValid.stop()
@@ -226,7 +226,7 @@ def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
         # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-eval/test/model_0.76285055631128')
         # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173')
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-cls-1.6/test/model_0.6981716556304554')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-no-rot-aug/test/model_0.7069864748570868')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

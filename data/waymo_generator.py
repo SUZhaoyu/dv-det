@@ -1,6 +1,8 @@
 import logging
 import multiprocessing
 import time
+import sys
+sys.path.append("/home/tan/tony/dv-det")
 # from point_viz.utils import get_color_from_intensity
 from copy import deepcopy
 from os.path import join
@@ -15,7 +17,7 @@ from tqdm import tqdm
 from data.utils.augmentation import rotate, scale, flip, drop_out, shuffle, transform, \
     get_pasted_point_cloud_waymo
 from data.utils.normalization import feature_normalize, bboxes_normalization, convert_threejs_coors, \
-    convert_threejs_bbox
+    convert_threejs_bbox, normalize_angle
 
 # os.environ['MKL_NUM_THREADS'] = '1'
 mkl.set_num_threads(1)
@@ -29,7 +31,7 @@ default_config = {'nbbox': 256,
                   'flip': False,
                   'shuffle': False,
                   'paste_augmentation': False,
-                  'paste_instance_num': 64,
+                  'paste_instance_num': 128,
                   'maximum_interior_points': 40,
                   'normalization': 'channel_std'}
 
@@ -144,7 +146,7 @@ class Dataset(object):
                         if self.drop_out > 0:
                             points = drop_out(points, self.drop_out)
                         coors = points[:, :3]
-                        features = points[:, -2:]
+                        features = points[:, 3:5]
 
                         T_rotate, angle = rotate(self.rotate_range, self.rotate_mode)
                         T_scale, scale_xyz = scale(self.scale_range, self.scale_mode)
@@ -160,17 +162,14 @@ class Dataset(object):
                         features = feature_normalize(features, method=self.normalization)
                         ret_bboxes = []
                         for box in bboxes:
-
                             w, l, h, x, y, z, r = box[:7]
                             x, y, z = transform(np.array([x, y, z]), T_coors)
                             w, l, h = transform(np.array([w, l, h]), T_scale)
                             r += angle
                             if flip_y == -1:
                                 r = (-1) ** int(r <= 0) * np.pi - r
-                            if np.abs(r) > 2 * np.pi:
-                                r = np.abs(r) % (2 * np.pi) * (-1) ** int(r <= 0)
-                            if np.abs(r) > np.pi:
-                                r = -(2 * np.pi - np.abs(r))
+
+                            r = normalize_angle(r)
 
                             category = box[-2]
                             difficulty = box[-1]
@@ -217,7 +216,7 @@ class Dataset(object):
                 idx = np.random.randint(self.total_data_length) if self.random else self.idx
                 points = np.load(join(self.lidar_home, "%06d.npy" % idx), allow_pickle=True).astype(np.float32)
                 coors = points[:, :3]
-                features = points[:, -2:]
+                features = points[:, 3:5]
 
                 if len(coors) == 0:
                     coors = np.array([[1., 0., 0.]])  # to keep the npoint always > 0 in a frame
@@ -251,12 +250,12 @@ if __name__ == '__main__':
     aug_config = {'nbbox': 256,
                   'rotate_range': np.pi * 2,
                   'rotate_mode': 'u',
-                  'scale_range': 0.05,
+                  'scale_range': 0.5,
                   'scale_mode': 'u',
                   'drop_out': 0.1,
                   'flip': False,
                   'shuffle': True,
-                  'paste_augmentation': False,
+                  'paste_augmentation': True,
                   'paste_instance_num': 128,
                   'maximum_interior_points': 40,
                   'normalization': 'channel_std'}
@@ -265,25 +264,25 @@ if __name__ == '__main__':
                       config=aug_config,
                       batch_size=1,
                       validation=False,
-                      num_worker=20,
+                      num_worker=1,
                       hvd_size=8,
                       hvd_id=0)
     generator = dataset.train_generator()
-    for i in tqdm(range(10000)):
+    for i in tqdm(range(1)):
         # dataset.aug_process()
         coors, features, num_list, bboxes = next(generator)
-        valid_count = np.sum((bboxes[0, :, 0] > 0))
-        print(valid_count)
-        if valid_count > 50:
-            break
+        # valid_count = np.sum((bboxes[0, :, 0] > 0))
+        # print(valid_count)
+        # if valid_count > 50:
+        #     break
 
 
 
         # print(num_list)
         # print(coors.shape, features.shape, num_list)
 
-        # dimension = [180., 180., 7.]
-        # offset = [90., 90., 2.5]
+        # dimension = [180., 180., 8.]
+        # offset = [90., 90., 3.5]
         #
         # coors += offset
         # coors_min = np.min(coors, axis=0)

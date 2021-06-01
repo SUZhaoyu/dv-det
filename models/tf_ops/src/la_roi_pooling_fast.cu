@@ -159,9 +159,9 @@ __global__ void roi_pooling_register_gpu_kernel(int batch_size, int roi_num,
                             abs(rel_point_z) <= roi_grid_length_z * 1.2) {
             //                printf("Yes\n");
                             float dist_2 = pow(point_x - act_roi_grid_x, 2.) + pow(point_y - act_roi_grid_y, 2.) + pow(point_z - act_roi_grid_z, 2.);
-                            float dist = sqrt(dist_2);
+                            float dist = sqrtf(dist_2);
                             float radius = max(max(roi_grid_length_x, roi_grid_length_y), roi_grid_length_z) / 2.;
-                            float weight = expf(-dist / radius);
+                            float weight = __expf()(-dist / radius);
 //                            float weight = 1.;
 
                             int pool_count = temp_count[voxel_coor];

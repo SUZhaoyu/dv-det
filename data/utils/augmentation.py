@@ -1,5 +1,4 @@
 from __future__ import division
-
 from copy import deepcopy
 
 # import cv2
@@ -262,25 +261,25 @@ def ground_align(points, bbox, ground, trans_list):
 
     return np.array(points), np.array(bbox)
 
-def object_points_shift(point, bbox, offset=5):
+def object_points_shift(point, bbox, offset, x_min, y_min, x_max, y_max):
     center_xy = np.array(bbox[3:5])
-    point[:, :2] -= center_xy
-    random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
-    # random_r = 0.
-    T = np.array([[np.cos(random_r), -np.sin(random_r)],
-                  [np.sin(random_r), np.cos(random_r)]])
-
-    point[:, :2] = transform(point[:, :2], T)
+    point[:, :2] = point[:, :2] - center_xy
+    # random_r = np.random.uniform(low=-2*np.pi, high=2*np.pi)
+    # # random_r = 0.
+    # T = np.array([[np.cos(random_r), -np.sin(random_r)],
+    #               [np.sin(random_r), np.cos(random_r)]])
+    #
+    # point[:, :2] = transform(point[:, :2], T)
 
     random_xy = np.array([np.random.uniform(low=-offset, high=offset),
                           np.random.uniform(low=-offset, high=offset)])
     offset_xy = center_xy + random_xy
-    offset_xy[0] = np.clip(offset_xy[0], 5, 65)
-    offset_xy[1] = np.clip(offset_xy[1], -35, 35)
+    offset_xy[0] = np.clip(offset_xy[0], x_min, x_max)
+    offset_xy[1] = np.clip(offset_xy[1], y_min, y_max)
 
     point[:, :2] = point[:, :2] + offset_xy
     bbox[3:5] = offset_xy
-    bbox[6] += random_r
+    # bbox[6] += random_r
     return point, bbox
 
 
@@ -305,7 +304,7 @@ def get_pasted_point_cloud_waymo(scene_points, scene_bboxes, object_collections,
 
             new_bbox = deepcopy(new_bbox)
             new_points = deepcopy(new_points)
-            new_points, new_bbox = object_points_shift(new_points, new_bbox, x_min=-65, x_max=65, y_min=-65, y_max=65)
+            new_points, new_bbox = object_points_shift(new_points, new_bbox, offset=5, x_min=-70, y_min=-70, x_max=70, y_max=70)
             new_bbox_polygon = Polygon(get_polygon_from_bbox(new_bbox, expend_ratio=0.15))
             overlap = False
             intersect = False
@@ -350,11 +349,11 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
     for i in range(instance_num):
         prob = np.random.rand()
 
-        if prob < 0.3:
+        if prob < 0.2:
             id = np.random.randint(len(object_collections[0]))
             new_points = object_collections[0][id]
             new_bbox = bbox_collections[0][id]
-        elif prob < 0.8:
+        elif prob < 0.6:
             id = np.random.randint(len(object_collections[1]))
             new_points = object_collections[1][id]
             new_bbox = bbox_collections[1][id]
@@ -365,7 +364,7 @@ def get_pasted_point_cloud(scene_points, scene_bboxes, ground, trans_list, objec
 
         new_bbox = deepcopy(new_bbox)
         new_points = deepcopy(new_points)
-        new_points, new_bbox = object_points_shift(new_points, new_bbox, offset=5)
+        new_points, new_bbox = object_points_shift(new_points, new_bbox, offset=5, x_min=5, y_min=-35, x_max=65, y_max=35)
         new_points, new_bbox = ground_align(new_points, new_bbox, ground, trans_list)
         new_bbox_polygon = Polygon(get_polygon_from_bbox(new_bbox, expend_ratio=0.15))
         overlap = False

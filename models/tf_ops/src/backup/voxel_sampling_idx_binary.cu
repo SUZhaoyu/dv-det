@@ -6,9 +6,10 @@
 #include <time.h>
 #include <sys/time.h>
 #include <iostream>
+#include <vector>
 #define USECPSEC 1000000ULL
 
-__device__ int binary_search(const long long* input_voxel_idx,
+__device__ inline int binary_search(const long long* input_voxel_idx,
                              int start_id,
                              int stop_id,
                              long long target_voxel_id) {
@@ -43,7 +44,7 @@ __device__ int binary_search(const long long* input_voxel_idx,
 //    return start_loc;
 //}
 
-__device__ int start_loc_search(const long long* input_voxel_idx,
+__device__ inline int start_loc_search(const long long* input_voxel_idx,
                                int grid_buffer_size,
                                int start_loc, int loc) {
     long long input_idx = input_voxel_idx[loc];
@@ -64,7 +65,7 @@ __device__ int start_loc_search(const long long* input_voxel_idx,
     return ret_loc;
 }
 
-__device__ int stop_loc_search(const long long* input_voxel_idx,
+__device__ inline int stop_loc_search(const long long* input_voxel_idx,
                                int grid_buffer_size,
                                int stop_loc, int loc) {
     long long input_idx = input_voxel_idx[loc];
@@ -88,7 +89,8 @@ __device__ int stop_loc_search(const long long* input_voxel_idx,
 
 __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_npoint,
                                                      int center_num, int kernel_size,
-                                                     float dim_w, float dim_l, float dim_h, float resolution,
+                                                     float dim_w, float dim_l, float dim_h,
+                                                     float resolution_w, float resolution_l, float resolution_h,
                                                      int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                                      const float* input_coors,
                                                      const long long* input_voxel_idx,
@@ -107,16 +109,20 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
     }
 
 	const int half_kernel_size = (kernel_size - 1) / 2;
-	const float radius = 1.5 * resolution;
-	const float r2 = radius * radius;
+	const float radius_x = 1.5 * resolution_w;
+	const float radius_y = 1.5 * resolution_l;
+	const float radius_z = 1.5 * resolution_h;
+	const float r_x2 = radius_x * radius_x;
+	const float r_y2 = radius_y * radius_y;
+	const float r_z2 = radius_z * radius_z;
 	const int kernel_num = kernel_size * kernel_size * kernel_size;
 	const int center_offset = kernel_size * kernel_size * half_kernel_size + \
                               kernel_size * half_kernel_size + \
                               half_kernel_size;
 	const float EPS = 1e-6;
-	int grid_w = dim_w / resolution;
-	int grid_l = dim_l / resolution;
-	int grid_h = dim_h / resolution;
+	int grid_w = dim_w / resolution_w;
+	int grid_l = dim_l / resolution_l;
+	int grid_h = dim_h / resolution_h;
 //	printf("%f, %f, %f\n", dim_w, dim_l, dim_h);
 
 	for (int b=blockIdx.x; b<batch_size; b+=gridDim.x) {
@@ -130,33 +136,32 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 	    __syncthreads();
 
 
-
 	    for (int i=threadIdx.x; i<center_num_list[b]; i+=blockDim.x) {
 	        float x_c = center_coors[center_accu_list[b]*3 + i*3 + 0];
 	        float y_c = center_coors[center_accu_list[b]*3 + i*3 + 1];
 	        float z_c = center_coors[center_accu_list[b]*3 + i*3 + 2];
-	        int grid_coor_w = x_c / resolution;
-	        int grid_coor_l = y_c / resolution;
-	        int grid_coor_h = z_c / resolution;
+	        int grid_coor_w = x_c / resolution_w;
+	        int grid_coor_l = y_c / resolution_l;
+	        int grid_coor_h = z_c / resolution_h;
 //	        long long grid_idx_c = grid_coor_h * grid_w * grid_l + grid_coor_l * grid_w + grid_coor_w;
             int grid_search_w_min, grid_search_w_max;
             int grid_search_l_min, grid_search_l_max;
             int grid_search_h_min, grid_search_h_max;
-	        if (grid_coor_w * resolution + 0.5 * resolution > x_c) {
+	        if (grid_coor_w * resolution_w + 0.5 * resolution_w > x_c) {
 	            grid_search_w_min = grid_coor_w - 2;
 	            grid_search_w_max = grid_coor_w + 1;
 	        }else{
 	            grid_search_w_min = grid_coor_w - 1;
 	            grid_search_w_max = grid_coor_w + 2;
             }
-            if (grid_coor_l * resolution + 0.5 * resolution > y_c) {
+            if (grid_coor_l * resolution_l + 0.5 * resolution_l > y_c) {
 	            grid_search_l_min = grid_coor_l - 2;
 	            grid_search_l_max = grid_coor_l + 1;
 	        }else{
 	            grid_search_l_min = grid_coor_l - 1;
 	            grid_search_l_max = grid_coor_l + 2;
             }
-            if (grid_coor_h * resolution + 0.5 * resolution > z_c) {
+            if (grid_coor_h * resolution_h + 0.5 * resolution_h > z_c) {
 	            grid_search_h_min = grid_coor_h - 2;
 	            grid_search_h_max = grid_coor_h + 1;
 	        }else{
@@ -193,10 +198,10 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                 float dx2 = dx * dx;
                                 float dy2 = dy * dy;
                                 float dz2 = dz * dz;
-                                if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
-                                    int x_coor = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
-                                    int y_coor = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
-                                    int z_coor = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
+                                if (dx2 < r_x2 && dy2 < r_y2 && dz2 < r_z2) {
+                                    int x_coor = __float2int_rz(dx / resolution_w + 0.5 * fabsf(dx) / dx);
+                                    int y_coor = __float2int_rz(dy / resolution_l + 0.5 * fabsf(dy) / dy);
+                                    int z_coor = __float2int_rz(dz / resolution_h + 0.5 * fabsf(dz) / dz);
                                     int voxel_coor = center_accu_list[b] * kernel_num + i * kernel_num + center_offset + \
                                                      kernel_size * kernel_size * x_coor + \
                                                      kernel_size * y_coor + \
@@ -220,7 +225,7 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 
 void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int center_num, int kernel_size,
-                                            float dim_w, float dim_l, float dim_h, float resolution,
+                                            std::vector<float> dimension, std::vector<float> resolution,
                                             int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                             const float* input_coors,
                                             const long long* input_voxel_idx,
@@ -232,10 +237,11 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int* output_idx,
                                             int* output_idx_count,
                                             int* valid_idx) {
-
+//    printf("*********** Here ***********\n");
     voxel_sampling_idx_binary_gpu_kernel<<<16,512>>>(batch_size, input_npoint,
                                                      center_num, kernel_size,
-                                                     dim_w, dim_l, dim_h, resolution,
+                                                     dimension[0], dimension[1], dimension[2],
+                                                     resolution[0], resolution[1], resolution[2],
                                                      grid_buffer_size, output_pooling_size, with_rpn,
                                                      input_coors,
                                                      input_voxel_idx,

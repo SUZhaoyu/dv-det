@@ -29,7 +29,7 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
     .Output("output_idx: int32") // [center_coors.shape[0], kernel_size ** 3, channels]
     .Output("valid_idx: int32")
     .Attr("dimension: list(float)")
-    .Attr("resolution: float")
+    .Attr("resolution: list(float)")
     .Attr("grid_buffer_size: int")
     .Attr("output_pooling_size: int")
     .Attr("with_rpn: bool")
@@ -59,7 +59,7 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
 
 void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int center_num, int kernel_size,
-                                            float dim_w, float dim_l, float dim_h, float resolution,
+                                            std::vector<float> dimension, std::vector<float> resolution,
                                             int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                             const float* input_coors,
                                             const long long* input_voxel_idx,
@@ -80,8 +80,8 @@ public:
         OP_REQUIRES_OK(context, context->GetAttr("dimension", &dimension));
         OP_REQUIRES_OK(context, context->GetAttr("grid_buffer_size", &grid_buffer_size));
         OP_REQUIRES_OK(context, context->GetAttr("output_pooling_size", &output_pooling_size));
-        OP_REQUIRES(context, resolution > 0,
-                    errors::InvalidArgument("Resolution has to be greater than 0"));
+        OP_REQUIRES(context, resolution.size() == 3 && resolution[0] * resolution[1] * resolution[2] > 0,
+                    errors::InvalidArgument("Resolution has to be in 3-D and greater than 0"));
         OP_REQUIRES(context, dimension.size() == 3,
                     errors::InvalidArgument("Dimension has to be 3-D for Voxel Sample Operation."));
     }
@@ -175,10 +175,9 @@ public:
         int* valid_idx_ptr = valid_idx->template flat<int>().data();
         cudaMemset(valid_idx_ptr, 0, center_num*sizeof(int));
 
-
         voxel_sampling_idx_binary_gpu_launcher(batch_size, input_npoint,
                                                center_num, kernel_size,
-                                               dimension[0], dimension[1], dimension[2], resolution,
+                                               dimension, resolution,
                                                grid_buffer_size, output_pooling_size, with_rpn,
                                                input_coors_ptr,
                                                input_voxel_idx_ptr,
@@ -197,9 +196,9 @@ public:
         free(center_accu_list_ptr_host);
     }
 private:
-    float resolution;
     bool with_rpn;
     int output_pooling_size, grid_buffer_size;
     std::vector<float> dimension;
+    std::vector<float> resolution;
 }; // OpKernel
 REGISTER_KERNEL_BUILDER(Name("VoxelSamplingIdxBinaryOp").Device(DEVICE_GPU), VoxelSamplingIdxBinaryOp);

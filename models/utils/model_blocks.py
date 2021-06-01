@@ -274,6 +274,7 @@ def point_conv_concat(input_coors,
                       concat_features,
                       input_num_list,
                       voxel_idx,
+                      voxel_weight,
                       center_idx,
                       layer_params,
                       dimension_params,
@@ -291,8 +292,8 @@ def point_conv_concat(input_coors,
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
     # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
-    grid_sampling_method = grid_sampling
-    voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
+    grid_sampling_method = grid_sampling if (layer_params['subsample_res'] is not None and layer_params['subsample_res'] >= 0.1)else grid_sampling_thrust
+    voxel_sampling_idx_method = voxel_sampling_idx_binary if (mem_saving or np.min(layer_params['kernel_res']) < 0.1) else voxel_sampling_idx
     # voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
 
     if layer_params['subsample_res'] is not None:
@@ -310,7 +311,7 @@ def point_conv_concat(input_coors,
         center_idx = center_idx
 
     if layer_params['kernel_res'] is not None:
-        voxel_idx, _, features = voxel_sampling_idx_method(input_coors=input_coors,
+        voxel_idx, voxel_weight, features = voxel_sampling_idx_method(input_coors=input_coors,
                                                            input_features=input_features,
                                                            input_num_list=input_num_list,
                                                            center_coors=kernel_center_coors,
@@ -324,14 +325,17 @@ def point_conv_concat(input_coors,
     else:
         if layer_params['subsample_res'] is not None:
             voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
+            voxel_weight = tf.gather(voxel_weight, center_idx, axis=0)
             features = input_features
         else:
             voxel_idx = voxel_idx
+            voxel_weight = voxel_weight
             features = input_features
 
 
     voxel_features = voxel_sampling_feature(input_features=features,
                                             output_idx=voxel_idx,
+                                            output_weight=voxel_weight,
                                             padding=model_params['padding'])
 
     output_features = kernel_conv_wrapper(inputs=voxel_features,
@@ -345,10 +349,13 @@ def point_conv_concat(input_coors,
                                           is_training=is_training,
                                           histogram=histogram,
                                           summary=summary)
-    if concat_features is not None and layer_params['concat']:
-        concat_features = tf.concat([concat_features, output_features], axis=1)
+    if layer_params['concat']:
+        if concat_features is None:
+            concat_features = output_features
+        else:
+            concat_features = tf.concat([concat_features, output_features], axis=1)
 
-    return kernel_center_coors, output_features, center_num_list, voxel_idx, center_idx, concat_features
+    return kernel_center_coors, output_features, center_num_list, voxel_idx, voxel_weight, center_idx, concat_features
 
 
 def point_conv_bev_concat(input_coors,

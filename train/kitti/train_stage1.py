@@ -41,7 +41,7 @@ if is_hvd_root:
     copyfile(config.config_dir, join(log_dir, config.config_dir.split('/')[-1]))
 
 DatasetTrain = Dataset(task="training",
-                       batch_size=config.batch_size,
+                       batch_size=config.batch_size_stage1,
                        config=config.aug_config,
                        num_worker=config.num_worker,
                        hvd_size=hvd.size(),
@@ -50,7 +50,7 @@ DatasetTrain = Dataset(task="training",
 
 DatasetValid = Dataset(task="validation",
                        validation=True,
-                       batch_size=config.batch_size,
+                       batch_size=config.batch_size_stage1,
                        hvd_size=hvd.size(),
                        hvd_id=hvd.rank())
 # DatasetValid.stop()
@@ -166,9 +166,9 @@ def main():
         best_result = 0.
         step = 0
 
-        best_result = save_best_sess(mon_sess, best_result, 0.,
-                                     log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
-                                     save_anyway=True)
+        # best_result = save_best_sess(mon_sess, best_result, 0.,
+        #                              log_dir, saver, replace=True, log=is_hvd_root, inverse=False,
+        #                              save_anyway=True)
 
         # valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
 
@@ -178,6 +178,7 @@ def main():
             step = train_one_epoch(mon_sess, step, train_generator, training_writer)
             if epoch % config.valid_interval == 0:  # and EPOCH != 0:
                 result = valid_one_epoch(mon_sess, step, valid_generator, validation_writer)
+            # if epoch == 60:
                 if is_hvd_root:
                     best_result = save_best_sess(mon_sess, best_result, result,
                                                  log_dir, saver, replace=True, log=is_hvd_root, inverse=False,

@@ -27,7 +27,7 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
     .Input("center_coors: float32")
     .Input("center_num_list: int32")
     .Output("output_idx: int32") // [center_coors.shape[0], kernel_size ** 3, channels]
-    .Output("valid_idx: int32")
+    .Output("output_weight: float32")
     .Attr("dimension: list(float)")
     .Attr("resolution: list(float)")
     .Attr("grid_buffer_size: int")
@@ -47,10 +47,10 @@ REGISTER_OP("VoxelSamplingIdxBinaryOp")
 
         // The output shape during the shape inference stage is pseudo.
         ShapeHandle output_idx_shape = c->MakeShape({center_num, kernel_size*kernel_size*kernel_size, output_pooling_size});
-        ShapeHandle valid_idx_shape = c->MakeShape({center_num});
+        ShapeHandle output_weight_shape = c->MakeShape({center_num, kernel_size*kernel_size*kernel_size, output_pooling_size});
 
         c->set_output(0, output_idx_shape); // output_idx
-        c->set_output(1, valid_idx_shape);
+        c->set_output(1, output_weight_shape); // output_idx
 
         return Status::OK();
 
@@ -70,7 +70,7 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int* center_accu_list,
                                             int* output_idx,
                                             int* output_idx_count,
-                                            int* valid_idx);
+                                            float* output_weight);
 
 class VoxelSamplingIdxBinaryOp: public OpKernel {
 public:
@@ -169,11 +169,11 @@ public:
         int* output_idx_count_ptr = output_idx_count.template flat<int>().data();
         cudaMemset(output_idx_count_ptr, 0, center_num*kernel_num*sizeof(int));
 
-        Tensor* valid_idx = nullptr;
-        auto valid_idx_shape = TensorShape({center_num});
-        OP_REQUIRES_OK(context, context->allocate_output(1, valid_idx_shape, &valid_idx));
-        int* valid_idx_ptr = valid_idx->template flat<int>().data();
-        cudaMemset(valid_idx_ptr, 0, center_num*sizeof(int));
+        Tensor* output_weight = nullptr;
+        auto output_weight_shape = TensorShape({center_num, kernel_num, output_pooling_size});
+        OP_REQUIRES_OK(context, context->allocate_output(1, output_weight_shape, &output_weight));
+        float* output_weight_ptr = output_weight->template flat<float>().data();
+        cudaMemset(output_weight_ptr, 0, center_num*kernel_num*output_pooling_size*sizeof(float));
 
         voxel_sampling_idx_binary_gpu_launcher(batch_size, input_npoint,
                                                center_num, kernel_size,
@@ -188,7 +188,7 @@ public:
                                                center_accu_list_ptr,
                                                output_idx_ptr,
                                                output_idx_count_ptr,
-                                               valid_idx_ptr);
+                                               output_weight_ptr);
 
         free(input_num_list_ptr_host);
         free(center_num_list_ptr_host);

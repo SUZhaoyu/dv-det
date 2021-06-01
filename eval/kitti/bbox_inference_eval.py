@@ -25,13 +25,14 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-dir/test/best_model_0.8327349985458572'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-all/test/best_model_0.8322110000579623'
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-all/test/best_model_0.8322110000579623'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-eval/test/model_0.8018869726602516'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 
-input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)
-input_features_stack = np.load(join(data_home, 'input_features.npy'), allow_pickle=True)
-input_num_list_stack = np.load(join(data_home, 'input_num_list.npy'), allow_pickle=True)
+input_coors_stack = np.load(join(data_home, 'input_coors_testing.npy'), allow_pickle=True)
+input_features_stack = np.load(join(data_home, 'input_features_testing.npy'), allow_pickle=True)
+input_num_list_stack = np.load(join(data_home, 'input_num_list_testing.npy'), allow_pickle=True)
 
 input_coors_p, input_features_p, input_num_list_p, _ = model.stage1_inputs_placeholder(
     input_channels=1,
@@ -71,7 +72,7 @@ bbox_attrs, bbox_conf_logits, bbox_num_list, bbox_idx = \
 
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.5)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.3)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()

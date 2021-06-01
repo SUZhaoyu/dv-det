@@ -11,9 +11,9 @@ import horovod.tensorflow as hvd
 os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-stage2-eval'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-stage2-eval')
 
-from models import kitti_model as model
+from models import kitti_model_cls_reg as model
 from models.tf_ops.loader.others import rotated_nms3d_idx
-from data.utils.normalization import convert_threejs_bbox_with_colors, convert_threejs_coors, normalize_angle
+from data.utils.normalization import convert_threejs_bbox_with_prob, convert_threejs_coors, normalize_angle
 from train.kitti import kitti_config as config
 
 hvd.init()
@@ -24,14 +24,14 @@ hvd.init()
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-eval-conf=0/test/model_0.8211453146724352'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-eval/test/model_0.8018869726602516'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-half/test/model_0.8024305950474453'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 
-input_coors_stack = np.load(join(data_home, 'input_coors.npy'), allow_pickle=True)
-input_features_stack = np.load(join(data_home, 'input_features.npy'), allow_pickle=True)
-input_num_list_stack = np.load(join(data_home, 'input_num_list.npy'), allow_pickle=True)
+input_coors_stack = np.load(join(data_home, 'input_coors_testing.npy'), allow_pickle=True)
+input_features_stack = np.load(join(data_home, 'input_features_testing.npy'), allow_pickle=True)
+input_num_list_stack = np.load(join(data_home, 'input_num_list_testing.npy'), allow_pickle=True)
 
 input_coors_p, input_features_p, input_num_list_p, _ = model.stage1_inputs_placeholder(
     input_channels=1,
@@ -39,7 +39,7 @@ input_coors_p, input_features_p, input_num_list_p, _ = model.stage1_inputs_place
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list = \
+coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, roi_num_list = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -50,7 +50,8 @@ coors, features, num_list, roi_coors, roi_attrs, roi_conf_logits, roi_num_list =
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.8, nms_conf_thres=0.5)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.999, nms_conf_thres=0.3)
+# roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
 # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
 # roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
 # roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
@@ -72,7 +73,7 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.1)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.2)
 
 init_op = tf.initialize_all_variables()
 saver = tf.train.Saver()
@@ -101,7 +102,7 @@ if __name__ == '__main__':
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
 
-            # output_idx = output_conf > 0.4
+            # output_idx = output_conf > 0.2
             # output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]
@@ -129,8 +130,7 @@ if __name__ == '__main__':
 
 
             if visualization:
-                # pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
-                pred_bbox_params = convert_threejs_bbox_with_colors(pred_bboxes, color='red') if len(pred_bboxes) > 0 else []
+                pred_bbox_params = convert_threejs_bbox_with_prob(pred_bboxes, color=output_conf) if len(pred_bboxes) > 0 else []
                 task_name = "ID_%06d_%03d" % (frame_id, len(pred_bboxes))
 
                 Converter.compile(task_name=task_name,

@@ -12,7 +12,7 @@ validation = True
 evaluation = False
 output_home = '/home/tan/tony/dv-det/eval/kitti/data'
 
-aug_config = {'nbbox': 128,
+aug_config = {'nbbox': 256,
               'rotate_range': np.pi / 4,
               # 'rotate_range': 0,
               'rotate_mode': 'u',

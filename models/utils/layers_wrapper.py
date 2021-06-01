@@ -32,12 +32,14 @@ def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
     #
     # return ret
 
-    return tf.layers.batch_normalization(inputs=inputs,
+    output = tf.layers.batch_normalization(inputs=tf.expand_dims(inputs, axis=0),
                                          axis=-1,
                                          momentum=bn_decay,
                                          training=is_training,
                                          trainable=trainable,
                                          name=name)
+
+    return tf.squeeze(output, axis=0)
 
 
 def kernel_conv_wrapper(inputs,
@@ -143,6 +145,7 @@ def dense_conv_wrapper(inputs,
         if bn_decay is None:
             outputs = tf.nn.bias_add(outputs, biases)
         else:
+            outputs = tf.nn.bias_add(outputs, biases)
             outputs = batch_norm_template(inputs=outputs,
                                           is_training=is_training,
                                           bn_decay=bn_decay,

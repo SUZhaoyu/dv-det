@@ -1,7 +1,7 @@
 import horovod.tensorflow as hvd
 import tensorflow as tf
 
-import train.kitti.kitti_config as config
+import train.waymo.waymo_config as config
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.pooling import la_roi_pooling_fast
@@ -18,7 +18,7 @@ model_params = {'xavier': config.xavier,
                 'activation': config.activation,
                 'padding': 0.,}
 
-def stage1_inputs_placeholder(input_channels=1,
+def stage1_inputs_placeholder(input_channels=2,
                               bbox_padding=config.aug_config['nbbox']):
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage1_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_channels], name='stage1_input_features_p')
@@ -65,19 +65,18 @@ def stage1_model(input_coors,
 
     coors, features, num_list = input_coors, input_features, input_num_list
     concat_features = None
-    voxel_idx, voxel_weight, center_idx = None, None, None
+    voxel_idx, center_idx = None, None
 
     with tf.variable_scope("stage1"):
         # =============================== STAGE-1 [base] ================================
 
         for i, layer_name in enumerate(sorted(base_params.keys())):
-            coors, features, num_list, voxel_idx, voxel_weight, center_idx, concat_features = \
+            coors, features, num_list, voxel_idx, center_idx, concat_features = \
                 point_conv_concat(input_coors=coors,
                                   input_features=features,
                                   concat_features=concat_features,
                                   input_num_list=num_list,
                                   voxel_idx=voxel_idx,
-                                  voxel_weight=voxel_weight,
                                   center_idx=center_idx,
                                   layer_params=base_params[layer_name],
                                   dimension_params=dimension_params,
@@ -92,24 +91,6 @@ def stage1_model(input_coors,
 
 
         # =============================== STAGE-1 [rpn] ================================
-
-        # for i, layer_name in enumerate(sorted(rpn_params.keys())):
-        #     roi_coors, roi_features, roi_num_list, _, _ = \
-        #         point_conv(input_coors=coors,
-        #                    input_features=features,
-        #                    input_num_list=num_list,
-        #                    voxel_idx=voxel_idx,
-        #                    center_idx=center_idx,
-        #                    layer_params=rpn_params[layer_name],
-        #                    dimension_params=dimension_params,
-        #                    grid_buffer_size=config.grid_buffer_size,
-        #                    output_pooling_size=config.output_pooling_size,
-        #                    scope="stage1_" + layer_name,
-        #                    is_training=is_training,
-        #                    trainable=trainable,
-        #                    mem_saving=mem_saving,
-        #                    model_params=model_params,
-        #                    bn_decay=bn)
 
         roi_features = concat_features
         roi_coors = coors
@@ -140,11 +121,6 @@ def stage1_model(input_coors,
                              is_training=is_training,
                              trainable=trainable,
                              last_layer=True)
-
-        # roi_attrs = get_roi_attrs(input_logits=roi_logits,
-        #                           base_coors=roi_coors,
-        #                           anchor_size=anchor_size,
-        #                           is_eval=is_eval)
 
         roi_conf_logits = roi_logits[:, -1]
 
@@ -244,11 +220,15 @@ def stage1_loss(roi_coors,
                                                           expand_ratio=0.2,
                                                           diff_thres=config.diff_thres,
                                                           cls_thres=config.cls_thres)
+    # gt_roi_logits = roi_attrs_to_logits(roi_coors, gt_roi_attrs, anchor_size)
+    # pred_roi_logits = roi_attrs_to_logits(roi_coors, pred_roi_attrs, anchor_size)
+    # gt_roi_attrs = roi_logits_to_attrs_tf(roi_coors, gt_roi_logits, anchor_size)
+    # pred_roi_attrs = roi_logits_to_attrs_tf(roi_coors, pred_roi_logits, anchor_size)
 
     pred_roi_attrs = get_bbox_from_logits(point_coors=roi_coors,
                                           pred_logits=pred_roi_logits,
-                                          anchor_size=anchor_size)
-
+                                          anchor_size=anchor_size,
+                                          )
     roi_ious = cal_3d_iou(gt_attrs=gt_roi_attrs, pred_attrs=pred_roi_attrs, clip=False)
     roi_iou_masks = tf.cast(tf.equal(gt_roi_conf, 1), dtype=tf.float32)  # [-1, 0, 1] -> [0, 0, 1]
     averaged_iou = get_masked_average(roi_ious, roi_iou_masks)

@@ -26,7 +26,7 @@ using ::tensorflow::shape_inference::DimensionHandle;
 using ::tensorflow::shape_inference::InferenceContext;
 using ::tensorflow::shape_inference::ShapeHandle;
 
-const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8;
+const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8; // 8x8=64
 
 
 REGISTER_OP("BoxesIou3d")

@@ -8,7 +8,7 @@
 #include <float.h>
 
 
-__device__ int get_batch_id(int* accu_list, int batch_size, int id) {
+__device__ inline int get_batch_id(int* accu_list, int batch_size, int id) {
     for (int b=0; b<batch_size-1; b++) {
         if (id >= accu_list[b]) {
             if(id < accu_list[b+1])

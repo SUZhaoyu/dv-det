@@ -9,6 +9,9 @@ from models.tf_ops.loader.sampling import grid_sampling_thrust, voxel_sampling_f
 # from models.utils.ops_wrapper import kernel_conv_wrapper
 from models.tf_ops.test.test_utils import fetch_instance, get_rgbs_from_coors, plot_points_from_voxels_with_color, \
     get_rgbs_from_coors_tf
+from data.utils.normalization import convert_threejs_coors
+from point_viz.converter import PointvizConverter
+Converter = PointvizConverter("/home/tan/tony/threejs")
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -42,7 +45,7 @@ if __name__ == '__main__':
     coors, num_list = coors_p, num_list_p
 
     # coors, features, num_list, voxels = point_sampling(coors, features, num_list, 16,0.8, 'layer_0')
-    coors_0, num_list_0, _ = grid_sampling_thrust(coors_p, num_list_p, 0.1, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
+    coors_0, num_list_0, _ = grid_sampling_thrust(coors_p, num_list_p, 0.2, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     # coors_1, num_list_1, _ = grid_sampling_thrust(coors_0, num_list_0, 0.2, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
     # coors_2, num_list_2, _ = grid_sampling_thrust(coors_1, num_list_1, 0.4, dimension=[100, 160.0, 8.0], offset=[10., 80.0, 4.0])
 
@@ -58,12 +61,12 @@ if __name__ == '__main__':
     #                                          grid_buffer_size=3,
     #                                          output_pooling_size=5)
 
-    voxel_idx, _, features = voxel_sampling_idx_binary(input_coors=coors,
+    voxel_idx, output_weight, features = voxel_sampling_idx_binary(input_coors=coors,
                                                        input_features=get_rgbs_from_coors_tf(coors),
                                                        input_num_list=num_list,
                                                        center_coors=coors_0,
                                                        center_num_list=num_list_0,
-                                                       resolution=0.2,
+                                                       resolution=0.1,
                                                        dimension=[100, 160.0, 8.0],
                                                        offset=[10., 80.0, 4.0],
                                                        grid_buffer_size=3,
@@ -71,7 +74,8 @@ if __name__ == '__main__':
 
     voxels = voxel_sampling_feature(input_features=features,
                                     output_idx=voxel_idx,
-                                    padding=-1)
+                                    output_weight=output_weight,
+                                    padding=0)
 
     # voxels = voxel_sampling_binary(input_coors=coors_1,
     #                                     input_features=get_rgbs_from_coors_tf(coors_1),
@@ -118,12 +122,22 @@ if __name__ == '__main__':
     #             print(i, j, output_idx[i, j, 0])
 
     id = 0
+
+    raw_coors = fetch_instance(input_coors[i], input_num_list[i], id=id)
+    features = fetch_instance(get_rgbs_from_coors(input_coors[i]), input_num_list[i], id=id)
+
+    Converter.compile(coors=convert_threejs_coors(raw_coors),
+                      default_rgb=features,
+                      task_name='voxel_sampling_input')
+
+
     output_voxels = fetch_instance(output_features, output_num_list, id=id)
     output_centers = fetch_instance(output_centers, output_num_list, id=id)
 
     plot_points_from_voxels_with_color(voxels=output_voxels,
                                        center_coors=output_centers,
-                                       resolution=0.2,
+                                       resolution=0.1,
+                                       mask=0,
                                        self_rgbs=True,
-                                       name='voxel_sampling_binary')
+                                       name='voxel_sampling_testing')
     #

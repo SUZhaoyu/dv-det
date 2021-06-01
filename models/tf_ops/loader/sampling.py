@@ -164,9 +164,11 @@ voxel_sampling_feature_exe = tf.load_op_library(join(CWD, '../build', 'voxel_sam
 
 def voxel_sampling_feature(input_features,
                            output_idx,
+                           output_weight,
                            padding):
     output_features = voxel_sampling_feature_exe.voxel_sampling_feature_op(input_features=input_features,
                                                                            output_idx=output_idx,
+                                                                           output_weight=output_weight,
                                                                            padding_value=padding)
     return output_features
 
@@ -174,10 +176,12 @@ def voxel_sampling_feature(input_features,
 def voxel_sampling_feature_grad(op, grad):
     input_features = op.inputs[0]
     output_idx = op.inputs[1]
+    output_weight = op.inputs[2]
     input_features_grad = voxel_sampling_feature_exe.voxel_sampling_feature_grad_op(input_features=input_features,
                                                                                     output_idx=output_idx,
+                                                                                    output_weight=output_weight,
                                                                                     output_features_grad=grad)
-    return [input_features_grad, None]
+    return [input_features_grad, None, None]
 
 def voxel_sampling_feature_grad_test(input_features, output_idx, grad):
     input_features_grad = voxel_sampling_feature_exe.voxel_sampling_feature_grad_op(input_features=input_features,
@@ -280,7 +284,7 @@ def voxel_sampling_idx_binary(input_coors,
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
     sorted_features = tf.gather(input_features, sorted_args, axis=0)
     # XXX: Need to pay attention to the back-propagation implementation.
-    output_idx, valid_idx = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
+    output_idx, output_weight = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
                                                                                        input_voxel_idx=sorted_voxel_ids,
                                                                                        input_num_list=input_num_list,
                                                                                        center_coors=center_coors + offset,
@@ -290,7 +294,7 @@ def voxel_sampling_idx_binary(input_coors,
                                                                                        grid_buffer_size=grid_buffer_size,
                                                                                        output_pooling_size=output_pooling_size,
                                                                                        with_rpn=with_rpn)
-    return output_idx, valid_idx, sorted_features
+    return output_idx, output_weight, sorted_features
 
 ops.NoGradient("VoxelSamplingIdxBinaryOp")
 

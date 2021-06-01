@@ -4,10 +4,11 @@
  */
 #include <stdio.h>
 #include <iostream>
+#include <vector>
 #include <float.h>
 
 
-__device__ int get_batch_id(int* accu_list, int batch_size, int id) {
+__device__ inline int get_batch_id(int* accu_list, int batch_size, int id) {
     for (int b=0; b<batch_size-1; b++) {
         if (id >= accu_list[b]) {
             if(id < accu_list[b+1])
@@ -28,8 +29,9 @@ __global__ void output_init_gpu_kernel(int batch_size, int center_num, int kerne
     }
 }
 
-__global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num, float resolution,
+__global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num,
                                             int grid_dim_w, int grid_dim_l, int grid_dim_h,
+                                            float resolution_w, float resolution_l, float resolution_h,
                                             int grid_buffer_size,
                                             const float* input_coors,
                                             int* input_accu_list,
@@ -38,9 +40,9 @@ __global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num,
     const int grid_dim_size = grid_dim_w * grid_dim_h * grid_dim_l;
     int point_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (point_id < input_point_num) {
-        int center_grid_coor_x = (int)floor(input_coors[point_id*3 + 0] / resolution);
-        int center_grid_coor_y = (int)floor(input_coors[point_id*3 + 1] / resolution);
-        int center_grid_coor_z = (int)floor(input_coors[point_id*3 + 2] / resolution);
+        int center_grid_coor_x = (int)floor(input_coors[point_id*3 + 0] / resolution_w);
+        int center_grid_coor_y = (int)floor(input_coors[point_id*3 + 1] / resolution_l);
+        int center_grid_coor_z = (int)floor(input_coors[point_id*3 + 2] / resolution_h);
         int batch_id = get_batch_id(input_accu_list, batch_size, point_id);
         int grid_buffer_idx = batch_id * grid_dim_size + center_grid_coor_x * grid_dim_l * grid_dim_h + center_grid_coor_y * grid_dim_h + center_grid_coor_z;
         int count = atomicAdd(&grid_buffer_count[grid_buffer_idx], 1);
@@ -56,7 +58,7 @@ __global__ void grid_buffer_init_gpu_kernel(int batch_size, int input_point_num,
 __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
                                               int kernel_size,
                                               int grid_dim_w, int grid_dim_l, int grid_dim_h,
-                                              float resolution,
+                                              float resolution_w, float resolution_l, float resolution_h,
                                               int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                               const float* input_coors,
                                               const float* center_coors,
@@ -75,8 +77,12 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
 	const int search_kernel_size = kernel_size + 1;
 	const int search_kernel_num = search_kernel_size * search_kernel_size * search_kernel_size;
     const int grid_dim_size = grid_dim_w * grid_dim_l * grid_dim_h;
-	const float radius = 1.5 * resolution;
-	const float r2 = radius * radius;
+	const float radius_x = 1.5 * resolution_w;
+	const float radius_y = 1.5 * resolution_l;
+	const float radius_z = 1.5 * resolution_h;
+	const float r_x2 = radius_x * radius_x;
+	const float r_y2 = radius_y * radius_y;
+	const float r_z2 = radius_z * radius_z;
 
     int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
     if (thread_id < center_num * search_kernel_num) {
@@ -88,18 +94,18 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
         float center_coor_x = center_coors[center_id*3 + 0];
         float center_coor_y = center_coors[center_id*3 + 1];
         float center_coor_z = center_coors[center_id*3 + 2];
-        int center_grid_coor_x = __float2int_rz(center_coor_x / resolution);
-        int center_grid_coor_y = __float2int_rz(center_coor_y / resolution);
-        int center_grid_coor_z = __float2int_rz(center_coor_z / resolution);
+        int center_grid_coor_x = __float2int_rz(center_coor_x / resolution_w);
+        int center_grid_coor_y = __float2int_rz(center_coor_y / resolution_l);
+        int center_grid_coor_z = __float2int_rz(center_coor_z / resolution_h);
 
 
         int search_grid_x = search_grid_id / (search_kernel_size * search_kernel_size);
         int search_grid_y = search_grid_id % (search_kernel_size * search_kernel_size) / search_kernel_size;
         int search_grid_z = search_grid_id % search_kernel_size;
 
-        int search_offset_x = -2 + round(center_coor_x / resolution - center_grid_coor_x) + search_grid_x;
-        int search_offset_y = -2 + round(center_coor_y / resolution - center_grid_coor_y) + search_grid_y;
-        int search_offset_z = -2 + round(center_coor_z / resolution - center_grid_coor_z) + search_grid_z;
+        int search_offset_x = -2 + round(center_coor_x / resolution_w - center_grid_coor_x) + search_grid_x;
+        int search_offset_y = -2 + round(center_coor_y / resolution_l - center_grid_coor_y) + search_grid_y;
+        int search_offset_z = -2 + round(center_coor_z / resolution_h - center_grid_coor_z) + search_grid_z;
 
         int target_grid_x = max(0, min(center_grid_coor_x + search_offset_x, grid_dim_w - 1));
         int target_grid_y = max(0, min(center_grid_coor_y + search_offset_y, grid_dim_l - 1));
@@ -118,10 +124,10 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
                 float dx2 = dx * dx;
                 float dy2 = dy * dy;
                 float dz2 = dz * dz;
-                if (dx2 < r2 && dy2 < r2 && dz2 < r2) {
-                    int kernel_coor_x = __float2int_rz(dx / resolution + 0.5 * fabsf(dx) / dx);
-                    int kernel_coor_y = __float2int_rz(dy / resolution + 0.5 * fabsf(dy) / dy);
-                    int kernel_coor_z = __float2int_rz(dz / resolution + 0.5 * fabsf(dz) / dz);
+                if (dx2 < r_x2 && dy2 < r_y2 && dz2 < r_z2) {
+                    int kernel_coor_x = __float2int_rz(dx / resolution_w + 0.5 * fabsf(dx) / dx);
+                    int kernel_coor_y = __float2int_rz(dy / resolution_l + 0.5 * fabsf(dy) / dy);
+                    int kernel_coor_z = __float2int_rz(dz / resolution_h + 0.5 * fabsf(dz) / dz);
                     int voxel_coor = center_id * kernel_num + half_kernel_num + \
                                      kernel_size * kernel_size * kernel_coor_x + \
                                      kernel_size * kernel_coor_y + \
@@ -141,7 +147,7 @@ __global__ void voxel_sampling_idx_gpu_kernel(int batch_size, int center_num,
 
 void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
                                      int center_num, int kernel_size,
-                                     int grid_dim_w, int grid_dim_l, int grid_dim_h, float resolution,
+                                     int grid_dim_w, int grid_dim_l, int grid_dim_h, std::vector<float> resolution,
                                      int grid_buffer_size, int output_pooling_size, bool with_rpn,
                                      const float* input_coors,
                                      const int* input_num_list,
@@ -173,8 +179,9 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
 
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, grid_buffer_init_gpu_kernel, 0, input_point_num);
     gridSize = (input_point_num + blockSize - 1) / blockSize;
-    grid_buffer_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num, resolution,
+    grid_buffer_init_gpu_kernel<<<gridSize, blockSize>>>(batch_size, input_point_num,
                                                          grid_dim_w, grid_dim_l, grid_dim_h,
+                                                         resolution[0], resolution[1], resolution[2],
                                                          grid_buffer_size,
                                                          input_coors,
                                                          input_accu_list,
@@ -185,7 +192,8 @@ void voxel_sampling_idx_gpu_launcher(int batch_size, int input_point_num,
     gridSize = (center_num * search_kernel_num + blockSize - 1) / blockSize;
     voxel_sampling_idx_gpu_kernel<<<gridSize, blockSize>>>(batch_size, center_num,
                                                            kernel_size,
-                                                           grid_dim_w, grid_dim_l, grid_dim_h, resolution,
+                                                           grid_dim_w, grid_dim_l, grid_dim_h,
+                                                           resolution[0], resolution[1], resolution[2],
                                                            grid_buffer_size, output_pooling_size, with_rpn,
                                                            input_coors,
                                                            center_coors,

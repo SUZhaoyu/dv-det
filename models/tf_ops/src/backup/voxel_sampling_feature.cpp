@@ -24,7 +24,6 @@ using ::tensorflow::shape_inference::ShapeHandle;
 REGISTER_OP("VoxelSamplingFeatureOp")
     .Input("input_features: float32")
     .Input("output_idx: int32")
-    .Input("output_weight: float32")
     .Output("output_features: float32") // [center_coors.shape[0], kernel_size ** 3, channels]
     .Attr("padding_value: float")
     .SetShapeFn([](InferenceContext* c){
@@ -52,7 +51,6 @@ void voxel_sampling_feature_gpu_launcher(int center_num, int kernel_num, int cha
                                          int output_pooling_size,
                                          const float* input_features,
                                          const int* output_idx,
-                                         const float* output_weight,
                                          float* output_features);
 
 class VoxelSamplingFeatureOp: public OpKernel {
@@ -70,15 +68,7 @@ public:
         const Tensor& output_idx = context->input(1);
         auto output_idx_ptr = output_idx.template flat<int>().data();
         OP_REQUIRES(context, output_idx.dims()==3 && output_idx.dim_size(1)==27,
-                    errors::InvalidArgument("VoxelSamplingFeatureOp expects output_idx in shape: [center_num, 3x3x3, pooling]."));
-
-        const Tensor& output_weight = context->input(2);
-        auto output_weight_ptr = output_weight.template flat<float>().data();
-        OP_REQUIRES(context, output_weight.dims()==3 && output_weight.dim_size(1)==27,
-                    errors::InvalidArgument("VoxelSamplingFeatureOp expects output_weight in shape: [center_num, 3x3x3, pooling]."));
-        OP_REQUIRES(context, output_weight.dim_size(2)==output_idx.dim_size(2),
-                    errors::InvalidArgument("VoxelSamplingFeatureOp expects output_weight and output_idx has the same pooling size. %d vs %d",
-                    output_weight.dim_size(2), output_idx.dim_size(2)));
+                    errors::InvalidArgument("VoxelSamplingFeatureOp expects output_idx in shape: [center_num, 3x3x3, 1]."));
 
         int kernel_size = 3;
         int channels = input_features.dim_size(1);
@@ -99,7 +89,6 @@ public:
                                             output_pooling_size,
                                             input_features_ptr,
                                             output_idx_ptr,
-                                            output_weight_ptr,
                                             output_features_ptr);
 
     }
@@ -113,7 +102,6 @@ REGISTER_KERNEL_BUILDER(Name("VoxelSamplingFeatureOp").Device(DEVICE_GPU), Voxel
 REGISTER_OP("VoxelSamplingFeatureGradOp")
     .Input("input_features: float32")
     .Input("output_idx: int32")
-    .Input("output_weight: float32")
     .Input("output_features_grad: float32")
     .Output("input_features_grad: float32")
     .SetShapeFn([](InferenceContext* c){
@@ -125,7 +113,6 @@ REGISTER_OP("VoxelSamplingFeatureGradOp")
 void voxel_sampling_feature_grad_gpu_launcher(int center_num, int kernel_num, int channels,
                                               int output_pooling_size,
                                               const int* output_idx,
-                                              const float* output_weight,
                                               const float* output_features_grad,
                                               float* input_features_grad);
 
@@ -137,28 +124,20 @@ public:
         const Tensor& input_features = context->input(0);
         auto input_features_ptr = input_features.template flat<float>().data();
         OP_REQUIRES(context, input_features.dims()==2 && input_features.dim_size(1) > 0,
-                    errors::InvalidArgument("VoxelSamplingFeatureGradOp expects input features in shape: [point_nums, channels(>0)]."));
+                    errors::InvalidArgument("VoxelSamplingGradOp expects input features in shape: [point_nums, channels(>0)]."));
 
         const Tensor& output_idx = context->input(1);
         auto output_idx_ptr = output_idx.template flat<int>().data();
         OP_REQUIRES(context, output_idx.dims()==3 && output_idx.dim_size(2) > 0,
-                    errors::InvalidArgument("VoxelSamplingFeatureGradOp expects output_idx in shape: [ncenters, kernel_size*3, channels(>0)]."));
+                    errors::InvalidArgument("VoxelSamplingGradOp expects output_idx in shape: [ncenters, kernel_size*3, channels(>0)]."));
 
-        const Tensor& output_weight = context->input(2);
-        auto output_weight_ptr = output_weight.template flat<float>().data();
-        OP_REQUIRES(context, output_weight.dims()==3 && output_weight.dim_size(1)==27,
-                    errors::InvalidArgument("VoxelSamplingFeatureGradOp expects output_weight in shape: [center_num, 3x3x3, pooling]."));
-        OP_REQUIRES(context, output_weight.dim_size(2)==output_idx.dim_size(2),
-                    errors::InvalidArgument("VoxelSamplingFeatureGradOp expects output_weight and output_idx has the same pooling size: %d vs %d",
-                    output_weight.dim_size(2), output_idx.dim_size(2)));
-
-        const Tensor& output_features_grad = context->input(3);
+        const Tensor& output_features_grad = context->input(2);
         auto output_features_grad_ptr = output_features_grad.template flat<float>().data();
         OP_REQUIRES(context, output_features_grad.dims()==3 && output_features_grad.dim_size(2) > 0,
-                    errors::InvalidArgument("VoxelSamplingFeatureGradOp expects output_features_grad in shape: [point_nums, kernel_size*3, channels(>0)]."));
+                    errors::InvalidArgument("VoxelSamplingGradOp expects output_features_grad in shape: [point_nums, kernel_size*3, channels(>0)]."));
         OP_REQUIRES(context, output_idx.dim_size(0) == output_features_grad.dim_size(0) &&
                              output_idx.dim_size(1) == output_features_grad.dim_size(1),
-                             errors::InvalidArgument("VoxelSamplingFeatureGradOp needs output_features and output_idx has the same length."));
+                             errors::InvalidArgument("VoxelSamplingGradOp needs output_features and output_idx has the same length."));
 
         int input_point_num = input_features.dim_size(0);
         int channels = input_features.dim_size(1);
@@ -174,7 +153,6 @@ public:
         voxel_sampling_feature_grad_gpu_launcher(center_num, kernel_num, channels,
                                                  output_pooling_size,
                                                  output_idx_ptr,
-                                                 output_weight_ptr,
                                                  output_features_grad_ptr,
                                                  input_features_grad_ptr);
     }

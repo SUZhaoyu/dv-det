@@ -19,7 +19,8 @@ from models import kitti_model_cls_reg as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 from models.utils.loss_utils import get_bbox_from_logits
 anchor_size = config.anchor_size
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-cls-1.6/test/model_0.6981716556304554'
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-test/test/model_0.7087964968982694'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage1-weight/test/model_0.7053685393223977'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 visualization = True
 task = 'validation'
@@ -40,12 +41,12 @@ coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, ro
                        is_training=is_training_p,
                        is_eval=True,
                        trainable=False,
-                       mem_saving=False,
+                       mem_saving=True,
                        bn=1.)
 
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.9, nms_conf_thres=0.5)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.5)
 # roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
 # roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
 # roi_conf = tf.gather(roi_conf, nms_idx, axis=0)

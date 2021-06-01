@@ -70,9 +70,9 @@ def plot_points_from_voxels_with_color(voxels, center_coors, resolution, self_rg
         for n in range(kernel_size ** 3):
             intensity = voxels[i, n, 0]
             if intensity != mask:
-                x = n % kernel_size
-                z = n // (kernel_size ** 2)
-                y = (n - z * kernel_size ** 2) // kernel_size
+                z = n % kernel_size
+                x = n // (kernel_size ** 2)
+                y = (n - x * kernel_size ** 2) // kernel_size
                 x_coor = (x - half_kernel_size) * resolution + center_coors[i, 0]
                 y_coor = (y - half_kernel_size) * resolution + center_coors[i, 1]
                 z_coor = (z - half_kernel_size) * resolution + center_coors[i, 2]

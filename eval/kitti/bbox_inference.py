@@ -21,9 +21,10 @@ from train.kitti import kitti_config as config
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7913361259170595'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
-# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.779647423180832'
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-eval/test/model_0.8018869726602516'
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-no-rot-aug/test/model_0.7808265097805268'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 # ******** Easy: 91.15, Moderate: 81.23, Hard: 74.94 ********
 visualization = True
@@ -51,11 +52,11 @@ coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, ro
                        bn=1.)
 roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
-nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.999, nms_conf_thres=0.3)
-roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
-roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
-roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
-roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
+# nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.999, nms_conf_thres=0.3)
+# roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
+# roi_attrs = tf.gather(roi_attrs, nms_idx, axis=0)
+# roi_conf_logits = tf.gather(roi_conf_logits, nms_idx, axis=0)
+# roi_num_list = tf.expand_dims(tf.shape(nms_idx)[0], axis=0)
 
 bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
     model.stage2_model(coors=coors,
@@ -74,7 +75,7 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.3)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.1)
 
 loader = tf.train.Saver()
 tf_config = tf.ConfigProto()
@@ -102,7 +103,7 @@ if __name__ == '__main__':
                                     input_num_list_p: batch_input_num_list,
                                     is_training_p: False})
 
-            # output_idx = output_conf > 0.3
+            # output_idx = output_conf > 0.1
             # output_idx = output_idx[:output_count[0]]
             output_bboxes = output_bboxes[output_idx]
             output_conf = output_conf[output_idx]

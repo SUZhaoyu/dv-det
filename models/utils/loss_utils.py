@@ -42,21 +42,21 @@ def get_target_dimension_logits(label_dimension, anchor_size):
     target_logits = tf.log(label_dimension / anchor_size)
     return target_logits
 
-def get_target_bin(point_coors, target_coors, scope, delta, name=None):
+def get_target_bin(point_coors, target_coors, scope, delta, masks, name=None):
     if name is not None:
         tf.summary.histogram(name+"_offset", (target_coors - point_coors))
     num_bin = int(scope / delta) * 2
     target_bin = tf.cast(tf.floor((target_coors - point_coors + scope) / delta), dtype=tf.int32)
     if name is not None:
-        tf.summary.histogram(name, target_bin)
+        tf.summary.histogram(name, target_bin * tf.expand_dims(tf.cast(masks, dtype=tf.int32), axis=-1))
     target_bin = tf.clip_by_value(target_bin, 0, num_bin-1)
     return target_bin
 
-def get_residual(point_coors, target_coors, target_bin, scope, delta, name=None):
-    residual = target_coors - point_coors + scope - (tf.cast(target_bin, dtype=tf.float32) * delta)
+def get_residual(point_coors, target_coors, target_bin, scope, delta, masks, name=None):
+    residual = target_coors - point_coors + scope - (tf.cast(target_bin, dtype=tf.float32) * delta) - 0.5 * delta
     residual /= delta
     if name is not None:
-        tf.summary.histogram(name, residual)
+        tf.summary.histogram(name, residual * tf.expand_dims(tf.cast(masks, dtype=tf.float32), axis=-1))
     return residual
 
 def get_bbox_loss(point_coors,
@@ -71,9 +71,9 @@ def get_bbox_loss(point_coors,
     pred_logits=[(w, l, h), (res_x, res_y, res_z, res_r), (cls_x, cls_y, cls_r) x 12]
                   0, 1, 2 ,    3  ,   4  ,   5   ,  6,     7-18,  19-30, 31-42
     '''
-    target_bin_xy = get_target_bin(point_coors[:, :2], label_attrs[:, 3:5], scope, delta_bin_xy, name="cls_bin_xy") # [n, 2]
+    target_bin_xy = get_target_bin(point_coors[:, :2], label_attrs[:, 3:5], scope, delta_bin_xy, foreground_masks, name="cls_bin_xy") # [n, 2]
     # target_bin_r = get_target_bin(tf.zeros_like(point_coors[:, :1]), label_attrs[:, 6:], np.pi, delta_bin_angle, name="cls_bin_r")
-    target_residual_xy = get_residual(point_coors[:, :2], label_attrs[:, 3:5], target_bin_xy, scope, delta_bin_xy, name="res_bin_xy")
+    target_residual_xy = get_residual(point_coors[:, :2], label_attrs[:, 3:5], target_bin_xy, scope, delta_bin_xy, foreground_masks, name="res_bin_xy")
     target_residual_z = label_attrs[:, 5:6] - point_coors[:, 2:3]
     # target_residual_r = get_residual(tf.zeros_like(label_attrs[:, 6:7]), label_attrs[:, 6:7], target_bin_r, np.pi, delta_bin_angle, name="res_bin_r")
     target_residual_dimension = get_target_dimension_logits(label_attrs[:, :3], anchor_size)
@@ -86,13 +86,19 @@ def get_bbox_loss(point_coors,
     cls_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=cls_target, logits=pred_cls_logits) # [n, 3]
     pred_res_logits = pred_logits[:, :6]
 
+    cls_acc = get_masked_average(tf.reduce_mean(tf.cast(tf.equal(cls_target, tf.cast(tf.argmax(tf.nn.softmax(pred_cls_logits), axis=-1), dtype=tf.int32)), dtype=tf.float32), axis=-1), foreground_masks)
+    tf.summary.scalar("logits_cls_acc", cls_acc)
+    tf.summary.scalar("dimension_avg_diff", get_masked_average(tf.reduce_mean(tf.abs(target_residual_dimension - pred_res_logits[:, :3]), axis=-1), foreground_masks))
+    tf.summary.scalar("xy_res_avg_diff", get_masked_average(tf.reduce_mean(tf.abs(target_residual_xy - pred_res_logits[:, 3:5]), axis=-1), foreground_masks))
+    tf.summary.scalar("z_res_avg_diff", get_masked_average(tf.reduce_mean(tf.abs(target_residual_z - pred_res_logits[:, 5:6]), axis=-1), foreground_masks))
+
     pred_angle = pred_logits[:, 6:7] * np.pi
     angle_loss = smooth_l1_loss(pred_angle, label_attrs[:, 6:7], with_sin=True)
     reg_loss = smooth_l1_loss(pred_res_logits, res_target, with_sin=False) # [n, 6]
 
 
     bbox_loss = tf.concat([cls_loss, reg_loss, angle_loss], axis=-1) # [n, 9]
-    bbox_loss_sum = tf.reduce_mean(bbox_loss, axis=-1) * 3 # [n]
+    bbox_loss_sum = tf.reduce_sum(bbox_loss, axis=-1) # [n]
 
     return get_masked_average(bbox_loss_sum, foreground_masks)
 
@@ -109,7 +115,7 @@ def get_bbox_from_logits(point_coors,
     pred_offset_z = pred_logits[:, 5:6]
     cls_logits = tf.stack([pred_logits[:, 7:19], pred_logits[:, 19:31]], axis=1)
     bin_cls = tf.cast(tf.argmax(cls_logits, axis=-1), dtype=tf.float32)  # [n, 3]
-    pred_offset_xy = -scope + delta_bin_xy * bin_cls[:, :2] + res_xy
+    pred_offset_xy = -scope + delta_bin_xy * bin_cls[:, :2] + res_xy + 0.5 * delta_bin_xy
     # pred_angle = -np.pi + delta_bin_angle * bin_cls[:, 2:] + res_r
     pred_angle = res_r
 
