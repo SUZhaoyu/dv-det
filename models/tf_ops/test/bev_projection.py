@@ -46,15 +46,15 @@ if __name__ == '__main__':
     features_p = tf.placeholder(dtype=tf.float32, shape=[None, 128])
     num_list_p = tf.placeholder(dtype=tf.int32, shape=[None])
     coors, features, num_list = coors_p, features_p, num_list_p
-    coors, num_list, idx = grid_sampling(coors, num_list, 0.2, offset=offset, dimension=dimension)
+    coors, num_list, idx = grid_sampling(coors, num_list, 0.6, offset=offset, dimension=dimension)
     features = tf.gather(features, idx)
-    bev_img, bev_idx = bev_projection(input_coors=coors,
-                                      input_features=features,
-                                      input_num_list=num_list,
-                                      resolution=0.2,
-                                      dimension=dimension,
-                                      offset=offset,
-                                      buffer_size=10)
+    bev_img = bev_projection(input_coors=coors,
+                             input_features=features,
+                             input_num_list=num_list,
+                             resolution=0.6,
+                             dimension=dimension,
+                             offset=offset,
+                             buffer_size=8)
 
 
     config = tf.ConfigProto()
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         run_metadata = tf.RunMetadata()
         for i in tqdm(range(epoch)):
-            output_coors, output_num_list, output_img, output_idx = sess.run([coors, num_list, bev_img, bev_idx],
+            output_coors, output_num_list, output_img = sess.run([coors, num_list, bev_img],
                                                       feed_dict={coors_p: input_coors[i],
                                                                  features_p: input_features[i],
                                                                  num_list_p: input_num_list[i]},
@@ -82,9 +82,9 @@ if __name__ == '__main__':
             print("finished.")
 
     id = 4
-    output_coors = fetch_instance(output_coors, output_num_list, id=id)
-    plot_points(coors=output_coors,
-                name='bev_projection')
+    # output_coors = fetch_instance(output_coors, output_num_list, id=id)
+    # plot_points(coors=output_coors,
+    #             name='bev_projection')
 
     # output_img = np.sum(output_idx >= 0, axis=-1)
     plt.imsave(join('/home/tan/tony/threejs/html', "bev_img.png"), output_img[id, :, :, 0])

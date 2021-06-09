@@ -226,7 +226,7 @@ def main():
     with tf.train.MonitoredTrainingSession(hooks=hooks, config=session_config) as mon_sess:
         # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-eval/test/model_0.76285055631128')
         # stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1/test/model_0.767871598762173')
-        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/stage1-no-rot-aug/test/model_0.7069864748570868')
+        stage1_loader.restore(mon_sess, '/home/tan/tony/dv-det/ckpt-kitti/test/test/model_0.725859980888127')
         train_generator = DatasetTrain.train_generator()
         valid_generator = DatasetValid.valid_generator()
         best_result = 0.

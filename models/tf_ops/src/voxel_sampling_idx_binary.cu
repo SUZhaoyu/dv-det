@@ -101,7 +101,7 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                                      int* center_accu_list,
                                                      int* output_idx,
                                                      int* output_idx_count,
-                                                     float* output_weight) {
+                                                     int* valid_idx) {
 
     if (batch_size*input_npoint <=0 || center_num <= 0) {
 //        printf("Voxel sample Op exited unexpectedly.\n");
@@ -123,7 +123,6 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 	int grid_w = dim_w / resolution_w;
 	int grid_l = dim_l / resolution_l;
 	int grid_h = dim_h / resolution_h;
-	const float resolution_diag = sqrtf(resolution_w * resolution_w + resolution_l * resolution_l + resolution_h * resolution_h);
 //	printf("%f, %f, %f\n", dim_w, dim_l, dim_h);
 
 	for (int b=blockIdx.x; b<batch_size; b+=gridDim.x) {
@@ -200,9 +199,9 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                 float dy2 = dy * dy;
                                 float dz2 = dz * dz;
                                 if (dx2 < r_x2 && dy2 < r_y2 && dz2 < r_z2) {
-                                    int x_coor = __float2int_rz(dx / (resolution_w * 1.5) + 0.5 * fabsf(dx) / dx);
-                                    int y_coor = __float2int_rz(dy / (resolution_l * 1.5) + 0.5 * fabsf(dy) / dy);
-                                    int z_coor = __float2int_rz(dz / (resolution_h * 1.5) + 0.5 * fabsf(dz) / dz);
+                                    int x_coor = __float2int_rz(dx / resolution_w + 0.5 * fabsf(dx) / dx);
+                                    int y_coor = __float2int_rz(dy / resolution_l + 0.5 * fabsf(dy) / dy);
+                                    int z_coor = __float2int_rz(dz / resolution_h + 0.5 * fabsf(dz) / dz);
                                     int voxel_coor = center_accu_list[b] * kernel_num + i * kernel_num + center_offset + \
                                                      kernel_size * kernel_size * x_coor + \
                                                      kernel_size * y_coor + \
@@ -210,21 +209,9 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
                                     int pooling_count = atomicAdd(&output_idx_count[voxel_coor], 1);
                                     if (pooling_count < output_pooling_size) {
                                         output_idx[voxel_coor*output_pooling_size + pooling_count] = id;
-                                    } else {
-                                        break;
+                                        if (with_rpn)
+                                            valid_idx[center_accu_list[b] + i]++;
                                     }
-
-                                    float x_g = x_c + x_coor * resolution_w;
-                                    float y_g = y_c + y_coor * resolution_l;
-                                    float z_g = z_c + z_coor * resolution_h;
-
-                                    float dx_g = x_i - x_g;
-                                    float dy_g = y_i - y_g;
-                                    float dz_g = z_i - z_g;
-
-                                    float dist = sqrtf(dx_g * dx_g + dy_g * dy_g + dz_g * dz_g);
-                                    float weight = __expf(-dist / (0.5 * resolution_diag));
-                                    output_weight[voxel_coor*output_pooling_size + pooling_count] = weight;
                                 }
                             }
                         }
@@ -233,33 +220,6 @@ __global__ void voxel_sampling_idx_binary_gpu_kernel(int batch_size, int input_n
 	        }
 	    }
 	}
-}
-
-__global__ void voxel_sampling_weight_gpu_kernel(int batch_size, int center_num, int kernel_size, int output_pooling_size,
-                                                 const int* center_num_list,
-                                                 int* center_accu_list,
-                                                 int* output_idx_count,
-                                                 float* output_weight) {
-    const int kernel_num = kernel_size * kernel_size * kernel_size;
-    for (int b=blockIdx.x; b<batch_size; b+=gridDim.x) {
-	    for (int i=threadIdx.x; i<center_num_list[b]; i+=blockDim.x) {
-	        for (int j=0; j<kernel_num; j++) {
-	            int voxel_coor = center_accu_list[b]*kernel_num + i*kernel_num + j;
-                int pooling_count = min(output_idx_count[voxel_coor], output_pooling_size);
-                float weight_sum = 0;
-                int pool_id;
-                for (int p=0; p<pooling_count; ++p) {
-                    pool_id = voxel_coor * output_pooling_size + p;
-                    weight_sum += output_weight[pool_id];
-                }
-                for (int p=0; p<pooling_count; ++p) {
-                    pool_id = voxel_coor * output_pooling_size + p;
-                    float weight = output_weight[pool_id] * output_weight[pool_id] / weight_sum;
-                    output_weight[pool_id] = weight;
-                }
-            }
-        }
-    }
 }
 
 
@@ -276,7 +236,7 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                             int* center_accu_list,
                                             int* output_idx,
                                             int* output_idx_count,
-                                            float* output_weight) {
+                                            int* valid_idx) {
 //    printf("*********** Here ***********\n");
     voxel_sampling_idx_binary_gpu_kernel<<<16,512>>>(batch_size, input_npoint,
                                                      center_num, kernel_size,
@@ -292,11 +252,5 @@ void voxel_sampling_idx_binary_gpu_launcher(int batch_size, int input_npoint,
                                                      center_accu_list,
                                                      output_idx,
                                                      output_idx_count,
-                                                     output_weight);
-
-    voxel_sampling_weight_gpu_kernel<<<16,512>>>(batch_size, center_num, kernel_size, output_pooling_size,
-                                                 center_num_list,
-                                                 center_accu_list,
-                                                 output_idx_count,
-                                                 output_weight);
+                                                     valid_idx);
 }

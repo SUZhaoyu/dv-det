@@ -76,7 +76,7 @@ def _variable_with_l2_loss(name,
             initializer = tf.contrib.layers.xavier_initializer()
         else:
             initializer = tf.truncated_normal_initializer(stddev=stddev)
-
+    # print("*********************", name, initializer)
     dtype = tf.float32
     var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype, trainable=trainable)
     if with_l2_loss:

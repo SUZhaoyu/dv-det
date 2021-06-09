@@ -38,8 +38,16 @@ def batch_norm_template(inputs, is_training, bn_decay, name, trainable=True):
                                          training=is_training,
                                          trainable=trainable,
                                          name=name)
+    output = tf.squeeze(output, axis=0)
 
-    return tf.squeeze(output, axis=0)
+    # output = tf.layers.batch_normalization(inputs=inputs,
+    #                                        axis=-1,
+    #                                        momentum=bn_decay,
+    #                                        training=is_training,
+    #                                        trainable=trainable,
+    #                                        name=name)
+
+    return output
 
 
 def kernel_conv_wrapper(inputs,
@@ -236,6 +244,7 @@ def conv_3d_wrapper(inputs,
         input_size = np.cbrt(inputs.get_shape()[-2].value).astype(np.int32)
         reshaped_inputs = tf.reshape(inputs, shape=[-1, input_size, input_size, input_size, num_input_channels])
         kernel_shape = [kernel_size, kernel_size, kernel_size, num_input_channels, num_output_channels]
+
         kernel = _variable_with_l2_loss(name='weight',
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
@@ -286,7 +295,7 @@ def conv_3d_wrapper(inputs,
 
 def conv_2d_wrapper(inputs,
                     num_output_channels,
-                    stride,
+                    stride=1,
                     output_shape=None,
                     kernel_size=3,
                     transposed=False,
@@ -311,14 +320,14 @@ def conv_2d_wrapper(inputs,
             kernel_shape = [kernel_size, kernel_size, num_input_channels, num_output_channels]
         else:
             kernel_shape = [kernel_size, kernel_size, num_output_channels, num_input_channels]
-        kernel = _variable_with_l2_loss(name='weight',
+        kernel = _variable_with_l2_loss(name=scope.split('_')[0] + '_weight',
                                         shape=kernel_shape,
                                         use_xavier=use_xavier,
                                         stddev=stddev,
                                         l2_loss_collection=l2_loss_collection,
                                         trainable=trainable)
 
-        biases = _variable_with_l2_loss(name='biases',
+        biases = _variable_with_l2_loss(name=scope.split('_')[0] + '_biases',
                                         shape=[num_output_channels],
                                         initializer=tf.constant_initializer(0.0),
                                         with_l2_loss=False,

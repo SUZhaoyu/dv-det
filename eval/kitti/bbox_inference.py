@@ -21,10 +21,10 @@ from train.kitti import kitti_config as config
 # model_path = '/home/tan/tony/dv-det/checkpoints/stage2_heavy/test/best_model_0.7809948543101326'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7913361259170595'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test-2/test/best_model_0.7946715183855744'
-model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
+# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2/test/best_model_0.7960067724776407'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-conf=0.75/test/best_model_0.8025257015611262'
 # model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-eval/test/model_0.8018869726602516'
-# model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-no-rot-aug/test/model_0.7808265097805268'
+model_path = '/home/tan/tony/dv-det/ckpt-kitti/stage2-test/test/model_0.7951141863980209'
 data_home = '/home/tan/tony/dv-det/eval/kitti/data'
 # ******** Easy: 91.15, Moderate: 81.23, Hard: 74.94 ********
 visualization = True
@@ -75,7 +75,7 @@ bbox_attrs, bbox_conf_logits, bbox_dir_logits, bbox_num_list, bbox_idx = \
 bbox_conf = tf.nn.sigmoid(bbox_conf_logits)
 bbox_dir = tf.nn.sigmoid(bbox_dir_logits)
 
-nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.1)
+nms_idx = rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh=1e-3, nms_conf_thres=0.2)
 
 loader = tf.train.Saver()
 tf_config = tf.ConfigProto()

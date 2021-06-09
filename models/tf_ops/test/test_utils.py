@@ -31,10 +31,11 @@ def fetch_instance(input_list, num_list, id=0):
 
 
 def plot_points(coors, intensity=None, rgb=None, bboxes=None, prob=None, name='test'):
+    bbox_params = None if bboxes is None else convert_threejs_bbox_with_prob(bboxes, color=prob)
     Converter.compile(coors=convert_threejs_coors(coors),
                       intensity=intensity,
                       default_rgb=rgb,
-                      bbox_params=convert_threejs_bbox_with_prob(bboxes, color=prob),
+                      bbox_params=bbox_params,
                       task_name=name)
 
 
@@ -139,3 +140,25 @@ class TimeLiner:
     def save(self, f_name):
         with open(f_name, 'w') as f:
             json.dump(self._timeline_dict, f)
+
+def get_points_from_dense_voxels(voxels, resolution, offset, mask=0):
+    offset = np.array(offset)
+    output_coors = []
+    output_features = []
+    for w in tqdm(range(voxels.shape[0])):
+        for l in range(voxels.shape[1]):
+            for h in range(voxels.shape[2]):
+                if voxels[w, l, h, 0] > mask:
+                    coors = np.array([w*resolution[0], l*resolution[1], h*resolution[2]]) - offset
+                    features = voxels[w, l, h, 0]
+                    output_coors.append(coors)
+                    output_features.append(features)
+    output_coors = np.array(output_coors)
+    output_features = np.array(output_features)
+
+    return output_coors, output_features
+
+
+
+
+

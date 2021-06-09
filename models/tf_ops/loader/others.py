@@ -111,6 +111,7 @@ def rotated_nms3d_idx(bbox_attrs, bbox_conf, nms_overlap_thresh, nms_conf_thres)
     return output_idx
 ops.NoGradient("RotatedNms3d")
 
+
 def anchor_iou3d(anchor_attrs, label_attrs, num_list):
     npoint = tf.shape(anchor_attrs)[0]
     nanchor = tf.shape(anchor_attrs)[1]
@@ -138,6 +139,7 @@ def anchor_iou3d(anchor_attrs, label_attrs, num_list):
     ious = tf.reshape(ious, shape=[npoint, -1]) # [n, k]
     return ious
 ops.NoGradient("BoxesIou3d")
+
 
 def iou_filtering(attrs, coors, conf_logits, num_list, nms_overlap_thresh, nms_conf_thres, offset):
     conf = tf.nn.sigmoid(conf_logits)

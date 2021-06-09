@@ -173,11 +173,11 @@ def stage1_loss(roi_coors,
                 wd):
     pred_roi_conf = tf.clip_by_value(tf.nn.sigmoid(roi_conf_logits), eps, 1 - eps)
     gt_roi_attrs_0, gt_roi_conf, gt_roi_diff = get_roi_bbox(input_coors=roi_coors,
-                                                          bboxes=bbox_labels,
-                                                          input_num_list=roi_num_list,
-                                                          anchor_size=anchor_size,
-                                                          expand_ratio=0.1,
-                                                          diff_thres=2)
+                                                            bboxes=bbox_labels,
+                                                            input_num_list=roi_num_list,
+                                                            anchor_size=anchor_size,
+                                                            expand_ratio=0.1,
+                                                            diff_thres=2)
     gt_roi_attrs_1 = get_90_rotated_attrs(gt_roi_attrs_0)
     gt_roi_attrs = tf.stack([gt_roi_attrs_0, gt_roi_attrs_1], axis=1) # [n, 2, 7]
     gt_anchor_bool_masks = tf.greater(tf.abs(tf.sin(gt_roi_attrs_0[:, 6])), tf.abs(tf.sin(gt_roi_attrs_1[:, 6])))

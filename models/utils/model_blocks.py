@@ -5,7 +5,7 @@ import numpy as np
 
 from models.tf_ops.loader.sampling import grid_sampling, grid_sampling_thrust, voxel_sampling_idx_binary, \
     voxel_sampling_idx, voxel_sampling_feature
-from models.tf_ops.loader.pooling import bev_projection
+from models.tf_ops.loader.pooling import bev_projection, dense_voxelization
 from models.utils.layers_wrapper import kernel_conv_wrapper, conv_1d_wrapper, dense_conv_wrapper, conv_3d_wrapper, conv_2d_wrapper
 
 
@@ -274,7 +274,6 @@ def point_conv_concat(input_coors,
                       concat_features,
                       input_num_list,
                       voxel_idx,
-                      voxel_weight,
                       center_idx,
                       layer_params,
                       dimension_params,
@@ -291,10 +290,11 @@ def point_conv_concat(input_coors,
                       last_layer=False):
     bn_decay = bn_decay if not last_layer else None
     activation = model_params['activation'] if not last_layer else None
-    # grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
-    grid_sampling_method = grid_sampling if (layer_params['subsample_res'] is not None and layer_params['subsample_res'] >= 0.1)else grid_sampling_thrust
-    voxel_sampling_idx_method = voxel_sampling_idx_binary if (mem_saving or np.min(layer_params['kernel_res']) < 0.1) else voxel_sampling_idx
-    # voxel_sampling_method = voxel_sampling_binary if mem_saving else voxel_sampling
+    grid_sampling_method = grid_sampling_thrust if mem_saving else grid_sampling
+    voxel_sampling_idx_method = voxel_sampling_idx_binary if mem_saving else voxel_sampling_idx
+
+    # grid_sampling_method = grid_sampling
+    # voxel_sampling_idx_method = voxel_sampling_idx
 
     if layer_params['subsample_res'] is not None:
         kernel_center_coors, center_num_list, center_idx = \
@@ -311,7 +311,7 @@ def point_conv_concat(input_coors,
         center_idx = center_idx
 
     if layer_params['kernel_res'] is not None:
-        voxel_idx, voxel_weight, features = voxel_sampling_idx_method(input_coors=input_coors,
+        voxel_idx, _, features = voxel_sampling_idx_method(input_coors=input_coors,
                                                            input_features=input_features,
                                                            input_num_list=input_num_list,
                                                            center_coors=kernel_center_coors,
@@ -325,17 +325,14 @@ def point_conv_concat(input_coors,
     else:
         if layer_params['subsample_res'] is not None:
             voxel_idx = tf.gather(voxel_idx, center_idx, axis=0)
-            voxel_weight = tf.gather(voxel_weight, center_idx, axis=0)
             features = input_features
         else:
             voxel_idx = voxel_idx
-            voxel_weight = voxel_weight
             features = input_features
 
 
     voxel_features = voxel_sampling_feature(input_features=features,
                                             output_idx=voxel_idx,
-                                            output_weight=voxel_weight,
                                             padding=model_params['padding'])
 
     output_features = kernel_conv_wrapper(inputs=voxel_features,
@@ -355,7 +352,7 @@ def point_conv_concat(input_coors,
         else:
             concat_features = tf.concat([concat_features, output_features], axis=1)
 
-    return kernel_center_coors, output_features, center_num_list, voxel_idx, voxel_weight, center_idx, concat_features
+    return kernel_center_coors, output_features, center_num_list, voxel_idx, center_idx, concat_features
 
 
 def point_conv_bev_concat(input_coors,
@@ -570,3 +567,50 @@ def conv_1d(input_points,
                                     histogram=histogram,
                                     summary=summary)
     return output_points
+
+
+def conv_2d(input_img,
+            num_output_channels,
+            model_params,
+            scope,
+            is_training,
+            kernel_size=3,
+            trainable=True,
+            bn_decay=None,
+            histogram=False,
+            summary=False,
+            second_last_layer=False,
+            last_layer=False):
+    activation = model_params['activation'] if not last_layer else None
+    if last_layer or second_last_layer:
+        bn_decay = None
+    output_points = conv_2d_wrapper(inputs=input_img,
+                                    num_output_channels=num_output_channels,
+                                    kernel_size=kernel_size,
+                                    scope=scope,
+                                    use_xavier=model_params['xavier'],
+                                    stddev=model_params['stddev'],
+                                    activation=activation,
+                                    bn_decay=bn_decay,
+                                    is_training=is_training,
+                                    trainable=trainable,
+                                    histogram=histogram,
+                                    summary=summary)
+    return output_points
+
+
+def bev_compression(input_coors,
+                    input_features,
+                    input_num_list,
+                    resolution,
+                    dimension_params):
+    dense_voxels = dense_voxelization(input_coors=input_coors,
+                                      input_features=input_features,
+                                      input_num_list=input_num_list,
+                                      dimension=dimension_params['dimension'],
+                                      offset=dimension_params['offset'],
+                                      resolution=resolution)  # [b, w, l, h, c]
+    dense_voxels_shape = tf.shape(dense_voxels)
+    bev_img = tf.reshape(dense_voxels, shape=[dense_voxels_shape[0], 124, 140, 320])
+
+    return bev_img

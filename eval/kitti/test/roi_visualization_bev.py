@@ -15,7 +15,7 @@ import train.kitti.kitti_config as config
 os.system("rm -r {}".format('/home/tan/tony/threejs/kitti-stage1'))
 Converter = PointvizConverter(home='/home/tan/tony/threejs/kitti-stage1')
 
-from models import kitti_model_cls_reg as model
+from models import kitti_model_bev as model
 from models.tf_ops.loader.others import rotated_nms3d_idx, roi_filter
 from models.utils.loss_utils import get_bbox_from_logits
 anchor_size = config.anchor_size
@@ -34,7 +34,7 @@ input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_i
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, roi_num_list = \
+bev_img = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -44,7 +44,6 @@ coors, features, num_list, roi_coors, roi_logits, roi_conf_logits, roi_attrs, ro
                        mem_saving=False,
                        bn=1.)
 
-roi_conf = tf.nn.sigmoid(roi_conf_logits)
 
 # nms_idx = rotated_nms3d_idx(roi_attrs, roi_conf, nms_overlap_thresh=0.7, nms_conf_thres=0.5)
 # roi_coors = tf.gather(roi_coors, nms_idx, axis=0)
@@ -82,7 +81,8 @@ config.log_device_placement = False
 
 if __name__ == '__main__':
     with tf.Session(config=config) as sess:
-        saver.restore(sess, model_path)
+        sess.run(init_op)
+        # saver.restore(sess, model_path)
         prediction_output = []
         overall_iou = []
         # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -94,8 +94,8 @@ if __name__ == '__main__':
             batch_input_bboxes = input_bboxes_stack[frame_id]
             # , output_bboxes, output_coors, output_conf, output_idx = \
             #     sess.run([coors, roi_attrs, roi_coors, roi_conf, nms_idx],
-            anchor_coors, output_bboxes, output_coors, output_conf = \
-                sess.run([coors, roi_attrs, roi_coors, roi_conf],
+            output_img = \
+                sess.run(bev_img,
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,

@@ -164,11 +164,9 @@ voxel_sampling_feature_exe = tf.load_op_library(join(CWD, '../build', 'voxel_sam
 
 def voxel_sampling_feature(input_features,
                            output_idx,
-                           output_weight,
                            padding):
     output_features = voxel_sampling_feature_exe.voxel_sampling_feature_op(input_features=input_features,
                                                                            output_idx=output_idx,
-                                                                           output_weight=output_weight,
                                                                            padding_value=padding)
     return output_features
 
@@ -176,12 +174,10 @@ def voxel_sampling_feature(input_features,
 def voxel_sampling_feature_grad(op, grad):
     input_features = op.inputs[0]
     output_idx = op.inputs[1]
-    output_weight = op.inputs[2]
     input_features_grad = voxel_sampling_feature_exe.voxel_sampling_feature_grad_op(input_features=input_features,
                                                                                     output_idx=output_idx,
-                                                                                    output_weight=output_weight,
                                                                                     output_features_grad=grad)
-    return [input_features_grad, None, None]
+    return [input_features_grad, None]
 
 def voxel_sampling_feature_grad_test(input_features, output_idx, grad):
     input_features_grad = voxel_sampling_feature_exe.voxel_sampling_feature_grad_op(input_features=input_features,
@@ -284,7 +280,7 @@ def voxel_sampling_idx_binary(input_coors,
     sorted_coors = tf.gather(input_coors, sorted_args, axis=0)
     sorted_features = tf.gather(input_features, sorted_args, axis=0)
     # XXX: Need to pay attention to the back-propagation implementation.
-    output_idx, output_weight = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
+    output_idx, valid_idx = voxel_sampling_idx_binary_exe.voxel_sampling_idx_binary_op(input_coors=sorted_coors + offset,
                                                                                        input_voxel_idx=sorted_voxel_ids,
                                                                                        input_num_list=input_num_list,
                                                                                        center_coors=center_coors + offset,
@@ -294,7 +290,7 @@ def voxel_sampling_idx_binary(input_coors,
                                                                                        grid_buffer_size=grid_buffer_size,
                                                                                        output_pooling_size=output_pooling_size,
                                                                                        with_rpn=with_rpn)
-    return output_idx, output_weight, sorted_features
+    return output_idx, valid_idx, sorted_features
 
 ops.NoGradient("VoxelSamplingIdxBinaryOp")
 
@@ -344,6 +340,7 @@ def get_bev_anchor_point(bev_occupy, resolution, kernel_resolution, offset, heig
                               strides=1,
                               padding='SAME') # [b, w, l, 1]
 
+
     bev_idx = tf.range(img_w * img_l)  # [w*l]
     bev_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32)  # [w*l, 2]
     bev_coors = tf.expand_dims(bev_coors, axis=0)  # [1, w*l, 2]
@@ -368,3 +365,22 @@ def get_bev_anchor_point(bev_occupy, resolution, kernel_resolution, offset, heig
     anchor_coors = tf.reshape(anchor_coors, [-1, 3])
 
     return anchor_coors, anchor_num_list
+
+
+def get_bev_anchor_coors(bev_img, resolution, offset, height):
+    offset = np.array(offset, dtype=np.float32)
+    batch_size = tf.shape(bev_img)[0]
+    img_w = tf.shape(bev_img)[1]
+    img_l = tf.shape(bev_img)[2]
+
+
+    bev_idx = tf.range(img_w * img_l)  # [w*l]
+    bev_2d_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32)  # [w*l, 2] -> [x, y]
+    bev_2d_coors = bev_2d_coors * resolution + resolution / 2. - tf.expand_dims(offset[0:2], axis=0)
+    bev_z_coors = tf.zeros(shape=[img_w * img_l, 1]) + height  # [w * l, 1]
+    bev_3d_coors = tf.expand_dims(tf.concat([bev_2d_coors, bev_z_coors], axis=-1), axis=0)  # [1, w*l, 3]
+    anchor_coors = tf.tile(bev_3d_coors, [batch_size, 1, 1])
+
+    bev_num_list = tf.ones(batch_size) * img_w * img_l * 2
+
+    return anchor_coors, bev_num_list

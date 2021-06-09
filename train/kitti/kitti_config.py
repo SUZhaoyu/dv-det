@@ -16,14 +16,14 @@ aug_config = {'nbbox': 256,
               'maximum_interior_points': 100,
               'normalization': None}
 
-dimension_training = [140., 140., 9.]
-offset_training = [50., 50., 5.]
+# dimension_training = [140., 140., 4.]
+# offset_training = [50., 50., 3.]
 
 # dimension_training = [100., 100., 9.]
 # offset_training = [10., 10., 5.]
 
-# dimension_training = [72, 80.0, 4.]
-# offset_training = [2., 40.0, 3.]
+dimension_training = [74, 84.0, 4.]
+offset_training = [2., 42.0, 3.]
 
 anchor_size = [1.6, 3.9, 1.5]
 grid_buffer_size = 3
@@ -45,10 +45,10 @@ bbox_padding = aug_config['nbbox']
 decay_epochs = 5
 
 batch_size_stage1 = 4
-init_lr_stage1 = 1e-3
+init_lr_stage1 = 2e-3
 lr_scale_stage1 = True
 
-batch_size_stage2 = 2
+batch_size_stage2 = 4
 init_lr_stage2 = 2e-4
 lr_scale_stage2 = False
 
@@ -89,41 +89,41 @@ roi_voxel_size = 5
 #                          'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
 #                          'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': True}}
 
-base_params_inference = {'base_00': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'concat': True},
-                         'base_02': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
-                         'base_03': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
-                         'base_04': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': 0.20, 'concat': True},
-                         'base_05': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
-                         'base_06': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
-                         'base_07': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': 0.40, 'concat': True},
-                         'base_08': {'subsample_res': None, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': False},
-                         'base_09': {'subsample_res': None, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': False},
-                         'base_10': {'subsample_res': 0.60, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': True},
-                         'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
-                         'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
-                         'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': True}}
-
-
-
-
-
 # base_params_inference = {'base_00': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'concat': True},
 #                          'base_02': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
-#                          'base_03': {'subsample_res': None, 'c_out':  16, 'kernel_res': None, 'concat': False},
-#                          'base_04': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': None, 'concat': True},
+#                          'base_03': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
+#                          'base_04': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': 0.20, 'concat': True},
 #                          'base_05': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
-#                          'base_06': {'subsample_res': None, 'c_out':  32, 'kernel_res': None, 'concat': False},
-#                          'base_07': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': None, 'concat': True},
+#                          'base_06': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
+#                          'base_07': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': 0.40, 'concat': True},
 #                          'base_08': {'subsample_res': None, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': False},
-#                          'base_09': {'subsample_res': None, 'c_out':  64, 'kernel_res': None, 'concat': False},
-#                          'base_10': {'subsample_res': 0.60, 'c_out':  64, 'kernel_res': None, 'concat': True},
+#                          'base_09': {'subsample_res': None, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': False},
+#                          'base_10': {'subsample_res': 0.60, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': True},
 #                          'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
-#                          'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': None, 'concat': False},
-#                          'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': None, 'concat': True}}
+#                          'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
+#                          'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': True}}
 
 
 
-refine_params = {'c_out': 256, 'kernel_size': 3, 'padding': 0.}
+
+
+base_params_inference = {'base_00': {'subsample_res': 0.10, 'c_out':  16, 'kernel_res': 0.10, 'concat': True},
+                         'base_02': {'subsample_res': None, 'c_out':  16, 'kernel_res': 0.20, 'concat': False},
+                         'base_03': {'subsample_res': None, 'c_out':  16, 'kernel_res': None, 'concat': False},
+                         'base_04': {'subsample_res': 0.20, 'c_out':  16, 'kernel_res': None, 'concat': True},
+                         'base_05': {'subsample_res': None, 'c_out':  32, 'kernel_res': 0.40, 'concat': False},
+                         'base_06': {'subsample_res': None, 'c_out':  32, 'kernel_res': None, 'concat': False},
+                         'base_07': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': None, 'concat': True},
+                         'base_08': {'subsample_res': None, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': False},
+                         'base_09': {'subsample_res': None, 'c_out':  64, 'kernel_res': None, 'concat': False},
+                         'base_10': {'subsample_res': 0.60, 'c_out':  64, 'kernel_res': None, 'concat': True}}
+                         # 'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
+                         # 'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': None, 'concat': False},
+                         # 'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': None, 'concat': True}}
+
+
+
+refine_params = {'c_out': 128, 'kernel_size': 3, 'padding': 0.}
 
 # grid_dimensions = np.array(np.array(dimension_training) / base_params_inference['base_0']['kernel_res'], dtype=np.int32)
 # maximum_grid_num = dimension_training[0] * dimension_training[1] * dimension_training[2] * batch_size

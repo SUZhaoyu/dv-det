@@ -5,7 +5,7 @@ fi
 TF_CFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))') )
 TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))') )
 
-CUDA_NVCC="/usr/local/cuda/bin/nvcc"
+CUDA_NVCC="/usr/local/cuda-10.0/bin/nvcc"
 # TODO: Add --use_fast_math flag.
 
 #$CUDA_NVCC src/get_roi_bbox.cu -o build/get_roi_bbox.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
@@ -59,14 +59,14 @@ CUDA_NVCC="/usr/local/cuda/bin/nvcc"
 #$CUDA_NVCC src/voxel_sampling_idx.cu -o build/voxel_sampling_idx.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
 #g++ -std=c++11 src/voxel_sampling_idx.cpp build/voxel_sampling_idx.cu.o -o build/voxel_sampling_idx.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 #
-$CUDA_NVCC src/voxel_sampling_feature.cu -o build/voxel_sampling_feature.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
-g++ -std=c++11 src/voxel_sampling_feature.cpp build/voxel_sampling_feature.cu.o -o build/voxel_sampling_feature.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+#$CUDA_NVCC src/voxel_sampling_feature.cu -o build/voxel_sampling_feature.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
+#g++ -std=c++11 src/voxel_sampling_feature.cpp build/voxel_sampling_feature.cu.o -o build/voxel_sampling_feature.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 #
-$CUDA_NVCC src/voxel_sampling_idx_binary.cu -o build/voxel_sampling_idx_binary.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC --use_fast_math
-g++ -std=c++11 src/voxel_sampling_idx_binary.cpp build/voxel_sampling_idx_binary.cu.o -o build/voxel_sampling_idx_binary.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+#$CUDA_NVCC src/voxel_sampling_idx_binary.cu -o build/voxel_sampling_idx_binary.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC --use_fast_math
+#g++ -std=c++11 src/voxel_sampling_idx_binary.cpp build/voxel_sampling_idx_binary.cu.o -o build/voxel_sampling_idx_binary.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 #
-#$CUDA_NVCC src/bev_projection.cu -o build/bev_projection.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
-#g++ -std=c++11 src/bev_projection.cpp build/bev_projection.cu.o -o build/bev_projection.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
+#$CUDA_NVCC src/dense_voxelization.cu -o build/dense_voxelization.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
+#g++ -std=c++11 src/dense_voxelization.cpp build/dense_voxelization.cu.o -o build/dense_voxelization.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include
 #
 #$CUDA_NVCC src/bev_occupy.cu -o build/bev_occupy.cu.o -c ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
 #g++ -std=c++11 src/bev_occupy.cpp build/bev_occupy.cu.o -o build/bev_occupy.so -shared ${TF_CFLAGS[@]} -fPIC -lcudart ${TF_LFLAGS[@]} -L /usr/local/cuda/lib64/ -I /usr/local/cuda/include

@@ -16,7 +16,7 @@ eps = tf.constant(1e-6)
 model_params = {'xavier': config.xavier,
                 'stddev': config.stddev,
                 'activation': config.activation,
-                'padding': 0.,}
+                'padding': -0.5}
 
 def stage1_inputs_placeholder(input_channels=1,
                               bbox_padding=config.aug_config['nbbox']):
@@ -65,19 +65,18 @@ def stage1_model(input_coors,
 
     coors, features, num_list = input_coors, input_features, input_num_list
     concat_features = None
-    voxel_idx, voxel_weight, center_idx = None, None, None
+    voxel_idx, center_idx = None, None
 
     with tf.variable_scope("stage1"):
         # =============================== STAGE-1 [base] ================================
 
         for i, layer_name in enumerate(sorted(base_params.keys())):
-            coors, features, num_list, voxel_idx, voxel_weight, center_idx, concat_features = \
+            coors, features, num_list, voxel_idx, center_idx, concat_features = \
                 point_conv_concat(input_coors=coors,
                                   input_features=features,
                                   concat_features=concat_features,
                                   input_num_list=num_list,
                                   voxel_idx=voxel_idx,
-                                  voxel_weight=voxel_weight,
                                   center_idx=center_idx,
                                   layer_params=base_params[layer_name],
                                   dimension_params=dimension_params,
