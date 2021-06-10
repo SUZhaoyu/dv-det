@@ -119,8 +119,7 @@ def stage1_model(input_coors,
 
         anchor_coors, anchor_num_list = get_bev_anchor_coors(bev_img=logits_img,
                                                        resolution=[0.6, 0.6, 0.8],
-                                                       offset=dimension_params['offset'],
-                                                       height=-1.)
+                                                       offset=dimension_params['offset']) # []
         #
         # roi_attrs = get_bbox_from_logits(point_coors=roi_coors,
         #                                  pred_logits=roi_logits,

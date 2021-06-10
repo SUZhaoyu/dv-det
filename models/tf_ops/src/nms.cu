@@ -213,7 +213,7 @@ __device__ inline float box_overlap(const float *box_a, const float *box_b){
 
 
 // iou_bev => iou3d
-__device__ inline float iou3d(const float *box_a, const float *box_b, const float* box_a_z, const float* box_b_z){
+__device__ inline float iou3d(const float *box_a, const float *box_b, const float* box_a_z, const float* box_b_z, bool ignore_height){
     // params: box_a (5) [x1, y1, x2, y2, angle]
     // params: box_b (5) [x1, y1, x2, y2, angle]
     // params: box_a_z (2) [z1min, z1max]
@@ -226,19 +226,23 @@ __device__ inline float iou3d(const float *box_a, const float *box_b, const floa
     float intersection_height = fminf(box_a_z[1], box_b_z[1]) - fmaxf(box_a_z[0], box_b_z[0]);
 
     //compute the volume
-    float vol_a = sa * (box_a_z[1] - box_a_z[0]);
-    float vol_b = sb * (box_b_z[1] - box_b_z[0]);
-    float vol_overlap = s_overlap * intersection_height;
-    
-//#ifdef DEBUG
-//    printf("sa, sb, s_overlap, vol_a, vol_b, vol_overlap: (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n", sa, sb, s_overlap, vol_a, vol_b, vol_overlap);
-//#endif
+    if (!ignore_height) {
+        float vol_a = sa * (box_a_z[1] - box_a_z[0]);
+        float vol_b = sb * (box_b_z[1] - box_b_z[0]);
+        float vol_overlap = s_overlap * intersection_height;
 
-    return vol_overlap / fmaxf(vol_a + vol_b - vol_overlap, EPS);
+    //#ifdef DEBUG
+    //    printf("sa, sb, s_overlap, vol_a, vol_b, vol_overlap: (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n", sa, sb, s_overlap, vol_a, vol_b, vol_overlap);
+    //#endif
+
+        return vol_overlap / fmaxf(vol_a + vol_b - vol_overlap, EPS);
+    } else {
+        return s_overlap / fmaxf(sa + sb, EPS);
+    }
 }
 
 
-__global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou){
+__global__ void boxes_iou_3d_kernel(bool ignore_height, const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou){
     // params: num_a : number of boxes in boxes_a
     // params: boxes_a (M, 7) [x, y, z, w, l, h, angle]
     // params: num_b : number of boxes in boxes_b
@@ -278,7 +282,7 @@ __global__ void boxes_iou_3d_kernel(const int num_a, const float *boxes_a, const
     box_b_z_tmp[0] = cur_box_b[5] - cur_box_b[2] / 2; // z1min
     box_b_z_tmp[1] = cur_box_b[5] + cur_box_b[2] / 2; // z1max
 
-    float cur_iou_3d = iou3d(&box_a_tmp[0], &box_b_tmp[0], &box_a_z_tmp[0], &box_b_z_tmp[0]);
+    float cur_iou_3d = iou3d( &box_a_tmp[0], &box_b_tmp[0], &box_a_z_tmp[0], &box_b_z_tmp[0], ignore_height);
     ans_iou[a_idx * num_b + b_idx] = cur_iou_3d;
 }
 
@@ -346,7 +350,7 @@ __global__ void nms3d_kernel(const int boxes_num, const float nms_overlap_thresh
             block_box_z_tmp[0] = block_box_ptr[5] - block_box_ptr[2] / 2; // z1min
             block_box_z_tmp[1] = block_box_ptr[5] + block_box_ptr[2] / 2; // z1max
 
-            float cur_iou_3d = iou3d(&cur_box_tmp[0], &block_box_tmp[0], &cur_box_z_tmp[0], &block_box_z_tmp[0]);
+            float cur_iou_3d = iou3d(&cur_box_tmp[0], &block_box_tmp[0], &cur_box_z_tmp[0], &block_box_z_tmp[0], false);
 
             if (cur_iou_3d > nms_overlap_thresh){
                 t |= 1ULL << i;
@@ -357,12 +361,12 @@ __global__ void nms3d_kernel(const int boxes_num, const float nms_overlap_thresh
     }
 }
 
-void boxesIou3dGPUKernelLauncher(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou){
+void boxesIouGPUKernelLauncher(bool ignore_height, const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou){
 
     dim3 blocks(DIVUP(num_b, THREADS_PER_BLOCK), DIVUP(num_a, THREADS_PER_BLOCK));  // blockIdx.x(col), blockIdx.y(row)
     dim3 threads(THREADS_PER_BLOCK, THREADS_PER_BLOCK); // (256, 256)
 
-    boxes_iou_3d_kernel<<<blocks, threads>>>(num_a, boxes_a, num_b, boxes_b, ans_iou);
+    boxes_iou_3d_kernel<<<blocks, threads>>>(ignore_height, num_a, boxes_a, num_b, boxes_b, ans_iou);
 }
 
 

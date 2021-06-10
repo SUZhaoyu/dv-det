@@ -1,9 +1,9 @@
 import os
 
-import numpy as np
+import math
 
 aug_config = {'nbbox': 256,
-              'rotate_range': np.pi / 4,
+              'rotate_range': math.pi / 4,
               # 'rotate_range': 0,
               'rotate_mode': 'u',
               'scale_range': 0.05,
@@ -26,6 +26,8 @@ dimension_training = [74, 84.0, 4.]
 offset_training = [2., 42.0, 3.]
 
 anchor_size = [1.6, 3.9, 1.5]
+anchor_params = [[1.6, 3.9, 1.5, -1., 0.],
+                 [1.6, 3.9, 1.5, -1., math.pi/2.]]
 grid_buffer_size = 3
 output_pooling_size = 5
 

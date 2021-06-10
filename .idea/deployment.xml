@@ -1,36 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="tan@gx4:22" showAutoUploadSettingsWarning="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="tan@192.168.1.54:22" showAutoUploadSettingsWarning="false">
     <serverData>
-      <paths name="tan@gx4:22">
+      <paths name="tan@192.168.1.54:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" web="/" />
           </mappings>
-        </serverdata>
-      </paths>
-      <paths name="tan@gx4:22 (2)">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" />
-          </mappings>
-          <excludedPaths>
-            <excludedPath path="checkpoints" />
-            <excludedPath path="dataset" />
-            <excludedPath path="models/tf_ops/build" />
-          </excludedPaths>
-        </serverdata>
-      </paths>
-      <paths name="tan@gx4:22 (3)">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" />
-          </mappings>
-          <excludedPaths>
-            <excludedPath path="checkpoints" />
-            <excludedPath path="dataset" />
-            <excludedPath path="models/tf_ops/build" />
-          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

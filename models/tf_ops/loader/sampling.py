@@ -367,7 +367,7 @@ def get_bev_anchor_point(bev_occupy, resolution, kernel_resolution, offset, heig
     return anchor_coors, anchor_num_list
 
 
-def get_bev_anchor_coors(bev_img, resolution, offset, height):
+def get_bev_anchor_coors(bev_img, resolution, offset):
     offset = np.array(offset, dtype=np.float32)
     batch_size = tf.shape(bev_img)[0]
     img_w = tf.shape(bev_img)[1]
@@ -377,10 +377,12 @@ def get_bev_anchor_coors(bev_img, resolution, offset, height):
     bev_idx = tf.range(img_w * img_l)  # [w*l]
     bev_2d_coors = tf.cast(tf.stack([bev_idx // img_l, bev_idx % img_l], axis=-1), dtype=tf.float32)  # [w*l, 2] -> [x, y]
     bev_2d_coors = bev_2d_coors * resolution + resolution / 2. - tf.expand_dims(offset[0:2], axis=0)
-    bev_z_coors = tf.zeros(shape=[img_w * img_l, 1]) + height  # [w * l, 1]
-    bev_3d_coors = tf.expand_dims(tf.concat([bev_2d_coors, bev_z_coors], axis=-1), axis=0)  # [1, w*l, 3]
+    # bev_z_coors = tf.zeros(shape=[img_w * img_l, 1]) + height  # [w * l, 1]
+    # bev_3d_coors = tf.expand_dims(tf.concat([bev_2d_coors, bev_z_coors], axis=-1), axis=0)  # [1, w*l, 3]
+    bev_3d_coors = tf.expand_dims(bev_2d_coors, axis=0)  # [1, w*l, 2]
     anchor_coors = tf.tile(bev_3d_coors, [batch_size, 1, 1])
 
-    bev_num_list = tf.ones(batch_size) * img_w * img_l * 2
+    bev_num_list = tf.ones(batch_size) * img_w * img_l
 
     return anchor_coors, bev_num_list
+

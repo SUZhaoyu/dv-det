@@ -29,11 +29,11 @@ using ::tensorflow::shape_inference::ShapeHandle;
 const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8; // 8x8=64
 
 
-REGISTER_OP("BoxesIou3d")
+REGISTER_OP("BoxesIou")
     .Input("input_boxes_a: float32")
     .Input("input_boxes_b: float32")
     .Output("output_iou_3d: float32")
-    // .Attr("npoints: float")
+     .Attr("ignore_height: bool")
     // .Attr("batchSize: int")
     // .Attr("nFeatures: int")
     .SetShapeFn([](InferenceContext* c){
@@ -57,19 +57,19 @@ REGISTER_OP("BoxesIou3d")
         return Status::OK();
     }); // InferenceContext
 
-void boxesIou3dGPUKernelLauncher(
+void boxesIouGPUKernelLauncher(
     const int num_a,
     const float *boxes_a,
     const int num_b,
     const float *boxes_b,
     float *ans_iou);
 
-class BoxesIou3d: public OpKernel {
+class BoxesIou: public OpKernel {
 public:
-    explicit BoxesIou3d(OpKernelConstruction* context): OpKernel(context) {
+    explicit BoxesIou(OpKernelConstruction* context): OpKernel(context) {
 
 
-        // OP_REQUIRES_OK(context, context->GetAttr("batchSize", &batchSize));
+         OP_REQUIRES_OK(context, context->GetAttr("ignore_height", &ignore_height));
         // OP_REQUIRES_OK(context, context->GetAttr("nPoints", &nPoints));
         // OP_REQUIRES_OK(context, context->GetAttr("nFeatures", &nFeatures));
 
@@ -86,12 +86,12 @@ public:
         const Tensor& input_boxes_a = context->input(0);
         auto input_boxes_a_ptr = input_boxes_a.template flat<float>().data();
         OP_REQUIRES(context, input_boxes_a.dims()==2 && input_boxes_a.shape().dim_size(1)==7,
-                    errors::InvalidArgument("BoxesIou3d expects boxes_a in shape: [M, 7]."));
+                    errors::InvalidArgument("BoxesIou expects boxes_a in shape: [M, 7]."));
 
         const Tensor& input_boxes_b = context->input(1);
         auto input_boxes_b_ptr = input_boxes_b.template flat<float>().data();
         OP_REQUIRES(context, input_boxes_b.dims()==2 && input_boxes_b.shape().dim_size(1)==7,
-                    errors::InvalidArgument("BoxesIou3d expects boxes_b in shape: [N, 7]."));
+                    errors::InvalidArgument("BoxesIou expects boxes_b in shape: [N, 7]."));
 
         const int num_a = input_boxes_a.dim_size(0);
         const int num_b = input_boxes_b.dim_size(0);
@@ -103,20 +103,23 @@ public:
         float* output_iou3d_ptr = output_iou3d->template flat<float>().data();
 
         // printf("1");
-        boxesIou3dGPUKernelLauncher(
+        boxesIouGPUKernelLauncher(
+            ignore_height,
             num_a,
             input_boxes_a_ptr,
             num_b,
             input_boxes_b_ptr,
-            output_iou3d_ptr);
+            output_iou3d_ptr,
+            );
         // printf("1");
         // printf(std::to_string(output_bev_overlap_area_ptr[0]));
     }
 private:
     // float padding_value;
     // int kernel_size, pooling_size;
+    bool ignore_height;
 }; // OpKernel
-REGISTER_KERNEL_BUILDER(Name("BoxesIou3d").Device(DEVICE_GPU), BoxesIou3d);
+REGISTER_KERNEL_BUILDER(Name("BoxesIou").Device(DEVICE_GPU), BoxesIou);
 
 
 
