@@ -3,9 +3,9 @@ import tensorflow as tf
 import numpy as np
 import train.kitti.kitti_config as config
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_bbox
+from models.tf_ops.loader.anchor_utils import get_anchors, get_bev_anchor_coors
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
 from models.tf_ops.loader.others import roi_filter, rotated_nms3d_idx
-from models.tf_ops.loader.sampling import get_bev_anchor_coors
 from models.utils.iou_utils import cal_3d_iou
 from models.utils.loss_utils import get_masked_average, focal_loss, smooth_l1_loss, get_dir_cls, get_bbox_loss, get_bbox_from_logits
 from models.utils.model_blocks import point_conv, conv_1d, conv_2d, conv_3d, point_conv_res, conv_3d_res, point_conv_concat, bev_compression
@@ -23,8 +23,8 @@ def stage1_inputs_placeholder(input_channels=1,
                               bbox_padding=config.aug_config['nbbox']):
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage1_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_channels], name='stage1_input_features_p')
-    input_num_list_p = tf.placeholder(tf.int32, shape=[None], name='stage1_input_num_list_p')
-    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[None, bbox_padding, 9], name='stage1_input_bbox_p')
+    input_num_list_p = tf.placeholder(tf.int32, shape=[1], name='stage1_input_num_list_p')
+    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[1, bbox_padding, 9], name='stage1_input_bbox_p')
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
 
@@ -77,7 +77,7 @@ def stage1_model(input_coors,
                                   model_params=model_params,
                                   bn_decay=bn)
 
-        roi_features = concat_features
+        roi_features = features
         roi_coors = coors
         roi_num_list = num_list
 
@@ -93,6 +93,7 @@ def stage1_model(input_coors,
                           kernel_size=3,
                           num_output_channels=128,
                           model_params=model_params,
+                          bn_decay=bn,
                           scope='stage1_rpn_conv2d_0',
                           is_training=is_training,
                           trainable=trainable)
@@ -101,6 +102,7 @@ def stage1_model(input_coors,
                           kernel_size=3,
                           num_output_channels=128,
                           model_params=model_params,
+                          bn_decay=bn,
                           scope='stage1_rpn_conv2d_1',
                           is_training=is_training,
                           trainable=trainable,
@@ -110,6 +112,7 @@ def stage1_model(input_coors,
                              kernel_size=1,
                              num_output_channels=2 * config.output_attr,
                              model_params=model_params,
+                             bn_decay=bn,
                              scope='stage1_rpn_conv2d_2',
                              is_training=is_training,
                              trainable=trainable,
@@ -117,15 +120,17 @@ def stage1_model(input_coors,
 
         roi_logits = tf.reshape(logits_img, shape=[-1, config.output_attr])
 
-        anchor_coors, anchor_num_list = get_bev_anchor_coors(bev_img=logits_img,
-                                                       resolution=[0.6, 0.6, 0.8],
-                                                       offset=dimension_params['offset']) # []
+
+        with tf.variable_scope("rpn_head"):
+            anchor_coors = get_bev_anchor_coors(bev_img, [0.6, 0.6, 0.8], dimension_params['offset'])
+            anchor, anchor_num_list = get_anchors(anchor_coors, config.anchor_params, 1)
+
         #
         # roi_attrs = get_bbox_from_logits(point_coors=roi_coors,
         #                                  pred_logits=roi_logits,
         #                                  anchor_size=config.anchor_size)
 
-        return coors, features, num_list, anchor_coors, roi_logits, anchor_num_list
+        return anchor, roi_logits
 
 
 def stage1_loss(anchor_coors,
