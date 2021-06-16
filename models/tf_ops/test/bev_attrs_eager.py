@@ -15,7 +15,7 @@ import train.kitti.kitti_config as config
 # tf.enable_eager_execution()
 from models.tf_ops.loader.sampling import grid_sampling, get_bev_features
 from models.tf_ops.loader.pooling import bev_projection
-from models.tf_ops.loader.others import anchor_iou3d, anchor_iou_filter
+from models.tf_ops.loader.others import anchor_iou_filter
 from models.tf_ops.loader.bbox_utils import get_roi_bbox, get_anchor_attrs, get_bev_gt_bbox
 from models.tf_ops.test.test_utils import fetch_instance, plot_points
 

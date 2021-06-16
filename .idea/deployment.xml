@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="tan@192.168.1.54:22" showAutoUploadSettingsWarning="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="tan@gx4:dv-det" showAutoUploadSettingsWarning="false">
     <serverData>
-      <paths name="tan@192.168.1.54:22">
+      <paths name="akk@mtr:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="tan@gx4:22 (4)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="tan@gx4:dv-det">
         <serverdata>
           <mappings>
             <mapping deploy="/home/tan/tony/dv-det" local="$PROJECT_DIR$" web="/" />

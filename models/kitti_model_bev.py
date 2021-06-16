@@ -20,11 +20,12 @@ model_params = {'xavier': config.xavier,
                 'padding': -0.5}
 
 def stage1_inputs_placeholder(input_channels=1,
-                              bbox_padding=config.aug_config['nbbox']):
+                              bbox_padding=config.aug_config['nbbox'],
+                              batch_size=1):
     input_coors_p = tf.placeholder(tf.float32, shape=[None, 3], name='stage1_input_coors_p')
     input_features_p = tf.placeholder(tf.float32, shape=[None, input_channels], name='stage1_input_features_p')
-    input_num_list_p = tf.placeholder(tf.int32, shape=[1], name='stage1_input_num_list_p')
-    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[1, bbox_padding, 9], name='stage1_input_bbox_p')
+    input_num_list_p = tf.placeholder(tf.int32, shape=[batch_size], name='stage1_input_num_list_p')
+    input_bbox_p = tf.placeholder(dtype=tf.float32, shape=[batch_size, bbox_padding, 9], name='stage1_input_bbox_p')
     return input_coors_p, input_features_p, input_num_list_p, input_bbox_p
 
 
@@ -122,15 +123,15 @@ def stage1_model(input_coors,
 
 
         with tf.variable_scope("rpn_head"):
-            anchor_coors = get_bev_anchor_coors(bev_img, [0.6, 0.6, 0.8], dimension_params['offset'])
-            anchor, anchor_num_list = get_anchors(anchor_coors, config.anchor_params, 1)
+            anchor_coors = get_bev_anchor_coors(bev_img, [0.4, 0.4, 0.8], dimension_params['offset'])
+            anchor = get_anchors(anchor_coors, config.anchor_params, tf.shape(num_list)[0])
 
         #
         # roi_attrs = get_bbox_from_logits(point_coors=roi_coors,
         #                                  pred_logits=roi_logits,
         #                                  anchor_size=config.anchor_size)
 
-        return anchor, roi_logits
+        return anchor, roi_logits, roi_coors
 
 
 def stage1_loss(anchor_coors,

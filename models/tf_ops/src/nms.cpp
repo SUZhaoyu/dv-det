@@ -29,7 +29,7 @@ using ::tensorflow::shape_inference::ShapeHandle;
 const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8; // 8x8=64
 
 
-REGISTER_OP("BoxesIou")
+REGISTER_OP("BoxesIouOp")
     .Input("input_boxes_a: float32")
     .Input("input_boxes_b: float32")
     .Output("output_iou_3d: float32")
@@ -58,15 +58,16 @@ REGISTER_OP("BoxesIou")
     }); // InferenceContext
 
 void boxesIouGPUKernelLauncher(
+    bool ignore_height,
     const int num_a,
     const float *boxes_a,
     const int num_b,
     const float *boxes_b,
     float *ans_iou);
 
-class BoxesIou: public OpKernel {
+class BoxesIouOp: public OpKernel {
 public:
-    explicit BoxesIou(OpKernelConstruction* context): OpKernel(context) {
+    explicit BoxesIouOp(OpKernelConstruction* context): OpKernel(context) {
 
 
          OP_REQUIRES_OK(context, context->GetAttr("ignore_height", &ignore_height));
@@ -86,12 +87,12 @@ public:
         const Tensor& input_boxes_a = context->input(0);
         auto input_boxes_a_ptr = input_boxes_a.template flat<float>().data();
         OP_REQUIRES(context, input_boxes_a.dims()==2 && input_boxes_a.shape().dim_size(1)==7,
-                    errors::InvalidArgument("BoxesIou expects boxes_a in shape: [M, 7]."));
+                    errors::InvalidArgument("BoxesIouOp expects boxes_a in shape: [M, 7]."));
 
         const Tensor& input_boxes_b = context->input(1);
         auto input_boxes_b_ptr = input_boxes_b.template flat<float>().data();
         OP_REQUIRES(context, input_boxes_b.dims()==2 && input_boxes_b.shape().dim_size(1)==7,
-                    errors::InvalidArgument("BoxesIou expects boxes_b in shape: [N, 7]."));
+                    errors::InvalidArgument("BoxesIouOp expects boxes_b in shape: [N, 7]."));
 
         const int num_a = input_boxes_a.dim_size(0);
         const int num_b = input_boxes_b.dim_size(0);
@@ -109,8 +110,7 @@ public:
             input_boxes_a_ptr,
             num_b,
             input_boxes_b_ptr,
-            output_iou3d_ptr,
-            );
+            output_iou3d_ptr);
         // printf("1");
         // printf(std::to_string(output_bev_overlap_area_ptr[0]));
     }
@@ -119,7 +119,7 @@ private:
     // int kernel_size, pooling_size;
     bool ignore_height;
 }; // OpKernel
-REGISTER_KERNEL_BUILDER(Name("BoxesIou").Device(DEVICE_GPU), BoxesIou);
+REGISTER_KERNEL_BUILDER(Name("BoxesIouOp").Device(DEVICE_GPU), BoxesIouOp);
 
 
 

@@ -610,7 +610,10 @@ def bev_compression(input_coors,
                                       dimension=dimension_params['dimension'],
                                       offset=dimension_params['offset'],
                                       resolution=resolution)  # [b, w, l, h, c]
-    dense_voxels_shape = tf.shape(dense_voxels)
-    bev_img = tf.reshape(dense_voxels, shape=[dense_voxels_shape[0], 124, 140, 320])
+    dense_voxels_shape = dense_voxels.get_shape()
+    bev_img = tf.reshape(dense_voxels, shape=[tf.shape(dense_voxels)[0],
+                                              dense_voxels_shape[1],
+                                              dense_voxels_shape[2],
+                                              dense_voxels_shape[3]*dense_voxels_shape[4]])
 
     return bev_img

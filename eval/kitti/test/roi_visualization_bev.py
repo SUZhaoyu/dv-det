@@ -30,11 +30,11 @@ input_features_stack = np.load(join(data_home, 'input_features_{}.npy'.format(ta
 input_num_list_stack = np.load(join(data_home, 'input_num_list_{}.npy'.format(task)), allow_pickle=True)
 input_bboxes_stack = np.load(join(data_home, 'input_bboxes_{}.npy'.format(task)), allow_pickle=True)
 
-input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_inputs_placeholder(input_channels=1)
+input_coors_p, input_features_p, input_num_list_p, input_bbox_p = model.stage1_inputs_placeholder(input_channels=1, batch_size=1)
 is_training_p = tf.placeholder(dtype=tf.bool, shape=[], name='is_training')
 
 
-bev_img, logits = \
+bev_img, logits, coors = \
     model.stage1_model(input_coors=input_coors_p,
                        input_features=input_features_p,
                        input_num_list=input_num_list_p,
@@ -85,8 +85,8 @@ if __name__ == '__main__':
         # saver.restore(sess, model_path)
         prediction_output = []
         overall_iou = []
-        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata()
+        # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        # run_metadata = tf.RunMetadata()
         for frame_id in tqdm(range(len(input_coors_stack))):
             batch_input_coors = input_coors_stack[frame_id]
             batch_input_features = input_features_stack[frame_id]
@@ -94,20 +94,20 @@ if __name__ == '__main__':
             batch_input_bboxes = input_bboxes_stack[frame_id]
             # , output_bboxes, output_coors, output_conf, output_idx = \
             #     sess.run([coors, roi_attrs, roi_coors, roi_conf, nms_idx],
-            output_img, output_logits = \
-                sess.run([bev_img, logits],
+            output_img, output_logits, output_coors = \
+                sess.run([bev_img, logits, coors],
                          feed_dict={input_coors_p: batch_input_coors,
                                     input_features_p: batch_input_features,
                                     input_num_list_p: batch_input_num_list,
                                     input_bbox_p: batch_input_bboxes,
-                                    is_training_p: False},
-                         options=run_options,
-                         run_metadata=run_metadata)
+                                    is_training_p: False})
+                         # options=run_options,
+                         # run_metadata=run_metadata)
 
-            tl = timeline.Timeline(run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format()
-            with open('timeline-stage1.json', 'w') as f:
-                f.write(ctf)
+            # tl = timeline.Timeline(run_metadata.step_stats)
+            # ctf = tl.generate_chrome_trace_format()
+            # with open('timeline-stage1.json', 'w') as f:
+            #     f.write(ctf)
 
         #     output_idx = output_conf > 0.3
         #     output_bboxes = output_bboxes[output_idx]

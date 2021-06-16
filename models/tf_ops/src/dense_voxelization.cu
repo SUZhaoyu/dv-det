@@ -90,7 +90,7 @@ void dense_voxelization_gpu_launcher(int batch_size, int input_point_num, int ch
                                      float* output_features,
                                      int* output_idx) {
     if (batch_size*input_point_num <=0) {
-        printf("BevProjectionOp ERROR: Invalid CUDA input dimensions.\n");
+        printf("BevProjectionOp ERROR: Invalid CUDA input dimensions: [%d, %d]\n", batch_size, input_point_num);
         return;
     }
 

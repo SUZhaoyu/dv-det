@@ -126,6 +126,7 @@ def get_iou_loss_weight(current_step, total_l1_step):
 #   self.optimizer = opt.apply_gradients(zip(clipped_gradients, params))
 
 def get_train_op(loss, learning_rate, opt='adam', var_keywords=None, global_step=None, use_hvd=False):
+    # TODO: Need to check the AdamW optimizer: https://www.fast.ai/2018/07/02/adam-weight-decay
     if opt == 'adam':
         optimizer = tf.train.AdamOptimizer(learning_rate)
     elif opt == 'sgd':

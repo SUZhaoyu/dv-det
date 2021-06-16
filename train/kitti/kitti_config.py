@@ -118,7 +118,7 @@ base_params_inference = {'base_00': {'subsample_res': 0.10, 'c_out':  16, 'kerne
                          'base_07': {'subsample_res': 0.40, 'c_out':  32, 'kernel_res': None, 'concat': True},
                          'base_08': {'subsample_res': None, 'c_out':  64, 'kernel_res': [0.80, 0.80, 0.40], 'concat': False},
                          'base_09': {'subsample_res': None, 'c_out':  64, 'kernel_res': None, 'concat': False},
-                         'base_10': {'subsample_res': 0.60, 'c_out':  64, 'kernel_res': None, 'concat': True}}
+                         'base_10': {'subsample_res': None, 'c_out':  64, 'kernel_res': None, 'concat': True}}
                          # 'base_11': {'subsample_res': None, 'c_out': 128, 'kernel_res': [1.60, 1.60, 0.80], 'concat': False},
                          # 'base_12': {'subsample_res': None, 'c_out': 128, 'kernel_res': None, 'concat': False},
                          # 'base_13': {'subsample_res': None, 'c_out': 128, 'kernel_res': None, 'concat': True}}
